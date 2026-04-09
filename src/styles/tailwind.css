@@ -179,4 +179,36 @@
 		background: rgb(var(--color-scrollbar-thumb-hover) / 0.42);
 		background-clip: padding-box;
 	}
+
+	/* Autofill styling for browser password/autocomplete managers */
+	input:-webkit-autofill,
+	input:-webkit-autofill:hover,
+	input:-webkit-autofill:focus,
+	textarea:-webkit-autofill,
+	textarea:-webkit-autofill:hover,
+	textarea:-webkit-autofill:focus,
+	select:-webkit-autofill,
+	select:-webkit-autofill:hover,
+	select:-webkit-autofill:focus {
+		-webkit-box-shadow: 0 0 0 1000px #f8fdf8 inset !important;
+		-webkit-text-fill-color: #228b22 !important;
+		caret-color: #155015 !important;
+		color: #228b22 !important;
+	}
+
+	/* Dark mode autofill */
+	html[data-theme='dark'] input:-webkit-autofill,
+	html[data-theme='dark'] input:-webkit-autofill:hover,
+	html[data-theme='dark'] input:-webkit-autofill:focus,
+	html[data-theme='dark'] textarea:-webkit-autofill,
+	html[data-theme='dark'] textarea:-webkit-autofill:hover,
+	html[data-theme='dark'] textarea:-webkit-autofill:focus,
+	html[data-theme='dark'] select:-webkit-autofill,
+	html[data-theme='dark'] select:-webkit-autofill:hover,
+	html[data-theme='dark'] select:-webkit-autofill:focus {
+		-webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+		-webkit-text-fill-color: #90ee90 !important;
+		caret-color: #90ee90 !important;
+		color: #90ee90 !important;
+	}
 }

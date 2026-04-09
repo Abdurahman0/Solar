@@ -72,12 +72,13 @@ function isLikelyIdValue(value: string, session: Conversation): boolean {
 function resolveDisplayName(
 	session: Conversation,
 	statePayload: SessionStatePayload | null,
+	fallbackUnknown: string,
 ): string {
 	const candidates: Array<string | null> = [
 		statePayload?.customer_name ?? null,
 		statePayload?.structured_extraction?.name ?? null,
-		session.client?.name ?? null,
-		session.lead?.name ?? null,
+		session.client?.fullName ?? null,
+		session.lead?.fullName ?? null,
 	]
 
 	for (const candidate of candidates) {
@@ -97,7 +98,7 @@ function resolveDisplayName(
 		return normalized
 	}
 
-	return "Noma'lum mijoz"
+	return fallbackUnknown
 }
 
 function resolveStatePayload(
@@ -134,21 +135,6 @@ function resolveStatePayload(
 	return null
 }
 
-function resolveChannelLabel(channel: Conversation['channel']): string {
-	switch (channel) {
-		case 'telegram':
-			return 'Telegram'
-		case 'instagram':
-			return 'Instagram'
-		case 'web':
-			return 'Veb'
-		case 'manual':
-			return "Qo'lda"
-		default:
-			return "Noma'lum"
-	}
-}
-
 function formatDateTime(
 	value: string | null,
 	language: string,
@@ -182,7 +168,23 @@ function ChatUserProfilePanel({
 	onClose,
 }: ChatUserProfilePanelProps) {
 	const { i18n } = useTranslation()
+	const isRu = i18n.language === 'ru'
 	const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ'
+	const labels = {
+		profile: isRu ? 'Профиль клиента' : 'Mijoz profili',
+		closeProfile: isRu ? 'Закрыть панель профиля' : 'Profil panelini yopish',
+		mainInfo: isRu ? 'Основная информация' : "Asosiy ma'lumot",
+		phone: isRu ? 'Телефон' : 'Telefon',
+		address: isRu ? 'Адрес' : 'Manzil',
+		lastActivity: isRu ? 'Последняя активность' : 'Oxirgi faollik',
+		context: isRu ? 'Контекст' : 'Kontekst',
+		selectedProduct: isRu ? 'Выбранный продукт' : 'Tanlangan mahsulot',
+		noData: isRu ? 'Данные не найдены' : "Ma'lumot topilmadi",
+		unknownCustomer: isRu ? 'Неизвестный клиент' : "Noma'lum mijoz",
+		unknownChannel: isRu ? 'Неизвестно' : "Noma'lum",
+		manual: isRu ? 'Вручную' : "Qo'lda",
+		web: isRu ? 'Веб' : 'Veb',
+	}
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -208,7 +210,7 @@ function ChatUserProfilePanel({
 
 		const statePayload = resolveStatePayload(session)
 
-		const name = resolveDisplayName(session, statePayload)
+		const name = resolveDisplayName(session, statePayload, labels.unknownCustomer)
 
 		const phone =
 			statePayload?.phone ??
@@ -234,11 +236,19 @@ function ChatUserProfilePanel({
 			phone,
 			address,
 			selectedProduct,
-			channelLabel: resolveChannelLabel(session.channel),
-			externalId: session.external_id,
+			channelLabel:
+				session.channel === 'manual'
+					? labels.manual
+					: session.channel === 'web'
+						? labels.web
+						: session.channel === 'telegram'
+							? 'Telegram'
+							: session.channel === 'instagram'
+								? 'Instagram'
+								: labels.unknownChannel,
 			lastActivity,
 		}
-	}, [i18n.language, locale, session])
+	}, [i18n.language, labels.manual, labels.unknownChannel, labels.unknownCustomer, labels.web, locale, session])
 
 	const panel = (
 		<div
@@ -260,17 +270,17 @@ function ChatUserProfilePanel({
 					'absolute inset-y-0 right-0 flex h-full w-full max-w-full flex-col bg-surface-card p-4 shadow-[-18px_0_42px_-30px_rgba(25,28,30,0.36)] ring-1 ring-border-soft/55 transition-transform duration-base min-[640px]:max-w-[360px] min-[640px]:p-5',
 					isOpen ? 'translate-x-0' : 'translate-x-full',
 				].join(' ')}
-				aria-label='Mijoz profili'
+				aria-label={labels.profile}
 			>
 				<header className='mb-4 flex items-center justify-between gap-3'>
 					<h2 className='m-0 text-[1rem] font-semibold text-text-primary'>
-						Mijoz profili
+						{labels.profile}
 					</h2>
 					<button
 						type='button'
 						className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-card text-text-primary ring-1 ring-border-soft/55 transition duration-fast hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30'
 						onClick={onClose}
-						aria-label='Profil panelini yopish'
+						aria-label={labels.closeProfile}
 					>
 						<AppIcon name='close' className='h-4.5 w-4.5' aria-hidden='true' />
 					</button>
@@ -302,7 +312,7 @@ function ChatUserProfilePanel({
 
 							<section className='rounded-xl bg-surface-card p-4 ring-1 ring-border-soft/45'>
 								<h3 className='m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									Asosiy ma'lumot
+									{labels.mainInfo}
 								</h3>
 								<div className='mt-3 grid gap-2.5'>
 									{profileData.phone ? (
@@ -310,7 +320,7 @@ function ChatUserProfilePanel({
 											<FiPhone className='mt-0.5 h-4 w-4 text-text-muted' />
 											<div className='min-w-0'>
 												<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted'>
-													Telefon
+													{labels.phone}
 												</p>
 												<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary'>
 													{profileData.phone}
@@ -324,7 +334,7 @@ function ChatUserProfilePanel({
 											<FiMapPin className='mt-0.5 h-4 w-4 text-text-muted' />
 											<div className='min-w-0'>
 												<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted'>
-													Manzil
+													{labels.address}
 												</p>
 												<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary [overflow-wrap:anywhere]'>
 													{profileData.address}
@@ -333,21 +343,10 @@ function ChatUserProfilePanel({
 										</div>
 									) : null}
 
-									{profileData.externalId ? (
-										<div className='rounded-lg bg-surface-subtle/75 px-3 py-2.5'>
-											<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted'>
-												Tashqi ID
-											</p>
-											<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary [overflow-wrap:anywhere]'>
-												{profileData.externalId}
-											</p>
-										</div>
-									) : null}
-
 									{profileData.lastActivity ? (
 										<div className='rounded-lg bg-surface-subtle/75 px-3 py-2.5'>
 											<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted'>
-												Oxirgi faollik
+												{labels.lastActivity}
 											</p>
 											<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary'>
 												{profileData.lastActivity}
@@ -360,13 +359,13 @@ function ChatUserProfilePanel({
 							{profileData.selectedProduct ? (
 								<section className='rounded-xl bg-surface-card p-4 ring-1 ring-border-soft/45'>
 									<h3 className='m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-										Kontekst
+										{labels.context}
 									</h3>
 									<div className='mt-3 flex items-start gap-2.5 rounded-lg bg-surface-subtle/75 px-3 py-2.5'>
 										<FiTag className='mt-0.5 h-4 w-4 text-text-muted' />
 										<div className='min-w-0'>
 											<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted'>
-												Tanlangan mahsulot
+												{labels.selectedProduct}
 											</p>
 											<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary [overflow-wrap:anywhere]'>
 												{profileData.selectedProduct}
@@ -379,7 +378,7 @@ function ChatUserProfilePanel({
 					) : (
 						<section className='rounded-xl bg-surface-card p-4 ring-1 ring-border-soft/45'>
 							<p className='m-0 text-sm font-medium text-text-secondary'>
-								Ma'lumot topilmadi
+								{labels.noData}
 							</p>
 						</section>
 					)}

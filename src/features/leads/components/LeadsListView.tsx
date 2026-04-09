@@ -1,8 +1,8 @@
-/**
+﻿/**
  * LeadsListView - Leads list with filtering and pagination
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { FiPlus, FiSearch } from 'react-icons/fi'
 import { useList } from '../../../components/hooks'
 import { DataTable, type ColumnDef } from '../../../components/ui/tables'
@@ -22,35 +22,34 @@ export function LeadsListView({ onRowClick, onCreateNew }: LeadsListViewProps) {
 		page_size: 20,
 	})
 
-	const [state, actions] = useList(params => services.leads.listLeads(params), {
+	const fetcher = useCallback(
+		(params?: LeadsListParams) => services.leads.listLeads(params),
+		[]
+	)
+
+	const [state, actions] = useList<Lead, LeadsListParams>(fetcher, {
 		params: filters,
 		autoFetch: true,
 	})
 
 	const columns: ColumnDef<Lead>[] = [
 		{
-			id: 'name',
+			id: 'full_name',
 			header: 'Name',
-			accessorKey: 'name',
-			cell: lead => <span className='font-medium'>{lead.name}</span>,
-		},
-		{
-			id: 'email',
-			header: 'Email',
-			accessorKey: 'email',
-			cell: lead => lead.email || '—',
+			accessorKey: 'full_name',
+			cell: lead => <span className='font-medium'>{lead.full_name}</span>,
 		},
 		{
 			id: 'phone',
 			header: 'Phone',
 			accessorKey: 'phone',
-			cell: lead => lead.phone || '—',
+			cell: lead => lead.phone || '-',
 		},
 		{
-			id: 'company',
-			header: 'Company',
-			accessorKey: 'company',
-			cell: lead => lead.company || '—',
+			id: 'source',
+			header: 'Source',
+			accessorKey: 'source',
+			cell: lead => lead.source || '-',
 		},
 		{
 			id: 'status',
@@ -67,7 +66,7 @@ export function LeadsListView({ onRowClick, onCreateNew }: LeadsListViewProps) {
 			header: 'Created',
 			accessorKey: 'created_at',
 			cell: lead =>
-				lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—',
+				lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-',
 		},
 	]
 
@@ -79,7 +78,6 @@ export function LeadsListView({ onRowClick, onCreateNew }: LeadsListViewProps) {
 
 	return (
 		<div className='flex flex-col gap-4'>
-			{/* Header */}
 			<div className='flex items-center justify-between gap-4'>
 				<h1 className='text-xl font-bold text-text-primary'>Leads</h1>
 				<button
@@ -91,7 +89,6 @@ export function LeadsListView({ onRowClick, onCreateNew }: LeadsListViewProps) {
 				</button>
 			</div>
 
-			{/* Search */}
 			<div className='relative'>
 				<FiSearch className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted' />
 				<input
@@ -103,7 +100,6 @@ export function LeadsListView({ onRowClick, onCreateNew }: LeadsListViewProps) {
 				/>
 			</div>
 
-			{/* Table */}
 			<DataTable
 				columns={columns}
 				data={state.items}

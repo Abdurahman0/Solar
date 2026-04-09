@@ -135,17 +135,14 @@ function AiSettingsPage() {
       setHasError(false);
 
       try {
-        const [result, activeSetting] = await Promise.all([
-          services.aiSettings.listSettings({
-            page: currentPage,
-            pageSize: PAGE_SIZE,
-            search: search.trim() || undefined,
-            is_active: toBooleanActiveFilter(activeFilter),
-            ordering,
-            ...parseOrdering(ordering),
-          }),
-          services.aiSettings.getActiveSetting().catch(() => null),
-        ]);
+        const result = await services.aiSettings.listSettings({
+          page: currentPage,
+          pageSize: PAGE_SIZE,
+          search: search.trim() || undefined,
+          is_active: toBooleanActiveFilter(activeFilter),
+          ordering,
+          ...parseOrdering(ordering),
+        });
 
         if (!isActive) {
           return;
@@ -156,15 +153,7 @@ function AiSettingsPage() {
           return;
         }
 
-        const resolvedActiveId = activeSetting?.id ?? null;
-        setSettings(
-          resolvedActiveId
-            ? result.items.map((setting: AISetting) => ({
-                ...setting,
-                is_active: setting.id === resolvedActiveId,
-              }))
-            : result.items,
-        );
+        setSettings(result.items);
         setPaginationMeta(result.meta);
       } catch {
         if (!isActive) {
@@ -317,18 +306,6 @@ function AiSettingsPage() {
               className={actionButtonClassName}
               onClick={(event) => {
                 event.stopPropagation();
-                void handleSetActive(setting.id);
-              }}
-              disabled={setting.is_active}
-              aria-label={`${t('aiSettings.actions.setActive')} ${setting.name}`}
-            >
-              <AppIcon name="activity" className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className={actionButtonClassName}
-              onClick={(event) => {
-                event.stopPropagation();
                 requestDelete(setting);
               }}
               disabled={setting.is_active}
@@ -429,32 +406,6 @@ function AiSettingsPage() {
     } finally {
       setIsDeleting(false);
     }
-  }
-
-  async function handleSetActive(id: EntityId): Promise<AISetting | null> {
-    const updated = await services.aiSettings.setActiveSetting(id);
-    if (!updated) {
-      return null;
-    }
-
-    setSettings((current) =>
-      current.map((setting) =>
-        setting.id === updated.id
-          ? updated
-          : setting.is_active
-            ? {
-                ...setting,
-                is_active: false,
-                updated_at: updated.updated_at,
-                updated_by: updated.updated_by,
-              }
-            : setting,
-      ),
-    );
-    setDetailRefreshToken((current) => current + 1);
-    setReloadCursor((current) => current + 1);
-
-    return updated;
   }
 
   const activeFilterCount =
@@ -616,7 +567,6 @@ function AiSettingsPage() {
             requestDelete(setting);
             setSelectedSettingId(null);
           }}
-          onSetActive={handleSetActive}
         />
       ) : null}
 

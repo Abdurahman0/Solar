@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Chikko",
+    "appName": "Solar",
     "loading": "Загрузка...",
     "save": "Сохранить",
     "cancel": "Отмена",
@@ -51,9 +51,17 @@
       "title": "Клиенты",
       "description": "Список клиентов и профили."
     },
+    "clients": {
+      "title": "Клиенты",
+      "description": "Список клиентов и профили."
+    },
     "products": {
       "title": "Товары",
       "description": "Управление каталогом, ценами и остатками."
+    },
+    "contracts": {
+      "title": "Договоры",
+      "description": "Управление договорами и документами."
     },
     "orders": {
       "title": "Заказы",
@@ -114,7 +122,9 @@
       "integrations": "Подключения",
       "leads": "Поток лидов",
       "customers": "Клиенты",
+      "clients": "Клиенты",
       "products": "Каталог",
+      "contracts": "Договоры",
       "orders": "Заказы",
       "couriers": "Доставка",
       "agents": "Агенты",
@@ -138,19 +148,19 @@
   },
   "auth": {
     "login": {
-      "eyebrow": "Chikko CRM",
+      "eyebrow": "Solar CRM",
       "subtitle": "Платформа управления CRM",
-      "emailLabel": "Email или телефон",
-      "emailPlaceholder": "developer@example.com",
+      "usernameLabel": "Имя пользователя",
+      "usernamePlaceholder": "developer",
       "passwordLabel": "Пароль",
-      "emailError": "Введите корректный email адрес.",
+      "usernameError": "Введите имя пользователя.",
       "passwordError": "Пароль должен содержать не менее 8 символов.",
-      "invalidCredentials": "Неверный email или пароль.",
+      "invalidCredentials": "Неверное имя пользователя или пароль.",
       "signIn": "Войти",
       "signingIn": "Вход...",
       "hidePassword": "Скрыть пароль",
       "showPassword": "Показать пароль",
-      "footerRights": "© 2026 Chikko. Все права защищены.",
+      "footerRights": "© 2026 Solar. Все права защищены.",
       "footerPowered": "Разработчик"
     },
     "accessDenied": {
@@ -245,13 +255,17 @@
       "paymentStatus": "Статус платежа",
       "chatChannels": "Каналы чата",
       "performance": "Ключевые показатели",
-      "topProducts": "Топ товары"
+      "topProducts": "Топ товары",
+      "regionDemand": "Спрос по регионам",
+      "managerPerformance": "Эффективность менеджеров"
     },
     "descriptions": {
       "trend": "Динамика лидов, клиентов и заказов за выбранный период.",
       "source": "Самые активные каналы по объёму лидов.",
       "leadStatus": "Распределение статусов по воронке.",
-      "topProducts": "Список самых продаваемых товаров по объёму продаж."
+      "topProducts": "Список самых продаваемых товаров по объёму продаж.",
+      "regionDemand": "Распределение лидов по регионам за выбранный период.",
+      "managerPerformance": "Показатели менеджеров по общему, выигранным и потерянным лидам."
     },
     "performance": {
       "leadConversionRate": "Коэффициент конверсии лидов",
@@ -265,6 +279,24 @@
         "product": "Товар",
         "sold": "Продано",
         "revenue": "Выручка"
+      }
+    },
+    "regionDemand": {
+      "empty": "Данные по регионам не найдены.",
+      "emptyDescription": "За выбранный период нет данных по регионам.",
+      "columns": {
+        "region": "Регион",
+        "total": "Лиды"
+      }
+    },
+    "managerPerformance": {
+      "empty": "Данные по менеджерам не найдены.",
+      "emptyDescription": "За выбранный период нет данных по менеджерам.",
+      "columns": {
+        "manager": "Менеджер",
+        "total": "Всего",
+        "won": "Выиграно",
+        "lost": "Потеряно"
       }
     },
     "noLeads": "Лидов нет",
@@ -607,9 +639,7 @@
     "subtitle": "Управляйте ценами, остатками и активным статусом из одного каталога.",
     "newProduct": "Новый товар",
     "newCategory": "Новая категория",
-    "newBrand": "Новый бренд",
     "allCurrencies": "Все валюты",
-    "allBrands": "Все бренды",
     "allStatuses": "Все статусы",
     "allReviewsModes": "Отзывы: все",
     "reviewsEnabled": "Отзывы включены",
@@ -633,20 +663,12 @@
     "categoriesCountLabel": "категории",
     "activeFilters": "активных",
     "promotedCountLabel": "рекламных товаров",
-    "brandsCountLabel": "брендов",
     "catalogTitle": "Каталог товаров",
     "catalogHint": "Нажмите на строку, чтобы посмотреть детали",
     "promotedCatalogTitle": "Рекламные товары",
     "promotedCatalogHint": "Список товаров, отмеченных для рекламы",
     "categoriesCatalogTitle": "Каталог категорий",
     "categoriesCatalogHint": "Выберите действие для редактирования категории",
-    "brandsCatalogTitle": "Каталог брендов",
-    "brandsCatalogHint": "Нажмите на строку, чтобы редактировать бренд",
-    "brandSearchPlaceholder": "Поиск по названию или коду бренда...",
-    "brandsEmptyTitle": "Бренды не найдены",
-    "brandsEmptyDescription": "Пока не добавлено ни одного бренда.",
-    "brandsErrorTitle": "Бренды недоступны",
-    "brandsErrorDescription": "Не удалось загрузить бренды из текущего сервиса.",
     "loadingTitle": "Загрузка товаров",
     "loadingDescription": "Получение данных каталога.",
     "errorTitle": "Товары недоступны",
@@ -675,13 +697,6 @@
       "updated": "Дата обновления",
       "actions": "Действия"
     },
-    "brandColumns": {
-      "name": "Бренд",
-      "code": "Код",
-      "status": "Статус",
-      "updated": "Дата обновления",
-      "actions": "Действия"
-    },
     "noDescription": "Нет описания",
     "promotedBadge": "Реклама",
     "actions": {
@@ -689,10 +704,6 @@
       "delete": "Удалить"
     },
     "categoryActions": {
-      "edit": "Редактировать",
-      "delete": "Удалить"
-    },
-    "brandActions": {
       "edit": "Редактировать",
       "delete": "Удалить"
     },
@@ -723,35 +734,6 @@
       "title": "Удалить категорию \"{{name}}\"?",
       "description": "Это действие удалит категорию из списка и не может быть отменено.",
       "confirm": "Удалить категорию",
-      "deleting": "Удаление..."
-    },
-    "brandForm": {
-      "ariaLabel": "Форма добавления бренда",
-      "eyebrow": "Форма бренда",
-      "createTitle": "Новый бренд",
-      "editTitle": "Редактировать бренд",
-      "createSubtitle": "Добавьте новый бренд для товаров.",
-      "editSubtitle": "Обновите данные бренда.",
-      "name": "Название бренда",
-      "namePlaceholder": "Например: Nestle",
-      "code": "Код",
-      "description": "Описание",
-      "descriptionPlaceholder": "Краткое описание бренда",
-      "active": "Активный бренд",
-      "activeHint": "Переключите бренд в активное или неактивное состояние.",
-      "create": "Добавить бренд",
-      "save": "Сохранить изменения",
-      "creating": "Добавление...",
-      "saving": "Сохранение...",
-      "requiredError": "Введите название бренда.",
-      "saveError": "Не удалось сохранить бренд."
-    },
-    "brandDeleteDialog": {
-      "ariaLabel": "Окно удаления бренда",
-      "eyebrow": "Подтверждение удаления",
-      "title": "Удалить бренд \"{{name}}\"?",
-      "description": "Это действие удалит бренд из списка и не может быть отменено.",
-      "confirm": "Удалить бренд",
       "deleting": "Удаление..."
     },
     "detail": {
@@ -794,7 +776,6 @@
       "skuAutoHint": "SKU создаётся автоматически по категории.",
       "description": "Описание",
       "category": "Категория",
-      "brand": "Бренд",
       "categoryPlaceholder": "Например: care",
       "price": "Цена",
       "stockQuantity": "Количество на складе",

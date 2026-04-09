@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { navigationConfig, type NavigationIconKey } from '../config/navigation'
+import { navigationConfig } from '../config/navigation'
 import AppIcon from '../components/shared/icons/AppIcon'
 import { useAuth } from '../auth'
 import { services } from '../services'
@@ -9,23 +9,6 @@ import { services } from '../services'
 interface AppSidebarProps {
 	isOpen: boolean
 	onClose: () => void
-}
-
-const navigationItemMeta: Record<
-	NavigationIconKey,
-	{ caption: string; label?: string }
-> = {
-	dashboard: { caption: 'Overview' },
-	users: { caption: 'Access' },
-	integrations: { caption: 'Connections' },
-	leads: { caption: 'Pipeline' },
-	clients: { caption: 'Accounts' },
-	products: { caption: 'Catalog' },
-	contracts: { caption: 'Agreements' },
-	chats: { caption: 'Inbox' },
-	notifications: { caption: 'Alerts', label: 'Alerts' },
-	'ai-settings': { caption: 'Workspace', label: 'AI Studio' },
-	logs: { caption: 'Audit', label: 'Audit Log' },
 }
 
 const closeButtonClassName = [
@@ -50,8 +33,17 @@ const navLinkActiveClassName = [
 	'bg-primary/10 text-text-accent shadow-sm ring-1 ring-primary/20',
 ].join(' ')
 
+function resolveTranslationId(id: string): string {
+	if (id === 'chats') {
+		return 'chat'
+	}
+
+	return id
+}
+
 function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
-	const { t } = useTranslation()
+	const { t, i18n } = useTranslation()
+	const isRu = i18n.language === 'ru'
 	const { canAccessRoute } = useAuth()
 	const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
 	const canViewNotifications = canAccessRoute('notifications')
@@ -70,7 +62,7 @@ function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 			try {
 				const result = await services.notifications.listNotifications({
 					page: 1,
-					page_size: 1,
+					pageSize: 1,
 					is_read: false,
 					ordering: '-created_at',
 				})
@@ -79,7 +71,7 @@ function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 					return
 				}
 
-				setUnreadNotificationsCount(Math.max(0, result.total))
+				setUnreadNotificationsCount(Math.max(0, result.meta?.totalItems ?? 0))
 			} catch {
 				if (!isActive) {
 					return
@@ -159,7 +151,7 @@ function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 					type='button'
 					className={closeButtonClassName}
 					onClick={onClose}
-					aria-label='Close navigation'
+					aria-label={isRu ? 'Навигацияни ёпиш' : 'Navigatsiyani yopish'}
 				>
 					<AppIcon name='close' className='h-4.5 w-4.5' aria-hidden='true' />
 				</button>
@@ -174,14 +166,15 @@ function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 							})}
 						</p>
 						<nav
-							aria-label={`${t(`navigation.groups.${group.id}`, {
+							aria-label={t(`navigation.groups.${group.id}`, {
 								defaultValue: group.label,
-							})} navigation`}
+							})}
 							className='grid gap-1.5'
 						>
 							{group.items.map(item => {
 								const showUnreadBadge =
 									item.id === 'notifications' && unreadNotificationsCount > 0
+								const translationId = resolveTranslationId(item.id)
 
 								return (
 									<NavLink
@@ -222,16 +215,13 @@ function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 												</span>
 												<span className='grid min-w-0 gap-[3px]'>
 													<span className='font-semibold [overflow-wrap:anywhere]'>
-														{t(`routes.${item.id}.title`, {
-															defaultValue:
-																navigationItemMeta[item.iconKey].label ??
-																item.label,
+														{t(`routes.${translationId}.title`, {
+															defaultValue: item.label,
 														})}
 													</span>
 													<small className='text-[11px] tracking-[0.02em] text-text-muted [overflow-wrap:anywhere]'>
-														{t(`navigation.captions.${item.id}`, {
-															defaultValue:
-																navigationItemMeta[item.iconKey].caption,
+														{t(`navigation.captions.${translationId}`, {
+															defaultValue: item.label,
 														})}
 													</small>
 												</span>

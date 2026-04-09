@@ -53,6 +53,10 @@ function resolveChannel(
     return value;
   }
 
+  if (value === 'inapp' || value === 'app') {
+    return 'in_app';
+  }
+
   return 'system';
 }
 
@@ -204,7 +208,9 @@ export function mapNotificationDtoToModel(dto: NotificationDto): AppNotification
   const nowIso = new Date().toISOString();
   const id = readString(dto.id);
   const title = readString(dto.title);
-  const message = readString(dto.message);
+  const message = readString(dto.body) || readString(dto.message);
+  const category = readString(dto.category);
+  const channel = resolveChannel(dto.channel || category);
   const user =
     mapUser(dto.user) ||
     mapUser(dto.actor) ||
@@ -217,7 +223,7 @@ export function mapNotificationDtoToModel(dto: NotificationDto): AppNotification
     updated_at: readString(dto.updated_at, nowIso),
     title: title || "Bildirishnoma",
     message: message || '',
-    channel: resolveChannel(dto.channel),
+    channel,
     is_read: readBoolean(dto.is_read),
     metadata: mapMetadata(dto.metadata),
     user,
@@ -241,6 +247,8 @@ export function mapNotificationListDtoToItems(value: unknown): AppNotification[]
     ? payload.results
     : Array.isArray(payload.items)
       ? payload.items
+      : Array.isArray(payload.data)
+        ? payload.data
       : [];
 
   return results

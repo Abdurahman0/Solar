@@ -4,39 +4,114 @@
 
 import type {
 	BaseEntity,
-	CreateInput,
 	ListParams,
 	PaginatedResponse,
-	UpdateInput,
 } from './common.contracts'
 
 export interface Contract extends BaseEntity {
+	client: string
+	client_name: string
 	title: string
-	description?: string
-	client_id?: string
-	status?: 'draft' | 'active' | 'completed' | 'cancelled'
-	contract_date?: string
-	start_date?: string
-	end_date?: string
-	amount?: number
-	currency?: string
-	file_url?: string
-	file_name?: string
-	assigned_to?: string
-	tags?: string[]
-	metadata?: Record<string, unknown>
+	status:
+		| 'draft'
+		| 'audit_pending'
+		| 'audit_paid'
+		| 'moderation'
+		| 'contract_ready'
+		| 'payment_pending'
+		| 'paid'
+		| 'delivered'
+		| 'sent'
+		| 'signed'
+		| 'canceled'
+	panel_type: 'jinko_ja' | 'longi_hi_mo_x10' | ''
+	panel_type_label?: string
+	inverter_type: 'deye' | 'solax' | ''
+	inverter_type_label?: string
+	requested_power_kw: number | null
+	audit_power_kw?: number | null
+	subsidy_percent?: string | number | null
+	subsidy_amount?: string | number | null
+	customer_amount?: string | number | null
+	customer_phone?: string
+	installation_address?: string
+	delivery_status?: string
+	delivery_status_label?: string
+	delivery_notes?: string
+	total_amount?: string | number | null
+	file?: string | null
+	file_url?: string | null
+	download_url?: string | null
+	cadastre_file?: string | null
+	cadastre_file_url?: string | null
+	house_image?: string | null
+	house_image_url?: string | null
+	details?: string | Record<string, unknown> | null
+	items: ContractItem[]
 }
 
-export interface CreateContractInput extends CreateInput<Contract> {
-	title: string
+export interface ContractItem {
+	id?: string
+	product: string
+	product_name?: string
+	quantity: number
+	unit_price: string | number
 }
 
-export interface UpdateContractInput extends UpdateInput<Contract> {}
+export interface CreateContractInput {
+	client: string
+	title: string
+	status?: Contract['status']
+	panel_type?: Contract['panel_type']
+	inverter_type?: Contract['inverter_type']
+	requested_power_kw?: number
+	audit_power_kw?: number | null
+	subsidy_percent?: string | number | null
+	customer_phone?: string
+	installation_address?: string
+	delivery_status?: string
+	delivery_notes?: string
+	details?: string
+	items?: Array<{
+		product: string
+		quantity: number
+		unit_price: string | number
+	}>
+	file?: string | File | null
+	cadastre_file?: string | File | null
+	house_image?: string | File | null
+}
+
+export interface UpdateContractInput {
+	client?: string
+	title?: string
+	status?: Contract['status']
+	panel_type?: Contract['panel_type'] | null
+	inverter_type?: Contract['inverter_type'] | null
+	requested_power_kw?: number | null
+	audit_power_kw?: number | null
+	subsidy_percent?: string | number | null
+	customer_phone?: string
+	installation_address?: string
+	delivery_status?: string
+	delivery_notes?: string
+	details?: string
+	file?: string | File | null
+	cadastre_file?: string | File | null
+	house_image?: string | File | null
+	items?: Array<{
+		product: string
+		quantity: number
+		unit_price: string | number
+	}>
+}
 
 export interface ContractsListParams extends ListParams {
 	status?: string
-	client_id?: string
-	assigned_to?: string
+	client?: string
+	inverter_type?: 'deye' | 'solax'
+	panel_type?: 'jinko_ja' | 'longi_hi_mo_x10'
+	requested_power_kw?: number
 	search?: string
 }
 

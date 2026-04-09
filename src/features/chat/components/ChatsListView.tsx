@@ -2,7 +2,7 @@
  * ChatsListView - Chat sessions list with status filtering
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { FiSearch, FiMessageSquare } from 'react-icons/fi'
 import { useList } from '../../../components/hooks'
 import { DataTable, type ColumnDef } from '../../../components/ui/tables'
@@ -26,8 +26,13 @@ export function ChatsListView({ onRowClick }: ChatsListViewProps) {
 		page_size: 20,
 	})
 
+	const fetcher = useCallback(
+		(params?: ChatSessionsListParams) => services.chat.listSessions(params) as any,
+		[]
+	)
+
 	const [state, actions] = useList<ChatSession, ChatSessionsListParams>(
-		params => services.chat.listSessions(params) as any,
+		fetcher,
 		{
 			params: filters,
 			autoFetch: true,

@@ -1,12 +1,11 @@
 ﻿// @ts-nocheck
 
 
-import type { Product, ProductBrand, ProductCategory, ProductImage } from '../../types/domain';
+import type { Product, ProductCategory, ProductImage } from '../../types/domain';
 
 export type ProductDto = Record<string, unknown>;
 export type ProductImageDto = Record<string, unknown>;
 export type ProductCategoryDto = Record<string, unknown>;
-export type ProductBrandDto = Record<string, unknown>;
 
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -51,7 +50,7 @@ function readInteger(value: unknown, fallback = 0): number {
   return Math.floor(readNumber(value, fallback));
 }
 
-function readBoolean(value: unknown): boolean {
+function readBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === 'boolean') {
     return value;
   }
@@ -66,7 +65,7 @@ function readBoolean(value: unknown): boolean {
     }
   }
 
-  return Boolean(value);
+  return value == null ? fallback : Boolean(value);
 }
 
 function isUuid(value: string): boolean {
@@ -171,7 +170,11 @@ export function mapProductDtoToModel(dto: ProductDto): Product {
   const metadata = mapMetadata(dto.metadata);
   const images = mapImages(dto.images);
   const firstImageUrl =
-    images[0]?.imageUrl || readString(dto.image) || readString(dto.image_url) || undefined;
+    readString(dto.primary_image_url) ||
+    images[0]?.imageUrl ||
+    readString(dto.image) ||
+    readString(dto.image_url) ||
+    undefined;
 
   // Category mapping
   const categoryRecord = toRecord(dto.category);
@@ -193,24 +196,6 @@ export function mapProductDtoToModel(dto: ProductDto): Product {
     ? mapProductCategoryDtoToModel(categoryRecord as ProductCategoryDto)
     : undefined;
 
-  // Brand mapping
-  const brandRecord = toRecord(dto.brand);
-  const brandIdFromDto = readString(dto.brand_id);
-  const brandIdFromObject = readString(brandRecord?.id);
-  const brandFromDto = readString(dto.brand);
-  const brandIdFromRaw = isUuid(brandFromDto) ? brandFromDto : '';
-
-  const brandId = brandIdFromDto || brandIdFromObject || brandIdFromRaw || undefined;
-  const brandName =
-    readString(dto.brand_name) ||
-    readString(brandRecord?.name) ||
-    (brandFromDto && !isUuid(brandFromDto) ? brandFromDto : '') ||
-    undefined;
-
-  const brand = brandRecord
-    ? mapProductBrandDtoToModel(brandRecord as ProductBrandDto)
-    : undefined;
-
   return {
     id: readString(dto.id) || `product-${nowIso}`,
     name: readString(dto.name) || "Noma'lum mahsulot",
@@ -219,9 +204,6 @@ export function mapProductDtoToModel(dto: ProductDto): Product {
     categoryId,
     categoryName,
     category,
-    brandId,
-    brandName,
-    brand,
     price,
     promoPrice: undefined,
     currency: readString(dto.currency, 'UZS'),
@@ -255,6 +237,8 @@ export function mapProductListDtoToItems(value: unknown): Product[] {
 
   const results = Array.isArray(payload.results)
     ? payload.results
+    : Array.isArray(payload.data)
+      ? payload.data
     : Array.isArray(payload.items)
       ? payload.items
       : [];
@@ -279,7 +263,7 @@ export function mapProductCategoryDtoToModel(
     description: readString(dto.description) || undefined,
     image: readString(dto.image) || null,
     imageUrl,
-    isActive: readBoolean(dto.is_active),
+    isActive: readBoolean(dto.is_active, true),
     createdAt: readString(dto.created_at, nowIso),
     updatedAt: readString(dto.updated_at, nowIso),
   };
@@ -300,6 +284,8 @@ export function mapProductCategoryListDtoToItems(value: unknown): ProductCategor
 
   const results = Array.isArray(payload.results)
     ? payload.results
+    : Array.isArray(payload.data)
+      ? payload.data
     : Array.isArray(payload.items)
       ? payload.items
       : [];
@@ -308,46 +294,5 @@ export function mapProductCategoryListDtoToItems(value: unknown): ProductCategor
     .map((item) => toRecord(item))
     .filter((item): item is ProductCategoryDto => item !== null)
     .map((item) => mapProductCategoryDtoToModel(item));
-}
-
-export function mapProductBrandDtoToModel(
-  dto: ProductBrandDto,
-): ProductBrand {
-  const nowIso = new Date().toISOString();
-
-  return {
-    id: readString(dto.id) || `product-brand-${nowIso}`,
-    name: readString(dto.name),
-    code: readString(dto.code),
-    description: readString(dto.description) || undefined,
-    isActive: readBoolean(dto.is_active),
-    createdAt: readString(dto.created_at, nowIso),
-    updatedAt: readString(dto.updated_at, nowIso),
-  };
-}
-
-export function mapProductBrandListDtoToItems(value: unknown): ProductBrand[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => toRecord(item))
-      .filter((item): item is ProductBrandDto => item !== null)
-      .map((item) => mapProductBrandDtoToModel(item));
-  }
-
-  const payload = toRecord(value);
-  if (!payload) {
-    return [];
-  }
-
-  const results = Array.isArray(payload.results)
-    ? payload.results
-    : Array.isArray(payload.items)
-      ? payload.items
-      : [];
-
-  return results
-    .map((item) => toRecord(item))
-    .filter((item): item is ProductBrandDto => item !== null)
-    .map((item) => mapProductBrandDtoToModel(item));
 }
 

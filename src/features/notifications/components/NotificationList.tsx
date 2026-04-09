@@ -1,5 +1,6 @@
 import { EmptyState, LoadingState } from '../../../components/shared/page';
 import { StatusBadge } from '../../../components/shared/data';
+import { useTranslation } from 'react-i18next';
 import type { AppNotification, EntityId } from '../../../types/domain';
 import {
   formatNotificationMessage,
@@ -8,6 +9,7 @@ import {
   getNotificationUserLabel,
   getNotificationChannelClassName,
   getNotificationChannelLabel,
+  getNotificationReadLabel,
 } from '../utils/notification-format';
 
 interface NotificationListProps {
@@ -35,11 +37,14 @@ function NotificationList({
   isFiltered,
   onSelectNotification,
 }: NotificationListProps) {
+  const { i18n } = useTranslation();
+  const isRu = i18n.language === 'ru';
+
   if (isLoading) {
     return (
       <LoadingState
-        title="Yuklanmoqda..."
-        description="Bildirishnomalar ro'yxati olinmoqda."
+        title={isRu ? 'Загрузка...' : 'Yuklanmoqda...'}
+        description={isRu ? 'Загружается список уведомлений.' : "Bildirishnomalar ro'yxati olinmoqda."}
       />
     );
   }
@@ -47,8 +52,8 @@ function NotificationList({
   if (hasError) {
     return (
       <EmptyState
-        title="Bildirishnomani yuklab bo'lmadi"
-        description="Xatolik sababli ro'yxatni olishning imkoni bo'lmadi."
+        title={isRu ? 'Не удалось загрузить уведомления' : "Bildirishnomani yuklab bo'lmadi"}
+        description={isRu ? 'Не удалось получить список из-за ошибки.' : "Xatolik sababli ro'yxatni olishning imkoni bo'lmadi."}
       />
     );
   }
@@ -56,11 +61,11 @@ function NotificationList({
   if (!notifications.length) {
     return (
       <EmptyState
-        title={isFiltered ? 'Bildirishnoma topilmadi' : "Hozircha bildirishnomalar yo'q"}
+        title={isFiltered ? (isRu ? 'Уведомления не найдены' : 'Bildirishnoma topilmadi') : (isRu ? 'Пока нет уведомлений' : "Hozircha bildirishnomalar yo'q")}
         description={
           isFiltered
-            ? "Qidiruv yoki filterlarni o'zgartirib qayta urinib ko'ring."
-            : "Yangi hodisalar paydo bo'lganda bu yerda ko'rsatiladi."
+            ? (isRu ? 'Измените поиск или фильтры и попробуйте снова.' : "Qidiruv yoki filterlarni o'zgartirib qayta urinib ko'ring.")
+            : (isRu ? 'Новые события появятся здесь автоматически.' : "Yangi hodisalar paydo bo'lganda bu yerda ko'rsatiladi.")
         }
       />
     );
@@ -71,11 +76,12 @@ function NotificationList({
       {notifications.map((notification) => {
         const isSelected = selectedNotificationId === notification.id;
         const isUnread = !notification.is_read;
-        const notificationTitle = formatNotificationTitle(notification.title);
-        const notificationMessage = formatNotificationMessage(notification.message);
+        const notificationTitle = formatNotificationTitle(notification.title, i18n.language);
+        const notificationMessage = formatNotificationMessage(notification.message, i18n.language);
         const notificationUserLabel = getNotificationUserLabel(
           notification.user,
           notification.metadata,
+          i18n.language,
         );
 
         return (
@@ -115,7 +121,7 @@ function NotificationList({
               </div>
 
               <span className="shrink-0 text-[11px] font-medium text-text-muted">
-                {formatNotificationDateTime(notification.updated_at, 'uz-UZ')}
+                {formatNotificationDateTime(notification.updated_at, i18n.language, false)}
               </span>
             </div>
 
@@ -126,11 +132,11 @@ function NotificationList({
                   getNotificationChannelClassName(notification.channel),
                 ].join(' ')}
               >
-                {getNotificationChannelLabel(notification.channel)}
+                {getNotificationChannelLabel(notification.channel, i18n.language)}
               </span>
               <StatusBadge
                 status={notification.is_read ? 'read' : 'unread'}
-                label={notification.is_read ? "O'qilgan" : "O'qilmagan"}
+                label={getNotificationReadLabel(notification.is_read, i18n.language)}
               />
               <span className="text-[11px] font-medium text-text-muted">
                 {notificationUserLabel}

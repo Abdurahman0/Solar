@@ -21,7 +21,7 @@ interface LogoutOptions {
 
 type AuthStateListener = (state: AuthState) => void;
 
-const AUTH_USER_STORAGE_KEY = 'chikko-auth-user-v1';
+const AUTH_USER_STORAGE_KEY = 'solar-auth-user-v1';
 
 const authState: AuthState = {
   user: null,
@@ -140,11 +140,11 @@ export function clearStoredAuthUser(): void {
   persistUser(null);
 }
 
-export async function login(email: string, password: string): Promise<AuthenticatedUser> {
+export async function login(username: string, password: string): Promise<AuthenticatedUser> {
   setState({ loading: true });
 
   try {
-    const result = await authService.login(email, password);
+    const result = await authService.login(username, password);
     setTokens({ access: result.access, refresh: result.refresh });
 
     let effectiveUser = result.user;

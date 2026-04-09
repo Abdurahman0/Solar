@@ -118,12 +118,14 @@ export function useList<T, P extends ListParams = ListParams>(
 		}))
 	}, [])
 
-	// Auto-fetch on mount or param change
+	// Auto-fetch on mount or param change - prevent infinite loops
 	useEffect(() => {
 		if (options?.autoFetch !== false) {
 			fetch(params)
 		}
-	}, [fetch, params, options?.autoFetch])
+		// Only trigger on params change, not on fetch function change
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params, options?.autoFetch])
 
 	// Setup polling if requested
 	useEffect(() => {

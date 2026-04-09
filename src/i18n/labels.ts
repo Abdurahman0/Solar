@@ -1,12 +1,10 @@
 import type { TFunction } from 'i18next';
-import type { LeadStatus, UserRole, UserStatus } from '../types/domain';
+import type { UserRole, UserStatus } from '../types/domain';
 
-const LEAD_STATUS_KEYS: Record<LeadStatus, string> = {
+const LEAD_STATUS_KEYS: Record<string, string> = {
   new: 'labels.leadStatus.new',
   contacted: 'labels.leadStatus.contacted',
   qualified: 'labels.leadStatus.qualified',
-  negotiating: 'labels.leadStatus.negotiating',
-  converted: 'labels.leadStatus.converted',
   lost: 'labels.leadStatus.lost',
 };
 
@@ -128,7 +126,7 @@ function resolveLabel(
 
 export function getLeadStatusLabel(
   t: TFunction,
-  status: LeadStatus,
+  status: string,
   fallback?: string,
 ): string {
   return resolveLabel(t, LEAD_STATUS_KEYS, status, fallback);

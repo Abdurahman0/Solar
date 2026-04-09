@@ -1,7 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { initializeServices } from './services'
-import App from './App'
+import { initializeServices } from './services/registry'
 import './i18n'
 import './styles/tailwind.css'
 
@@ -13,7 +12,7 @@ const apiBaseUrl =
 initializeServices(apiBaseUrl)
 
 try {
-	const storedTheme = window.localStorage.getItem('chikko-theme')
+	const storedTheme = window.localStorage.getItem('solar-theme')
 
 	if (storedTheme === 'dark' || storedTheme === 'light') {
 		document.documentElement.dataset.theme = storedTheme
@@ -22,8 +21,12 @@ try {
 	// Ignore storage access issues and fall back to the default theme.
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-	<React.StrictMode>
-		<App />
-	</React.StrictMode>,
-)
+const root = ReactDOM.createRoot(document.getElementById('root')!)
+
+void import('./App').then(({ default: App }) => {
+	root.render(
+		<React.StrictMode>
+			<App />
+		</React.StrictMode>,
+	)
+})

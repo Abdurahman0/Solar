@@ -1,6 +1,6 @@
 import type { AuthSession } from './types';
 
-const AUTH_STORAGE_KEY = 'chikko-auth-session-v1';
+const AUTH_STORAGE_KEY = 'solar-auth-session-v1';
 
 function isValidSessionShape(value: unknown): value is AuthSession {
   if (!value || typeof value !== 'object') {

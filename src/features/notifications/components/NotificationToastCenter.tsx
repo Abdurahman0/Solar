@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../../../components/shared/data';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import { useAuth } from '../../../auth';
@@ -31,6 +32,8 @@ function trimMessage(message: string, maxLength = 180): string {
 }
 
 function NotificationToastCenter() {
+  const { i18n } = useTranslation();
+  const isRu = i18n.language === 'ru';
   const navigate = useNavigate();
   const { canAccessRoute } = useAuth();
   const canViewNotifications = canAccessRoute('notifications');
@@ -228,7 +231,7 @@ function NotificationToastCenter() {
       ? toasts.find((notification) => notification.id === hoveredToastId) ?? null
       : null;
   const hoveredToastUserLabel = hoveredToast
-    ? getNotificationUserLabel(hoveredToast.user, hoveredToast.metadata)
+    ? getNotificationUserLabel(hoveredToast.user, hoveredToast.metadata, i18n.language)
     : null;
 
   return (
@@ -292,10 +295,10 @@ function NotificationToastCenter() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-                    Bildirishnoma
+                    {isRu ? 'Уведомление' : 'Bildirishnoma'}
                   </p>
                   <h3 className="mt-1 line-clamp-2 font-display text-[1.15rem] font-extrabold leading-[1.12] tracking-[-0.025em] text-text-primary">
-                    {formatNotificationTitle(notification.title)}
+                    {formatNotificationTitle(notification.title, i18n.language)}
                   </h3>
                 </div>
 
@@ -306,7 +309,7 @@ function NotificationToastCenter() {
                     event.stopPropagation();
                     dismissToast(notification.id);
                   }}
-                  aria-label="Bildirishnoma toastini yopish"
+                  aria-label={isRu ? 'Закрыть уведомление' : 'Bildirishnoma toastini yopish'}
                 >
                   <AppIcon name="close" className="h-4.5 w-4.5" aria-hidden="true" />
                 </button>
@@ -325,21 +328,21 @@ function NotificationToastCenter() {
                 getNotificationChannelClassName(hoveredToast.channel),
               ].join(' ')}
             >
-              {getNotificationChannelLabel(hoveredToast.channel)}
+              {getNotificationChannelLabel(hoveredToast.channel, i18n.language)}
             </span>
             <StatusBadge
               status={hoveredToast.is_read ? 'read' : 'unread'}
-              label={getNotificationReadLabel(hoveredToast.is_read)}
+              label={getNotificationReadLabel(hoveredToast.is_read, i18n.language)}
             />
           </div>
 
           <p className="m-0 mt-3 text-sm leading-[1.45] text-text-secondary">
-            {trimMessage(formatNotificationMessage(hoveredToast.message))}
+            {trimMessage(formatNotificationMessage(hoveredToast.message, i18n.language))}
           </p>
 
           <div className="mt-3 rounded-lg bg-surface-subtle/85 px-3 py-2.5">
             <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted">
-              Foydalanuvchi
+              {isRu ? 'Пользователь' : 'Foydalanuvchi'}
             </p>
             <p className="m-0 mt-1 text-sm font-semibold text-text-primary">
               {hoveredToastUserLabel}

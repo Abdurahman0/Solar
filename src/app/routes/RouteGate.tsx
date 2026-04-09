@@ -20,7 +20,7 @@ function RouteGate({ route, children }: RouteGateProps) {
   const hasAccessToken = Boolean(getAccessToken());
 
   if (route.access === 'public') {
-    if (route.id === 'login' && isAuthenticated && hasAccessToken) {
+    if (route.id === 'login' && hasAccessToken) {
       return <Navigate replace to={resolveDefaultLandingPath()} />;
     }
 
@@ -35,7 +35,9 @@ function RouteGate({ route, children }: RouteGateProps) {
     );
   }
 
-  if (!hasAccessToken || !isAuthenticated) {
+  // For protected routes, check for access token instead of isAuthenticated state
+  // since the auth state subscription might be delayed
+  if (!hasAccessToken) {
     return (
       <Navigate
         replace

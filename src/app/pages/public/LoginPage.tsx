@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { FiArrowRight, FiEye, FiEyeOff, FiLock, FiMail } from 'react-icons/fi';
+import { FiArrowRight, FiEye, FiEyeOff, FiLock, FiUser } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -62,8 +62,8 @@ function extractLoginErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function isValidUsername(value: string): boolean {
+  return value.trim().length > 0;
 }
 
 function LoginPage() {
@@ -72,7 +72,7 @@ function LoginPage() {
   const location = useLocation();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -83,13 +83,13 @@ function LoginPage() {
     return state?.from;
   }, [location.state]);
 
-  const trimmedEmail = email.trim().toLowerCase();
-  const emailHasError = email.length > 0 && !isValidEmail(trimmedEmail);
+  const trimmedUsername = username.trim();
+  const usernameHasError = username.length > 0 && !isValidUsername(trimmedUsername);
   const passwordHasError = password.length > 0 && password.length < 8;
   const isFormValid =
-    trimmedEmail.length > 0 &&
+    trimmedUsername.length > 0 &&
     password.length >= 8 &&
-    isValidEmail(trimmedEmail);
+    isValidUsername(trimmedUsername);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -101,7 +101,8 @@ function LoginPage() {
     setErrorMessage(null);
 
     try {
-      const user = await login({ email: trimmedEmail, password });
+      const user = await login({ username: trimmedUsername, password });
+      
       const targetRoute = redirectFromPath
         ? getRouteByPathname(redirectFromPath)
         : undefined;
@@ -109,7 +110,10 @@ function LoginPage() {
         targetRoute && canAccessRouteForUser(user, targetRoute.id)
           ? targetRoute.path
           : resolveDefaultLandingPathForUser(user);
-
+      
+      // Give auth state time to propagate before navigating
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       navigate(nextPath, { replace: true });
     } catch (error) {
       setErrorMessage(
@@ -125,21 +129,21 @@ function LoginPage() {
       className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-8 sm:px-6"
       style={{
         background:
-          'radial-gradient(130% 120% at 0% 0%, #edf3ff 0%, #f7faff 48%, #f1f5fb 100%)',
+          'radial-gradient(130% 120% at 0% 0%, #e8f5e9 0%, #f1f8f5 48%, #ebf5f0 100%)',
       }}
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div
           className="absolute -top-24 -left-16 h-72 w-72 rounded-full blur-3xl"
-          style={{ background: 'rgba(37, 99, 235, 0.13)' }}
+          style={{ background: 'rgba(34, 139, 34, 0.13)' }}
         />
         <div
           className="absolute -bottom-24 -right-20 h-80 w-80 rounded-full blur-3xl"
-          style={{ background: 'rgba(56, 189, 248, 0.11)' }}
+          style={{ background: 'rgba(60, 179, 113, 0.11)' }}
         />
         <div
           className="absolute left-1/2 top-[14%] h-52 w-52 -translate-x-1/2 rounded-full blur-3xl"
-          style={{ background: 'rgba(59, 130, 246, 0.11)' }}
+          style={{ background: 'rgba(34, 139, 34, 0.11)' }}
         />
       </div>
 
@@ -149,22 +153,22 @@ function LoginPage() {
           style={{
             backgroundColor: '#ffffff',
             boxShadow:
-              '0 34px 72px -40px rgba(37, 84, 194, 0.52), 0 14px 24px -22px rgba(15, 23, 42, 0.26)',
-            border: '1px solid rgba(191, 219, 254, 0.7)',
+              '0 34px 72px -40px rgba(34, 139, 34, 0.52), 0 14px 24px -22px rgba(15, 23, 42, 0.26)',
+            border: '1px solid rgba(144, 238, 144, 0.4)',
           }}
         >
           <div className="text-center">
             <p
               className="text-[11px] font-semibold uppercase tracking-[0.24em]"
-              style={{ color: '#5d74af' }}
+              style={{ color: '#2d6b2d' }}
             >
               {t('auth.login.eyebrow')}
             </p>
             <h1
               className="mt-2 text-[2.2rem] font-extrabold leading-none tracking-[-0.038em]"
-              style={{ color: '#1e47b7' }}
+              style={{ color: '#228b22' }}
             >
-              Chikko
+              Solar
             </h1>
             <p className="mt-3 text-[0.98rem] leading-relaxed" style={{ color: '#67768e' }}>
               {t('auth.login.subtitle')}
@@ -177,39 +181,38 @@ function LoginPage() {
                 className="text-[12px] font-semibold tracking-[0.01em]"
                 style={{ color: '#334155' }}
               >
-                {t('auth.login.emailLabel')}
+                {t('auth.login.usernameLabel')}
               </span>
               <span
                 className="relative flex h-[52px] items-center rounded-[14px] border transition duration-fast focus-within:ring-4"
                 style={{
-                  backgroundColor: '#fbfdff',
-                  borderColor: emailHasError ? '#ef4444' : '#c9d6ea',
+                  backgroundColor: '#f8fdf8',
+                  borderColor: usernameHasError ? '#ef4444' : '#b3e5b3',
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.95)',
-                  ['--tw-ring-color' as string]: 'rgba(96, 165, 250, 0.28)',
+                  ['--tw-ring-color' as string]: 'rgba(60, 179, 113, 0.28)',
                 }}
               >
-                <FiMail className="ml-4 h-[18px] w-[18px] shrink-0" style={{ color: '#7388ad' }} />
+                <FiUser className="ml-4 h-[18px] w-[18px] shrink-0" style={{ color: '#4a8f4a' }} />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
                   autoComplete="username"
                   required
-                  inputMode="email"
-                  aria-invalid={emailHasError}
-                  aria-describedby={emailHasError ? 'login-email-error' : undefined}
-                  placeholder={t('auth.login.emailPlaceholder')}
+                  aria-invalid={usernameHasError}
+                  aria-describedby={usernameHasError ? 'login-username-error' : undefined}
+                  placeholder={t('auth.login.usernamePlaceholder')}
                   className="h-full w-full rounded-[14px] border-0 bg-transparent px-3.5 pr-3.5 text-[15px] font-medium placeholder:text-[14px] placeholder:text-slate-400 focus:outline-none"
-                  style={{ color: '#0f172a', caretColor: '#1f4ec4' }}
+                  style={{ color: '#0f172a', caretColor: '#155015' }}
                 />
               </span>
-              {emailHasError ? (
+              {usernameHasError ? (
                 <span
-                  id="login-email-error"
+                  id="login-username-error"
                   className="text-xs font-medium"
                   style={{ color: '#dc2626' }}
                 >
-                  {t('auth.login.emailError')}
+                  {t('auth.login.usernameError')}
                 </span>
               ) : null}
             </label>
@@ -224,13 +227,13 @@ function LoginPage() {
               <span
                 className="relative flex h-[52px] items-center rounded-[14px] border transition duration-fast focus-within:ring-4"
                 style={{
-                  backgroundColor: '#fbfdff',
-                  borderColor: passwordHasError ? '#ef4444' : '#c9d6ea',
+                  backgroundColor: '#f8fdf8',
+                  borderColor: passwordHasError ? '#ef4444' : '#b3e5b3',
                   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.95)',
-                  ['--tw-ring-color' as string]: 'rgba(96, 165, 250, 0.28)',
+                  ['--tw-ring-color' as string]: 'rgba(60, 179, 113, 0.28)',
                 }}
               >
-                <FiLock className="ml-4 h-[18px] w-[18px] shrink-0" style={{ color: '#7388ad' }} />
+                <FiLock className="ml-4 h-[18px] w-[18px] shrink-0" style={{ color: '#4a8f4a' }} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -241,7 +244,7 @@ function LoginPage() {
                   aria-invalid={passwordHasError}
                   aria-describedby={passwordHasError ? 'login-password-error' : undefined}
                   className="h-full w-full rounded-[14px] border-0 bg-transparent px-3.5 pr-12 text-[15px] font-medium placeholder:text-[14px] placeholder:text-slate-400 focus:outline-none"
-                  style={{ color: '#0f172a', caretColor: '#1f4ec4' }}
+                  style={{ color: '#0f172a', caretColor: '#155015' }}
                 />
                 <button
                   type="button"
@@ -287,8 +290,8 @@ function LoginPage() {
               disabled={isSubmitting || !isFormValid}
               className="mt-2 inline-flex h-[52px] items-center justify-center gap-2 rounded-[14px] px-4 text-[1.02rem] font-semibold text-white transition duration-fast hover:-translate-y-px hover:brightness-105 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
               style={{
-                background: 'linear-gradient(102deg, #2f6bf0 0%, #2658cf 54%, #1f45b5 100%)',
-                boxShadow: '0 18px 34px -20px rgba(37, 84, 194, 0.78)',
+                background: 'linear-gradient(102deg, #228b22 0%, #1e7b1e 54%, #155015 100%)',
+                boxShadow: '0 18px 34px -20px rgba(34, 139, 34, 0.78)',
               }}
             >
               <FiArrowRight className="h-4 w-4" />
@@ -305,7 +308,7 @@ function LoginPage() {
               href="https://www.cognilabs.org"
               target="_blank"
               rel="noreferrer"
-              style={{ color: '#1f4ec4', fontWeight: 700 }}
+              style={{ color: '#155015', fontWeight: 700 }}
             >
               Cognilabs
             </a>

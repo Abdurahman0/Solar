@@ -32,7 +32,6 @@ import type {
   CreateUserInput,
   ManagedUser,
   UpdateUserInput,
-  UserPermission,
   UserRole,
 } from '../../../services/contracts';
 import type { PaginationMeta, SelectOption } from '../../../types/common';
@@ -76,7 +75,6 @@ function UsersPage() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState<ManagedUser[]>([]);
-  const [permissions, setPermissions] = useState<UserPermission[]>([]);
   const [paginationMeta, setPaginationMeta] = useState<PaginationMeta>(
     DEFAULT_PAGINATION_META,
   );
@@ -99,33 +97,6 @@ function UsersPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [search, roleFilter, activeFilter]);
-
-  useEffect(() => {
-    let isActive = true;
-
-    async function loadPermissions() {
-      try {
-        const result = await services.users.listPermissions();
-        if (!isActive) {
-          return;
-        }
-
-        setPermissions(result);
-      } catch {
-        if (!isActive) {
-          return;
-        }
-
-        setPermissions([]);
-      }
-    }
-
-    void loadPermissions();
-
-    return () => {
-      isActive = false;
-    };
-  }, [reloadCursor]);
 
   useEffect(() => {
     let isActive = true;
@@ -313,19 +284,6 @@ function UsersPage() {
     } finally {
       setIsDeleting(false);
     }
-  }
-
-  async function handleToggleUserActive(id: string): Promise<ManagedUser | null> {
-    const updated = await services.users.toggleUserActive(id);
-    if (!updated) {
-      return null;
-    }
-
-    setUsers((current) => current.map((user) => (user.id === id ? updated : user)));
-    setDetailRefreshToken((current) => current + 1);
-    setReloadCursor((current) => current + 1);
-
-    return updated;
   }
 
   const roleOptions = useMemo<SelectOption[]>(
@@ -645,7 +603,6 @@ function UsersPage() {
             requestDelete(user);
             setSelectedUserId(null);
           }}
-          onToggleActive={handleToggleUserActive}
         />
       ) : null}
 
@@ -653,7 +610,7 @@ function UsersPage() {
         <UserFormPanel
           mode={formMode}
           user={editingUser}
-          permissions={permissions}
+          permissions={[]}
           canManageDeveloperRole={canManageDeveloperRole}
           isSubmitting={isSaving}
           errorMessage={formErrorMessage}

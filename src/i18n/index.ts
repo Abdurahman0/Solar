@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import ru from './locales/ru.json';
 import uz from './locales/uz.json';
 
-const LANGUAGE_STORAGE_KEY = 'chikko-language';
+const LANGUAGE_STORAGE_KEY = 'solar-language';
 const SUPPORTED_LANGUAGES = ['uz', 'ru'] as const;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 

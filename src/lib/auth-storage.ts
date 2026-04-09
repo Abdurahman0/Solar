@@ -3,9 +3,9 @@ export interface AuthTokens {
   refresh: string;
 }
 
-const ACCESS_TOKEN_KEY = 'chikko-auth-access-token';
-const REFRESH_TOKEN_KEY = 'chikko-auth-refresh-token';
-const LEGACY_SESSION_KEY = 'chikko-auth-session-v1';
+const ACCESS_TOKEN_KEY = 'solar-auth-access-token';
+const REFRESH_TOKEN_KEY = 'solar-auth-refresh-token';
+const LEGACY_SESSION_KEY = 'solar-auth-session-v1';
 
 function readStorageValue(key: string): string | null {
   if (typeof window === 'undefined') {

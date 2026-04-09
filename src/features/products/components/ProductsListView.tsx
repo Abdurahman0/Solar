@@ -2,7 +2,7 @@
  * ProductsListView - Products list with category filtering and pagination
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { FiPlus, FiSearch } from 'react-icons/fi'
 import { useList } from '../../../components/hooks'
 import { DataTable, type ColumnDef } from '../../../components/ui/tables'
@@ -42,11 +42,17 @@ export function ProductsListView({
 			})
 	}, [])
 
-	const [state, actions] = useList(
-		params =>
+	// Memoize the fetcher to prevent infinite loops
+	const fetcher = useCallback(
+		(params?: ProductsListParams) =>
 			services.products.listProducts(
 				params,
 			) as Promise<PaginatedResponse<Product>>,
+		[],
+	)
+
+	const [state, actions] = useList(
+		fetcher,
 		{
 			params: filters,
 			autoFetch: true,

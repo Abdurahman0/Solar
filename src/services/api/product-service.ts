@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-
+// @ts-nocheck
 
 import type { ProductService } from '../core/contracts';
 import type {
@@ -8,24 +7,20 @@ import type {
   ProductCategoryListParams,
   ProductCategoryMutationInput,
   ProductCategoryPatchInput,
-  ProductBrandListParams,
-  ProductBrandMutationInput,
-  ProductBrandPatchInput,
   ProductMutationInput,
   ProductPatchInput,
   TableQueryParams,
 } from '../../types/domain';
 import { apiClient } from '../../lib/api-client';
 import {
-  mapProductBrandDtoToModel,
-  mapProductBrandListDtoToItems,
   mapProductCategoryDtoToModel,
   mapProductCategoryListDtoToItems,
   mapProductDtoToModel,
+  mapProductImageDtoToModel,
   mapProductListDtoToItems,
-  type ProductBrandDto,
   type ProductCategoryDto,
   type ProductDto,
+  type ProductImageDto,
 } from '../adapters/product-adapter';
 
 function readNumber(value: unknown): number | null {
@@ -51,17 +46,15 @@ function toRecord(value: unknown): Record<string, unknown> | null {
 
 function toPaginatedResult<T>(
   allItems: T[],
-  params?: { page?: number; pageSize?: number },
+  params?: { page?: number; pageSize?: number; page_size?: number },
   totalItemsHint?: number | null,
 ): PaginatedResult<T> {
   const page = Math.max(1, params?.page ?? 1);
-  const pageSize = Math.max(1, params?.pageSize ?? 10);
+  const pageSize = Math.max(1, params?.pageSize ?? params?.page_size ?? 10);
   const start = (page - 1) * pageSize;
   const hasServerPaginationHint = typeof totalItemsHint === 'number' && totalItemsHint >= 0;
 
-  const items = hasServerPaginationHint
-    ? allItems
-    : allItems.slice(start, start + pageSize);
+  const items = hasServerPaginationHint ? allItems : allItems.slice(start, start + pageSize);
   const totalItems = hasServerPaginationHint ? totalItemsHint : allItems.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
@@ -76,25 +69,17 @@ function toPaginatedResult<T>(
   };
 }
 
-function toMutationPayload(
-  input: ProductMutationInput | ProductPatchInput,
-): Record<string, unknown> {
+function toMutationPayload(input: ProductMutationInput | ProductPatchInput): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
 
   if (input.name !== undefined) {
     payload.name = input.name;
-  }
-  if (input.sku !== undefined) {
-    payload.sku = input.sku;
   }
   if (input.description !== undefined) {
     payload.description = input.description;
   }
   if (input.price !== undefined) {
     payload.price = input.price;
-  }
-  if (input.currency !== undefined) {
-    payload.currency = input.currency;
   }
   if (input.stockQuantity !== undefined) {
     payload.stock_quantity = input.stockQuantity;
@@ -108,51 +93,19 @@ function toMutationPayload(
   if (input.isPromoted !== undefined) {
     payload.is_promoted = input.isPromoted;
   }
-  if (input.reviewsEnabled !== undefined) {
-    payload.reviews_enabled = input.reviewsEnabled;
-  }
   if (input.categoryId !== undefined) {
     const normalizedCategoryId =
       typeof input.categoryId === 'string' ? input.categoryId.trim() : input.categoryId;
-    payload.category_id = normalizedCategoryId;
-    // Keep legacy key for backward compatibility with older API versions.
     payload.category = normalizedCategoryId;
   }
-  if (input.brandId !== undefined) {
-    const normalizedBrandId =
-      typeof input.brandId === 'string' ? input.brandId.trim() : input.brandId;
-    payload.brand_id = normalizedBrandId;
-    // Keep legacy key if needed, though usually not for brands.
-    payload.brand = normalizedBrandId;
+  if (input.metadata !== undefined) {
+    payload.metadata = input.metadata;
   }
   return payload;
 }
 
 function toCategoryMutationPayload(
   input: ProductCategoryMutationInput | ProductCategoryPatchInput,
-): FormData {
-  const formData = new FormData();
-
-  if (input.name !== undefined) {
-    formData.append('name', input.name);
-  }
-  if (input.code !== undefined) {
-    formData.append('code', input.code);
-  }
-  if (input.description !== undefined) {
-    formData.append('description', input.description);
-  }
-  if (input.isActive !== undefined) {
-    formData.append('is_active', String(input.isActive));
-  }
-  if (input.image !== undefined && input.image !== null) {
-    formData.append('image', input.image);
-  }
-  return formData;
-}
-
-function toBrandMutationPayload(
-  input: ProductBrandMutationInput | ProductBrandPatchInput,
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
 
@@ -162,26 +115,7 @@ function toBrandMutationPayload(
   if (input.code !== undefined) {
     payload.code = input.code;
   }
-  if (input.description !== undefined) {
-    payload.description = input.description;
-  }
-  if (input.isActive !== undefined) {
-    payload.is_active = input.isActive;
-  }
   return payload;
-}
-
-function toImageUploadFormData(payload: FormData | File[]): FormData {
-  if (payload instanceof FormData) {
-    return payload;
-  }
-
-  const formData = new FormData();
-  for (const file of payload) {
-    formData.append('images', file);
-  }
-
-  return formData;
 }
 
 export const apiProductService: ProductService = {
@@ -196,21 +130,13 @@ export const apiProductService: ProductService = {
   async listProducts(params) {
     const { data } = await apiClient.get<unknown>('/api/products/', {
       params: {
-        page: params?.page,
-        page_size: params?.pageSize,
+        page: params?.page ?? 1,
+        page_size: params?.pageSize ?? params?.page_size,
         search: params?.search,
-        category: params?.category ?? params?.category_id,
-        brand: params?.brand,
-        currency: params?.currency,
-        is_active: params?.isActive ?? params?.is_active,
         is_promoted: params?.isPromoted ?? params?.is_promoted,
-        reviews_enabled:
-          params?.reviewsEnabled ?? params?.reviews_enabled,
         ordering:
           params?.ordering ??
-          (params?.sortBy
-            ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}`
-            : undefined),
+          (params?.sortBy ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}` : undefined),
       },
     });
 
@@ -243,10 +169,7 @@ export const apiProductService: ProductService = {
   },
 
   async updateProduct(id, input) {
-    const { data } = await apiClient.put<ProductDto>(
-      `/api/products/${id}/`,
-      toMutationPayload(input),
-    );
+    const { data } = await apiClient.patch<ProductDto>(`/api/products/${id}/`, toMutationPayload(input));
     return mapProductDtoToModel(data);
   },
 
@@ -255,10 +178,7 @@ export const apiProductService: ProductService = {
   },
 
   async patchProduct(id, input) {
-    const { data } = await apiClient.patch<ProductDto>(
-      `/api/products/${id}/`,
-      toMutationPayload(input),
-    );
+    const { data } = await apiClient.patch<ProductDto>(`/api/products/${id}/`, toMutationPayload(input));
     return mapProductDtoToModel(data);
   },
 
@@ -274,22 +194,25 @@ export const apiProductService: ProductService = {
   async listProductCategories(params?: ProductCategoryListParams) {
     const { data } = await apiClient.get<unknown>('/api/products/categories/', {
       params: {
+        page: params?.page ?? 1,
+        page_size: params?.pageSize ?? params?.page_size,
         search: params?.search,
         ordering: params?.ordering,
-        is_active: params?.isActive ?? params?.is_active,
       },
     });
 
     const items = mapProductCategoryListDtoToItems(data);
+    const payload =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : null;
+    const totalItemsHint = readNumber(payload?.count);
 
-    // The new API returns a plain array; simulate pagination client-side.
-    return toPaginatedResult(items, params);
+    return toPaginatedResult(items, params, totalItemsHint);
   },
 
   async getProductCategoryById(id) {
-    const { data } = await apiClient.get<ProductCategoryDto>(
-      `/api/products/categories/${id}/`,
-    );
+    const { data } = await apiClient.get<ProductCategoryDto>(`/api/products/categories/${id}/`);
     return mapProductCategoryDtoToModel(data);
   },
 
@@ -302,7 +225,7 @@ export const apiProductService: ProductService = {
   },
 
   async updateProductCategory(id, input) {
-    const { data } = await apiClient.put<ProductCategoryDto>(
+    const { data } = await apiClient.patch<ProductCategoryDto>(
       `/api/products/categories/${id}/`,
       toCategoryMutationPayload(input),
     );
@@ -322,64 +245,62 @@ export const apiProductService: ProductService = {
     return true;
   },
 
-  async listProductBrands(params?: ProductBrandListParams) {
-    const { data } = await apiClient.get<unknown>('/api/products/brands/', {
+  async listProductImages(productId, params) {
+    const { data } = await apiClient.get<unknown>(`/api/products/${productId}/images/`, {
       params: {
+        page: params?.page,
+        page_size: params?.pageSize ?? params?.page_size,
         search: params?.search,
-        ordering: params?.ordering,
-        is_active: params?.isActive ?? params?.is_active,
+        ordering:
+          params?.ordering ??
+          (params?.sortBy ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}` : undefined),
       },
     });
 
-    const items = mapProductBrandListDtoToItems(data);
-    return toPaginatedResult(items, params);
+    if (Array.isArray(data)) {
+      return data
+        .map((item) => toRecord(item))
+        .filter((item): item is ProductImageDto => item !== null)
+        .map((item, index) => mapProductImageDtoToModel(item, index));
+    }
+
+    const payload = toRecord(data);
+    const results = Array.isArray(payload?.results) ? payload.results : [];
+    return results
+      .map((item) => toRecord(item))
+      .filter((item): item is ProductImageDto => item !== null)
+      .map((item, index) => mapProductImageDtoToModel(item, index));
   },
 
-  async getProductBrandById(id) {
-    const { data } = await apiClient.get<ProductBrandDto>(
-      `/api/products/brands/${id}/`,
-    );
-    return mapProductBrandDtoToModel(data);
-  },
+  async createProductImage(
+    productId,
+    input: { image: File; altText?: string; isPrimary?: boolean },
+  ) {
+    const formData = new FormData();
+    formData.append('product', String(productId));
+    formData.append('image', input.image);
+    if (input.altText) {
+      formData.append('alt_text', input.altText);
+    }
+    if (input.isPrimary !== undefined) {
+      formData.append('is_primary', String(input.isPrimary));
+    }
 
-  async createProductBrand(input) {
-    const { data } = await apiClient.post<ProductBrandDto>(
-      '/api/products/brands/',
-      toBrandMutationPayload(input),
-    );
-    return mapProductBrandDtoToModel(data);
-  },
-
-  async updateProductBrand(id, input) {
-    const { data } = await apiClient.put<ProductBrandDto>(
-      `/api/products/brands/${id}/`,
-      toBrandMutationPayload(input),
-    );
-    return mapProductBrandDtoToModel(data);
-  },
-
-  async patchProductBrand(id, input) {
-    const { data } = await apiClient.patch<ProductBrandDto>(
-      `/api/products/brands/${id}/`,
-      toBrandMutationPayload(input),
-    );
-    return mapProductBrandDtoToModel(data);
-  },
-
-  async deleteProductBrand(id: EntityId) {
-    await apiClient.delete(`/api/products/brands/${id}/`);
-    return true;
+    const { data } = await apiClient.post<ProductImageDto>(`/api/products/${productId}/images/`, formData);
+    return mapProductImageDtoToModel(data);
   },
 
   async uploadProductImages(productId, payload) {
-    const formData = toImageUploadFormData(payload);
-    const { data } = await apiClient.post<unknown>(
-      `/api/products/${productId}/upload-images/`,
-      formData,
-    );
+    if (payload instanceof FormData) {
+      await apiClient.post(`/api/products/${productId}/images/`, payload);
+      return apiProductService.getProductById(productId);
+    }
 
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-      return mapProductDtoToModel(data as ProductDto);
+    for (const file of payload) {
+      const formData = new FormData();
+      formData.append('product', String(productId));
+      formData.append('image', file);
+      await apiClient.post(`/api/products/${productId}/images/`, formData);
     }
 
     return apiProductService.getProductById(productId);
@@ -390,4 +311,3 @@ export const apiProductService: ProductService = {
     return true;
   },
 };
-

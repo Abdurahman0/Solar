@@ -72,6 +72,19 @@ export interface DashboardTopProduct {
   revenue?: string;
 }
 
+export interface DashboardRegionDemandItem {
+  region: string;
+  total: number;
+}
+
+export interface DashboardManagerPerformanceItem {
+  manager_id: string | null;
+  manager_username: string;
+  total: number;
+  won: number;
+  lost: number;
+}
+
 export interface DashboardFilteredSummary {
   leads: number;
   new_leads: number;
@@ -128,6 +141,8 @@ export interface DashboardOverview {
   filtered_summary: DashboardFilteredSummary;
   breakdowns: DashboardBreakdowns;
   time_series: DashboardTimeSeriesPoint[];
+  region_demand?: DashboardRegionDemandItem[];
+  manager_performance?: DashboardManagerPerformanceItem[];
 }
 
 export type DashboardInterval = 'day' | 'week' | 'month';

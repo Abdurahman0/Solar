@@ -3,7 +3,9 @@
 
 import type {
   DashboardBreakdownItem,
+  DashboardManagerPerformanceItem,
   DashboardOverview,
+  DashboardRegionDemandItem,
   DashboardTopProduct,
   DashboardTimeSeriesPoint,
 } from '../core/contracts';
@@ -102,13 +104,39 @@ function mapTimeSeries(value: unknown): DashboardTimeSeriesPoint[] {
       bucket_end: readString(itemRecord.bucket_end),
       label: readString(itemRecord.label),
       leads: readCount(itemRecord.leads),
-      customers: readCount(itemRecord.customers),
-      orders: readCount(itemRecord.orders),
-      completed_orders: readCount(itemRecord.completed_orders),
-      payments: readCount(itemRecord.payments),
-      unread_messages: readCount(itemRecord.unread_messages),
+      clients: readCount(itemRecord.clients ?? itemRecord.customers),
+      contracts: readCount(itemRecord.contracts ?? itemRecord.orders),
       revenue: readDecimalString(itemRecord.revenue),
       collected_amount: readDecimalString(itemRecord.collected_amount),
+    };
+  });
+}
+
+function mapRegionDemand(value: unknown): DashboardRegionDemandItem[] {
+  return toArray(value).map((item, index) => {
+    const itemRecord = toRecord(item) ?? {};
+    return {
+      region: readString(itemRecord.region) || `region-${index + 1}`,
+      total: readCount(itemRecord.total),
+    };
+  });
+}
+
+function mapManagerPerformance(value: unknown): DashboardManagerPerformanceItem[] {
+  return toArray(value).map((item) => {
+    const itemRecord = toRecord(item) ?? {};
+    const managerIdRaw = itemRecord.manager_id;
+    return {
+      manager_id:
+        typeof managerIdRaw === 'string'
+          ? managerIdRaw
+          : managerIdRaw == null
+            ? null
+            : String(managerIdRaw),
+      manager_username: readString(itemRecord.manager_username),
+      total: readCount(itemRecord.total),
+      won: readCount(itemRecord.won),
+      lost: readCount(itemRecord.lost),
     };
   });
 }
@@ -116,31 +144,120 @@ function mapTimeSeries(value: unknown): DashboardTimeSeriesPoint[] {
 export function mapDashboardOverviewDtoToModel(
   dto: DashboardOverviewDto,
 ): DashboardOverview {
-  const dateRange = toRecord(dto.date_range) ?? {};
-  const filteredSummary = toRecord(dto.filtered_summary) ?? {};
-  const breakdowns = toRecord(dto.breakdowns) ?? {};
+  const payloadWrapper = toRecord(dto);
+  const data =
+    toRecord(payloadWrapper?.data) ??
+    (readString(payloadWrapper?.status).toLowerCase() === 'success'
+      ? payloadWrapper
+      : payloadWrapper) ??
+    {};
+  const dateRange = toRecord(data.date_range) ?? {};
+  const filteredSummary = toRecord(data.filtered_summary) ?? {};
+  const breakdowns = toRecord(data.breakdowns) ?? {};
+
+  const mappedLeadStatus =
+    mapBreakdownItems(breakdowns.leads_by_status).length > 0
+      ? mapBreakdownItems(breakdowns.leads_by_status)
+      : [
+          { key: 'new', label: 'New', count: readCount(data.leads) },
+          { key: 'lost', label: 'Lost', count: readCount(data.lost_leads) },
+          { key: 'converted', label: 'Converted', count: readCount(data.clients) },
+        ];
+
+  const mappedLeadSource =
+    mapBreakdownItems(breakdowns.leads_by_source).length > 0
+      ? mapBreakdownItems(breakdowns.leads_by_source)
+      : toArray(data.source_distribution).map((item, index) => {
+          const itemRecord = toRecord(item) ?? {};
+          const source = readString(itemRecord.source) || `source-${index}`;
+          return {
+            key: source,
+            label: source,
+            count: readCount(itemRecord.total),
+          };
+        });
+
+  const mappedContractsByStatus =
+    mapBreakdownItems(breakdowns.contracts_by_status).length > 0
+      ? mapBreakdownItems(breakdowns.contracts_by_status)
+      : [
+          {
+            key: 'all',
+            label: 'Contracts',
+            count: readCount(data.contracts),
+          },
+        ];
+
+  const mappedChatsByChannel =
+    mapBreakdownItems(breakdowns.chats_by_channel).length > 0
+      ? mapBreakdownItems(breakdowns.chats_by_channel)
+      : mappedLeadSource;
+
+  const mappedTopProducts =
+    mapTopProducts(breakdowns.top_products).length > 0
+      ? mapTopProducts(breakdowns.top_products)
+      : toArray(data.top_products).map((item, index) => {
+          const itemRecord = toRecord(item) ?? {};
+          const productId = readString(itemRecord.id) || `product-${index}`;
+          const label = readString(itemRecord.name) || productId;
+          return {
+            product_id: productId,
+            key: productId,
+            label,
+            count: readCount(itemRecord.total),
+            revenue: '0',
+          };
+        });
+
+  const mappedTimeSeries =
+    mapTimeSeries(data.time_series).length > 0
+      ? mapTimeSeries(data.time_series)
+      : toArray(data.timeline).map((item, index) => {
+          const itemRecord = toRecord(item) ?? {};
+          const day = readString(itemRecord.date) || `day-${index}`;
+          return {
+            bucket_start: day,
+            bucket_end: day,
+            label: day,
+            leads: readCount(itemRecord.leads),
+            clients: readCount(itemRecord.clients),
+            contracts: readCount(itemRecord.contracts),
+            revenue: '0',
+            collected_amount: '0',
+          };
+        });
+
+  const dateFrom =
+    readString(dateRange.date_from) || readString(data.date_from) || '';
+  const dateTo = readString(dateRange.date_to) || readString(data.date_to) || '';
 
   return {
-    leads: readCount(dto.leads),
-    customers: readCount(dto.customers),
-    orders: readCount(dto.orders),
-    pending_payments: readCount(dto.pending_payments),
-    unread_messages: readCount(dto.unread_messages),
-    revenue: readDecimalString(dto.revenue),
+    leads: readCount(data.leads),
+    clients: readCount(data.clients),
+    customers: readCount(data.customers ?? data.clients),
+    orders: readCount(data.orders ?? data.contracts),
+    pending_payments: readCount(data.pending_payments),
+    contracts: readCount(data.contracts),
+    unread_messages: readCount(data.unread_messages ?? data.notifications),
+    revenue: readDecimalString(data.revenue),
     date_range: {
-      date_from: readString(dateRange.date_from),
-      date_to: readString(dateRange.date_to),
+      date_from: dateFrom,
+      date_to: dateTo,
       interval: readString(dateRange.interval, 'day'),
       label_format: readString(dateRange.label_format),
-      timezone: readString(dateRange.timezone),
+      timezone: readString(dateRange.timezone, 'Asia/Tashkent'),
     },
     filtered_summary: {
-      leads: readCount(filteredSummary.leads),
+      leads: readCount(filteredSummary.leads ?? data.leads),
       new_leads: readCount(filteredSummary.new_leads),
       converted_leads: readCount(filteredSummary.converted_leads),
-      customers: readCount(filteredSummary.customers),
+      customers: readCount(filteredSummary.customers ?? data.clients),
+      clients: readCount(filteredSummary.clients ?? data.clients),
       new_customers: readCount(filteredSummary.new_customers),
-      orders: readCount(filteredSummary.orders),
+      new_clients: readCount(filteredSummary.new_clients),
+      orders: readCount(filteredSummary.orders ?? data.contracts),
+      total_contracts: readCount(filteredSummary.total_contracts ?? data.contracts),
+      active_contracts: readCount(filteredSummary.active_contracts ?? data.contracts),
       draft_orders: readCount(filteredSummary.draft_orders),
       waiting_payment_orders: readCount(filteredSummary.waiting_payment_orders),
       pending_orders: readCount(filteredSummary.pending_orders),
@@ -148,30 +265,36 @@ export function mapDashboardOverviewDtoToModel(
       paid_orders: readCount(filteredSummary.paid_orders),
       cancelled_orders: readCount(filteredSummary.cancelled_orders),
       total_payments: readCount(filteredSummary.total_payments),
-      pending_payments: readCount(filteredSummary.pending_payments),
+      pending_payments: readCount(filteredSummary.pending_payments ?? data.pending_payments),
       approved_payments: readCount(filteredSummary.approved_payments),
       verified_payments: readCount(filteredSummary.verified_payments),
-      unread_messages: readCount(filteredSummary.unread_messages),
-      total_chat_sessions: readCount(filteredSummary.total_chat_sessions),
-      active_chat_sessions: readCount(filteredSummary.active_chat_sessions),
-      revenue: readDecimalString(filteredSummary.revenue),
+      unread_messages: readCount(filteredSummary.unread_messages ?? data.notifications),
+      total_chat_sessions: readCount(filteredSummary.total_chat_sessions ?? data.chats),
+      active_chat_sessions: readCount(filteredSummary.active_chat_sessions ?? data.chats),
+      revenue: readDecimalString(filteredSummary.revenue ?? data.revenue),
       collected_amount: readDecimalString(filteredSummary.collected_amount),
       pending_payment_amount: readDecimalString(filteredSummary.pending_payment_amount),
       average_order_value: readDecimalString(filteredSummary.average_order_value),
       lead_conversion_rate: readDecimalString(filteredSummary.lead_conversion_rate),
+      average_contract_value: readDecimalString(filteredSummary.average_contract_value),
+      contract_renewal_rate: readDecimalString(filteredSummary.contract_renewal_rate),
       order_completion_rate: readDecimalString(filteredSummary.order_completion_rate),
     },
     breakdowns: {
-      leads_by_status: mapBreakdownItems(breakdowns.leads_by_status),
-      leads_by_source: mapBreakdownItems(breakdowns.leads_by_source),
+      leads_by_status: mappedLeadStatus,
+      leads_by_source: mappedLeadSource,
+      contracts_by_status: mappedContractsByStatus,
       orders_by_status: mapBreakdownItems(breakdowns.orders_by_status),
+      products_by_category: mapBreakdownItems(breakdowns.products_by_category),
       orders_by_source: mapBreakdownItems(breakdowns.orders_by_source),
       payments_by_status: mapBreakdownItems(breakdowns.payments_by_status),
       payments_by_method: mapBreakdownItems(breakdowns.payments_by_method),
-      chats_by_channel: mapBreakdownItems(breakdowns.chats_by_channel),
-      top_products: mapTopProducts(breakdowns.top_products),
+      chats_by_channel: mappedChatsByChannel,
+      top_products: mappedTopProducts,
     },
-    time_series: mapTimeSeries(dto.time_series),
+    time_series: mappedTimeSeries,
+    region_demand: mapRegionDemand(data.region_demand),
+    manager_performance: mapManagerPerformance(data.manager_performance),
   };
 }
 

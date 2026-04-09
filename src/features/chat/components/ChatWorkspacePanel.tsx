@@ -56,17 +56,14 @@ const PAUSE_MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => {
 	return { value, label: value }
 })
 
-function formatDateTime(value: string | null): string {
-	if (!value) {
-		return 'Mavjud emas'
-	}
-
-	return new Intl.DateTimeFormat('uz-UZ', {
-		day: '2-digit',
-		month: '2-digit',
-		hour: '2-digit',
-		minute: '2-digit',
-	}).format(new Date(value))
+function formatDateTime(value: string | null, language: string): string {
+	return formatLocalizedDate(value, language, {
+		locale: language === 'ru' ? 'ru-RU' : 'uz-UZ',
+		withYear: true,
+		withTime: true,
+		shortMonth: true,
+		fallback: language === 'ru' ? 'Недоступно' : 'Mavjud emas',
+	})
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -113,7 +110,7 @@ function getSessionTitle(session: Conversation): string {
 	const stateCustomerName = asText(stateRecord?.customer_name)
 	const candidates = [
 		stateCustomerName,
-		session.client?.name ?? null,
+		session.client?.fullName ?? null,
 		session.lead?.fullName ?? null,
 	]
 
@@ -142,16 +139,16 @@ function getInitial(value: string): string {
 	return normalized.charAt(0).toUpperCase()
 }
 
-function getSessionPersonType(session: Conversation): string {
+function getSessionPersonType(session: Conversation, isRu: boolean): string {
 	if (session.client) {
-		return 'Mijoz'
+		return isRu ? 'Клиент' : 'Mijoz'
 	}
 
 	if (session.lead) {
-		return 'Lid'
+		return isRu ? 'Лид' : 'Lid'
 	}
 
-	return 'Kontakt'
+	return isRu ? 'Контакт' : 'Kontakt'
 }
 
 function isAIPaused(session: Conversation): boolean {
@@ -268,8 +265,32 @@ function ChatWorkspacePanel({
 	onResumeAI,
 }: ChatWorkspacePanelProps) {
 	const { i18n } = useTranslation()
+	const isRu = i18n.language === 'ru'
 	const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ'
 	const calendarLocale = i18n.language === 'ru' ? ru : uz
+	const senderLabels = isRu
+		? {
+				customer: 'Клиент',
+				ai: 'AI ассистент',
+				operator: 'Оператор',
+				system: 'Система',
+			}
+		: senderLabelByValue
+	const labels = {
+		selectDate: isRu ? 'Выберите дату' : 'Sana tanlang',
+		invalidTime: isRu ? 'Введите корректное время.' : "To'g'ri vaqt kiriting.",
+		futureTime: isRu ? 'Время должно быть позже текущего.' : "Vaqt hozirgi vaqtdan keyin bo'lishi kerak.",
+		resumeAi: isRu ? 'Продолжить AI' : 'AI ni davom ettirish',
+		pauseAiTime: isRu ? 'Выбрать время паузы AI' : "AI ni to'xtatish vaqtini tanlash",
+		deleteSession: isRu ? 'Удалить сессию' : "Sessiyani o'chirish",
+		pauseUntil: isRu ? 'До какого времени приостановить AI' : "AI ni qachongacha to'xtatish",
+		cancel: isRu ? 'Отмена' : 'Bekor qilish',
+		minuteShort: isRu ? 'мин' : 'daq',
+		messageLabel: isRu ? 'Текст сообщения' : '{labels.messageLabel}',
+		attachedImages: isRu ? 'Прикрепленные фото' : 'Biriktirilgan rasmlar',
+		attachedImage: isRu ? 'Прикрепленное фото' : 'Biriktirilgan rasm',
+		close: isRu ? 'Закрыть' : 'Yopish',
+	}
 	const [draftMessage, setDraftMessage] = useState('')
 	const [isProfilePanelOpen, setIsProfilePanelOpen] = useState(false)
 	const [isPauseEditorOpen, setIsPauseEditorOpen] = useState(false)
@@ -280,6 +301,7 @@ function ChatWorkspacePanel({
 	const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
 	const messagesContainerRef = useRef<HTMLDivElement | null>(null)
 	const lastScrollSignatureRef = useRef('')
+	const didInitialOpenScrollRef = useRef(false)
 
 	const canSend = useMemo(
 		() => draftMessage.trim().length > 0 && !isSending && Boolean(session),
@@ -296,7 +318,35 @@ function ChatWorkspacePanel({
 		setPauseTimeInput(defaults.time)
 		setPreviewImageUrl(null)
 		lastScrollSignatureRef.current = ''
+		didInitialOpenScrollRef.current = false
 	}, [session?.id])
+
+	useEffect(() => {
+		if (!session || isLoading || didInitialOpenScrollRef.current) {
+			return
+		}
+
+		const container = messagesContainerRef.current
+		if (!container) {
+			return
+		}
+
+		const scrollToBottom = () => {
+			container.scrollTo({
+				top: container.scrollHeight,
+				behavior: 'auto',
+			})
+		}
+
+		const rafId = window.requestAnimationFrame(scrollToBottom)
+		const timeoutId = window.setTimeout(scrollToBottom, 140)
+		didInitialOpenScrollRef.current = true
+
+		return () => {
+			window.cancelAnimationFrame(rafId)
+			window.clearTimeout(timeoutId)
+		}
+	}, [session?.id, isLoading, messages.length])
 
 	useEffect(() => {
 		const container = messagesContainerRef.current
@@ -338,8 +388,8 @@ function ChatWorkspacePanel({
 		return (
 			<div className='grid h-full min-h-0 place-items-center p-1'>
 				<EmptyState
-					title='Suhbat tanlanmagan'
-					description="Chap ro'yxatdan suhbat tanlang."
+					title={isRu ? 'Чат не выбран' : 'Suhbat tanlanmagan'}
+					description={isRu ? 'Выберите чат из списка слева.' : "Chap ro'yxatdan suhbat tanlang."}
 				/>
 			</div>
 		)
@@ -355,7 +405,7 @@ function ChatWorkspacePanel({
 				shortMonth: true,
 				fallback: '',
 			})
-		: 'Sana tanlang'
+		: labels.selectDate
 	const pauseTimeParts = splitTimeValue(pauseTimeInput)
 
 	function handleQuickPause(minutes: number) {
@@ -372,12 +422,12 @@ function ChatWorkspacePanel({
 
 		const pauseIso = toPauseIsoOrNull(pauseDate, pauseTimeInput)
 		if (!pauseIso) {
-			setPauseInputError("To'g'ri vaqt kiriting.")
+			setPauseInputError(labels.invalidTime)
 			return
 		}
 
 		if (new Date(pauseIso).getTime() <= Date.now()) {
-			setPauseInputError("Vaqt hozirgi vaqtdan keyin bo'lishi kerak.")
+			setPauseInputError(labels.futureTime)
 			return
 		}
 
@@ -394,7 +444,7 @@ function ChatWorkspacePanel({
 						type='button'
 						className='flex min-w-0 flex-1 items-center gap-3 rounded-lg border-0 bg-transparent p-0 text-left outline-none transition duration-fast cursor-pointer hover:opacity-95 focus-visible:ring-2 focus-visible:ring-primary/35'
 						onClick={() => setIsProfilePanelOpen(true)}
-						title='Mijoz profilini ochish'
+						title={isRu ? 'Открыть профиль клиента' : 'Mijoz profilini ochish'}
 					>
 						<span className='inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-blue-700 text-[16px] font-bold text-white shadow-[0_12px_28px_-20px_rgba(59,130,246,0.85)]'>
 							{getInitial(sessionTitle)}
@@ -404,7 +454,7 @@ function ChatWorkspacePanel({
 								{sessionTitle}
 							</h3>
 							<p className='m-0 mt-0.5 text-sm font-medium text-text-secondary'>
-								{getSessionPersonType(session)}
+								{getSessionPersonType(session, isRu)}
 							</p>
 						</div>
 					</button>
@@ -418,12 +468,12 @@ function ChatWorkspacePanel({
 									onResumeAI?.(activeSession)
 								}}
 								disabled={isUpdatingAIState}
-								aria-label='AI ni davom ettirish'
-								title='AI ni davom ettirish'
+								aria-label={labels.resumeAi}
+								title={labels.resumeAi}
 							>
 								<FiPlay className='h-4 w-4' />
 								<span className='text-xs font-semibold uppercase tracking-[0.08em]'>
-									{isUpdatingAIState ? '...' : 'AI On'}
+									{isUpdatingAIState ? '...' : (isRu ? 'AI yoqilgan' : 'AI yoqilgan')}
 								</span>
 							</button>
 						) : (
@@ -435,12 +485,12 @@ function ChatWorkspacePanel({
 									setIsPauseEditorOpen(current => !current)
 								}}
 								disabled={isUpdatingAIState}
-								aria-label="AI ni to'xtatish vaqtini tanlash"
-								title="AI ni to'xtatish vaqtini tanlash"
+								aria-label={labels.pauseAiTime}
+								title={labels.pauseAiTime}
 							>
 								<FiPause className='h-4 w-4' />
 								<span className='text-xs font-semibold uppercase tracking-[0.08em]'>
-									{isUpdatingAIState ? '...' : 'AI Off'}
+									{isUpdatingAIState ? '...' : (isRu ? 'AI to‘xtatilgan' : 'AI to‘xtatilgan')}
 								</span>
 							</button>
 						)}
@@ -454,8 +504,8 @@ function ChatWorkspacePanel({
 									onRequestDeleteSession(activeSession)
 								}}
 								disabled={isDeletingSession}
-								aria-label="Sessiyani o'chirish"
-								title="Sessiyani o'chirish"
+								aria-label={labels.deleteSession}
+								title={labels.deleteSession}
 							>
 								<FiTrash2 className='h-4 w-4' />
 							</button>
@@ -465,14 +515,14 @@ function ChatWorkspacePanel({
 
 				{aiPaused && session.ai_paused_until ? (
 					<p className='m-0 mt-2 text-[12px] font-medium text-warning'>
-						AI to'xtatilgan: {formatDateTime(activeSession.ai_paused_until)}
+						{isRu ? 'AI to‘xtatilgan' : "AI to'xtatilgan"}: {formatDateTime(activeSession.ai_paused_until, i18n.language)}
 					</p>
 				) : null}
 
 				{!aiPaused && isPauseEditorOpen ? (
 					<div className='mt-2 grid gap-2 rounded-xl bg-surface-card/90 p-3 ring-1 ring-border-soft/55'>
 						<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted'>
-							AI ni qachongacha to'xtatish
+							{labels.pauseUntil}
 						</p>
 						<div className='grid gap-2 min-[520px]:grid-cols-[minmax(0,1fr)_196px]'>
 							<Popover
@@ -483,7 +533,7 @@ function ChatWorkspacePanel({
 									<button
 										type='button'
 										className='inline-flex h-10 w-full items-center justify-between gap-2 rounded-pill border border-border-soft/70 bg-gradient-to-b from-surface-card to-surface-subtle/80 px-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary shadow-[0_15px_26px_-22px_rgba(37,99,235,0.6)] transition duration-fast hover:border-primary/45 hover:text-text-primary'
-										aria-label='Sana tanlash'
+										aria-label={labels.selectDate}
 									>
 										<span className='inline-flex items-center gap-2 truncate'>
 											<AppIcon
@@ -559,7 +609,7 @@ function ChatWorkspacePanel({
 									className='inline-flex min-h-7 items-center rounded-pill bg-surface-subtle px-2.5 text-[11px] font-semibold text-text-secondary ring-1 ring-border-soft/45 transition duration-fast hover:bg-surface-muted hover:text-text-primary'
 									onClick={() => handleQuickPause(minutes)}
 								>
-									{minutes} min
+									{minutes} {labels.minuteShort}
 								</button>
 							))}
 						</div>
@@ -578,7 +628,7 @@ function ChatWorkspacePanel({
 									setPauseInputError(null)
 								}}
 							>
-								Bekor qilish
+								{labels.cancel}
 							</button>
 							<button
 								type='button'
@@ -586,7 +636,7 @@ function ChatWorkspacePanel({
 								onClick={handlePauseSubmit}
 								disabled={isUpdatingAIState}
 							>
-								{isUpdatingAIState ? 'Saqlanmoqda...' : "AI ni to'xtatish"}
+								{isUpdatingAIState ? (isRu ? 'Сохраняется...' : 'Saqlanmoqda...') : (isRu ? 'Приостановить AI' : "AI ni to'xtatish")}
 							</button>
 						</div>
 					</div>
@@ -610,8 +660,8 @@ function ChatWorkspacePanel({
 				<div className='relative grid gap-3 p-3'>
 					{isLoading ? (
 						<LoadingState
-							title='Xabarlar yuklanmoqda'
-							description="Tanlangan suhbat bo'yicha xabarlar olinmoqda."
+							title={isRu ? 'Загрузка сообщений' : 'Xabarlar yuklanmoqda'}
+							description={isRu ? 'Получаем сообщения выбранного чата.' : "Tanlangan suhbat bo'yicha xabarlar olinmoqda."}
 						/>
 					) : messages.length ? (
 						<div className='grid gap-3'>
@@ -620,10 +670,7 @@ function ChatWorkspacePanel({
 								const hasTextContent = message.content.trim().length > 0
 								const imageUrls = message.image_urls
 								const hasImages = imageUrls.length > 0
-								const attachedImagesLabel =
-									i18n.language === 'ru'
-										? 'Прикреплённые фото'
-										: 'Biriktirilgan rasmlar'
+								const attachedImagesLabel = labels.attachedImages
 								const attachmentWrapperClassName = [
 									'mt-2',
 									getAttachmentWrapperClassName(imageUrls.length),
@@ -659,7 +706,7 @@ function ChatWorkspacePanel({
 											].join(' ')}
 										>
 											<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.08em] opacity-80'>
-												{senderLabelByValue[message.sender_type]}
+												{senderLabels[message.sender_type]}
 											</p>
 											{hasImages ? (
 												<div className={attachmentCardClassName}>
@@ -714,7 +761,7 @@ function ChatWorkspacePanel({
 													outgoing ? 'text-white/80' : 'text-text-muted',
 												].join(' ')}
 											>
-												{formatDateTime(message.created_at)}
+												{formatDateTime(message.created_at, i18n.language)}
 											</p>
 										</article>
 									</div>
@@ -723,8 +770,8 @@ function ChatWorkspacePanel({
 						</div>
 					) : (
 						<EmptyState
-							title='Xabarlar topilmadi'
-							description='Bu sessiya uchun hozircha xabarlar mavjud emas.'
+							title={isRu ? 'Сообщения не найдены' : 'Xabarlar topilmadi'}
+							description={isRu ? 'Для этой сессии пока нет сообщений.' : 'Bu sessiya uchun hozircha xabarlar mavjud emas.'}
 						/>
 					)}
 				</div>
@@ -732,7 +779,7 @@ function ChatWorkspacePanel({
 
 			<div className='rounded-xl bg-background-subtle/80 p-3 ring-1 ring-border-soft/55 dark:bg-surface-card/92'>
 				<label className='sr-only' htmlFor='chat-message-input'>
-					Xabar matni
+					{labels.messageLabel}
 				</label>
 				<div className='flex items-end gap-2'>
 					<textarea
@@ -741,7 +788,7 @@ function ChatWorkspacePanel({
 						onChange={event => setDraftMessage(event.target.value)}
 						onKeyDown={handleComposerKeyDown}
 						className='min-h-[56px] max-h-[132px] w-full flex-1 resize-y rounded-xl border-0 bg-surface-card/85 px-3 py-3 text-sm text-text-primary outline-none transition duration-fast placeholder:text-text-muted focus-visible:ring-2 focus-visible:ring-primary/35 dark:bg-background-subtle/85'
-						placeholder='Xabar yozing...'
+						placeholder={isRu ? 'Напишите сообщение...' : 'Xabar yozing...'}
 						disabled={isSending}
 					/>
 					<button
@@ -751,7 +798,7 @@ function ChatWorkspacePanel({
 							void submitMessage()
 						}}
 						disabled={!canSend}
-						aria-label='Yuborish'
+						aria-label={isRu ? 'Отправить' : 'Yuborish'}
 					>
 						<FiSend
 							className={['h-4.5 w-4.5', isSending ? 'animate-pulse' : ''].join(
@@ -784,9 +831,7 @@ function ChatWorkspacePanel({
 						<img
 							src={previewImageUrl}
 							alt={
-								i18n.language === 'ru'
-									? 'Прикреплённое фото'
-									: 'Biriktirilgan rasm'
+								labels.attachedImage
 							}
 							className='max-h-[82vh] w-full rounded-xl object-contain'
 						/>
@@ -795,7 +840,7 @@ function ChatWorkspacePanel({
 							type='button'
 							className='absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-subtle/92 text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'
 							onClick={() => setPreviewImageUrl(null)}
-							aria-label={i18n.language === 'ru' ? 'Закрыть' : 'Yopish'}
+							aria-label={labels.close}
 						>
 							<AppIcon
 								name='close'
@@ -811,3 +856,5 @@ function ChatWorkspacePanel({
 }
 
 export default ChatWorkspacePanel
+
+

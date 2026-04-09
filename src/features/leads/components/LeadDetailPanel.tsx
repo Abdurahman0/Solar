@@ -54,10 +54,6 @@ function getLeadStatusTone(
 			return 'warning'
 		case 'qualified':
 			return 'accent'
-		case 'negotiating':
-			return 'warning'
-		case 'converted':
-			return 'success'
 		case 'lost':
 			return 'danger'
 		default:
@@ -68,10 +64,6 @@ function getLeadStatusTone(
 function normalizeLeadSource(source?: string): string {
 	if (!source) {
 		return 'manual'
-	}
-
-	if (source === 'website') {
-		return 'web'
 	}
 
 	return source
@@ -118,11 +110,6 @@ function LeadDetailPanel({
 			{ value: 'new', label: getLeadStatusLabel(t, 'new' as any) },
 			{ value: 'contacted', label: getLeadStatusLabel(t, 'contacted' as any) },
 			{ value: 'qualified', label: getLeadStatusLabel(t, 'qualified' as any) },
-			{
-				value: 'negotiating',
-				label: getLeadStatusLabel(t, 'negotiating' as any),
-			},
-			{ value: 'converted', label: getLeadStatusLabel(t, 'converted' as any) },
 			{ value: 'lost', label: getLeadStatusLabel(t, 'lost' as any) },
 		],
 		[t],
@@ -170,14 +157,13 @@ function LeadDetailPanel({
 		let isActive = true
 
 		async function resolveOwnerName() {
-			const assignedOperatorId = lead?.assigned_to
-			if (!assignedOperatorId) {
+			const managerId = lead?.manager
+			if (!managerId) {
 				setResolvedOperatorName(null)
 				return
 			}
 
-			const resolvedFromParent =
-				resolveOperatorName?.(assignedOperatorId) ?? null
+			const resolvedFromParent = resolveOperatorName?.(managerId) ?? null
 
 			if (resolvedFromParent && !isUuidLike(resolvedFromParent)) {
 				setResolvedOperatorName(resolvedFromParent)
@@ -185,7 +171,7 @@ function LeadDetailPanel({
 			}
 
 			try {
-				const operator = await services.users.getUserById(assignedOperatorId)
+				const operator = await services.users.getUserById(managerId)
 				if (!isActive) {
 					return
 				}
@@ -204,7 +190,7 @@ function LeadDetailPanel({
 			isActive = false
 		}
 	}, [
-		lead?.assigned_to,
+		lead?.manager,
 		resolveOperatorName,
 	])
 
@@ -262,11 +248,11 @@ function LeadDetailPanel({
 								{t('leads.detail.profile')}
 							</p>
 							<h2 className='mt-1 font-display text-[1.55rem] font-extrabold leading-[1.05] tracking-[-0.03em] text-text-primary [overflow-wrap:anywhere]'>
-								{lead?.name ?? t('leads.detail.titleFallback')}
+								{lead?.full_name ?? t('leads.detail.titleFallback')}
 							</h2>
 							{!isLoading && lead ? (
 								<p className='mt-1 text-sm text-text-secondary [overflow-wrap:anywhere]'>
-									{lead.company ?? t('leads.unknownHandle')}
+									{lead.ai_summary ?? t('leads.detail.noNotes')}
 								</p>
 							) : null}
 						</div>
@@ -351,7 +337,9 @@ function LeadDetailPanel({
 												{t('leads.detail.instagram')}
 											</p>
 											<p className={`mt-1 ${valueClassName}`}>
-												{t('common.na')}
+												{lead.source === 'instagram'
+													? t('common.active')
+													: t('common.na')}
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
@@ -359,7 +347,9 @@ function LeadDetailPanel({
 												{t('leads.detail.telegram')}
 											</p>
 											<p className={`mt-1 ${valueClassName}`}>
-												{t('common.na')}
+												{lead.source === 'telegram'
+													? t('common.active')
+													: t('common.na')}
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
@@ -375,7 +365,9 @@ function LeadDetailPanel({
 												{t('leads.detail.owner')}
 											</p>
 											<p className={`mt-1 ${valueClassName}`}>
-												{resolvedOperatorName ?? t('common.unassigned')}
+												{resolvedOperatorName ??
+													lead.manager_username ??
+													t('common.unassigned')}
 											</p>
 										</div>
 									</div>
@@ -426,7 +418,7 @@ function LeadDetailPanel({
 											</dt>
 											<dd className={`m-0 ${valueClassName}`}>
 												{formatDateTime(
-													undefined,
+													lead.updated_at,
 													i18n.language,
 													locale,
 													t('common.na'),
@@ -439,7 +431,7 @@ function LeadDetailPanel({
 											</dt>
 											<dd className={`m-0 ${valueClassName}`}>
 												{formatDateTime(
-													undefined,
+													lead.updated_at,
 													i18n.language,
 													locale,
 													t('common.na'),
@@ -457,7 +449,7 @@ function LeadDetailPanel({
 									</h3>
 									<div className='rounded-lg bg-surface-subtle/80 p-3.5'>
 										<p className='m-0 text-sm leading-6 text-text-secondary [overflow-wrap:anywhere]'>
-											{lead.description ?? t('leads.detail.noNotes')}
+											{lead.ai_summary ?? t('leads.detail.noNotes')}
 										</p>
 									</div>
 								</div>

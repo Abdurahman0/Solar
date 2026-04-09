@@ -1,190 +1,291 @@
-/**
- * ClientsFormPanel - Form for creating/editing clients
- */
-
-import { useState } from 'react'
-import { FiX } from 'react-icons/fi'
-import { useForm } from '../../../components/hooks'
-import { useMutation } from '../../../components/hooks'
-import { Form, FormField } from '../../../components/ui/forms'
-import { services } from '../../../services'
-import type {
-	Client,
-	CreateClientInput,
-	UpdateClientInput,
-} from '../../../services/contracts'
+import { useMemo, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import AppIcon from '../../../components/shared/icons/AppIcon';
+import { FilterSelect } from '../../../components/shared/data';
+import { services } from '../../../services';
+import type { Client, CreateClientInput, UpdateClientInput } from '../../../services/contracts';
 
 export interface ClientsFormPanelProps {
-	client?: Client
-	onClose?: () => void
-	onSuccess?: (client: Client) => void
+  client?: Client;
+  onClose?: () => void;
+  onSuccess?: (client: Client) => void;
 }
 
-const validateClient = (
-	values: CreateClientInput & { name?: string },
-): Partial<Record<string, string>> => {
-	const errors: Partial<Record<string, string>> = {}
+const inputClassName = [
+  'w-full rounded-lg border border-border-soft/60 bg-surface-card px-3.5 py-2.5 text-sm font-medium text-text-primary',
+  'placeholder:text-text-muted outline-none transition duration-fast',
+  'focus:border-primary/50 focus:ring-2 focus:ring-primary/20',
+  'disabled:cursor-not-allowed disabled:opacity-60',
+].join(' ');
 
-	if (!values.name?.trim()) {
-		errors.name = 'Name is required'
-	}
+const labelClassName =
+  'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted';
 
-	if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-		errors.email = 'Invalid email address'
-	}
+export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPanelProps) {
+  const { i18n } = useTranslation();
+  const isRu = i18n.language === 'ru';
+  const isEditing = Boolean(client);
 
-	return errors
-}
+  const tx = isRu
+    ? {
+        titleCreate: 'Новый клиент',
+        titleEdit: 'Редактировать клиента',
+        submitCreate: 'Создать клиента',
+        submitEdit: 'Сохранить изменения',
+        saving: 'Сохранение...',
+        requiredName: 'Полное имя обязательно',
+        requiredPhone: 'Телефон обязателен',
+        requiredStatus: 'Статус обязателен',
+        requiredSource: 'Источник обязателен',
+        labels: {
+          fullName: 'Полное имя',
+          phone: 'Телефон',
+          region: 'Регион',
+          address: 'Адрес',
+          objectType: 'Тип объекта',
+          segment: 'Сегмент клиента',
+          electricity: 'Потребление электроэнергии',
+          monthlyBill: 'Ежемесячный счет',
+          solutionType: 'Тип решения',
+          budgetRange: 'Бюджет',
+          source: 'Источник',
+          status: 'Статус',
+          notes: 'Заметки',
+          aiSummary: 'AI сводка',
+        },
+      }
+    : {
+        titleCreate: 'Yangi mijoz',
+        titleEdit: 'Mijozni tahrirlash',
+        submitCreate: 'Mijoz yaratish',
+        submitEdit: 'O`zgarishlarni saqlash',
+        saving: 'Saqlanmoqda...',
+        requiredName: 'To`liq ism majburiy',
+        requiredPhone: 'Telefon majburiy',
+        requiredStatus: 'Holat majburiy',
+        requiredSource: 'Manba majburiy',
+        labels: {
+          fullName: 'To`liq ism',
+          phone: 'Telefon',
+          region: 'Hudud',
+          address: 'Manzil',
+          objectType: 'Obyekt turi',
+          segment: 'Mijoz segmenti',
+          electricity: 'Elektr iste`moli',
+          monthlyBill: 'Oylik hisob',
+          solutionType: 'Yechim turi',
+          budgetRange: 'Byudjet oralig`i',
+          source: 'Manba',
+          status: 'Holat',
+          notes: 'Izoh',
+          aiSummary: 'AI xulosa',
+        },
+      };
 
-export function ClientsFormPanel({
-	client,
-	onClose,
-	onSuccess,
-}: ClientsFormPanelProps) {
-	const isEditing = !!client
+  const [form, setForm] = useState<CreateClientInput>({
+    lead: client?.lead || undefined,
+    full_name: client?.full_name || '',
+    phone: client?.phone || '',
+    region: client?.region || '',
+    address: client?.address || '',
+    object_type: client?.object_type || '',
+    customer_segment: client?.customer_segment || '',
+    electricity_consumption: client?.electricity_consumption || '',
+    monthly_bill: client?.monthly_bill || '',
+    solution_type: client?.solution_type || '',
+    budget_range: client?.budget_range || '',
+    source_platform: client?.source_platform || 'manual',
+    status: client?.status || 'new',
+    manager: client?.manager || undefined,
+    notes: client?.notes || '',
+    ai_summary: client?.ai_summary || '',
+    metadata: client?.metadata || undefined,
+  });
 
-	const [form, formActions] = useForm<CreateClientInput & { name?: string }>({
-		initialValues: {
-			name: client?.name || '',
-			email: client?.email || '',
-			phone: client?.phone || '',
-			city: client?.city || '',
-			status: client?.status || 'active',
-		},
-		validate: validateClient,
-	})
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-	const [createState, createActions] = useMutation((input: CreateClientInput) =>
-		services.clients.createClient(input),
-	)
+  const statusOptions = useMemo(
+    () => [
+      { label: isRu ? 'Новый' : 'Yangi', value: 'new' },
+      { label: isRu ? 'Связались' : 'Bog`lanildi', value: 'contacted' },
+      { label: isRu ? 'Квалифицирован' : 'Saralangan', value: 'qualified' },
+      { label: isRu ? 'Нужен фоллоу-ап' : 'Qayta aloqa kerak', value: 'need_follow_up' },
+      { label: isRu ? 'Подготовка предложения' : 'Taklif tayyorlanmoqda', value: 'proposal_preparing' },
+      { label: isRu ? 'Предложение отправлено' : 'Taklif yuborildi', value: 'proposal_sent' },
+      { label: isRu ? 'Переговоры' : 'Muzokara', value: 'negotiation' },
+      { label: isRu ? 'Ожидание решения' : 'Qaror kutilmoqda', value: 'waiting_for_decision' },
+      { label: isRu ? 'Выигран' : 'Yutildi', value: 'won' },
+      { label: isRu ? 'Потерян' : 'Yo`qotildi', value: 'lost' },
+      { label: isRu ? 'Отложен' : 'Kechiktirildi', value: 'postponed' },
+    ],
+    [isRu],
+  );
 
-	const [updateState, updateActions] = useMutation((input: UpdateClientInput) =>
-		services.clients.updateClient(client!.id, input),
-	)
+  const sourceOptions = useMemo(
+    () => [
+      { label: 'Instagram', value: 'instagram' },
+      { label: 'Telegram', value: 'telegram' },
+      { label: isRu ? 'Вручную' : 'Qo`lda', value: 'manual' },
+    ],
+    [isRu],
+  );
 
-	const isLoading = createState.isLoading || updateState.isLoading
+  function updateField<Key extends keyof CreateClientInput>(key: Key, value: CreateClientInput[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage(null);
 
-		if (!form.isValid) {
-			return
-		}
+    if (!form.full_name?.trim()) {
+      setErrorMessage(tx.requiredName);
+      return;
+    }
+    if (!form.phone?.trim()) {
+      setErrorMessage(tx.requiredPhone);
+      return;
+    }
+    if (!form.status) {
+      setErrorMessage(tx.requiredStatus);
+      return;
+    }
+    if (!form.source_platform) {
+      setErrorMessage(tx.requiredSource);
+      return;
+    }
 
-		try {
-			let result: Client | null = null
+    setIsSubmitting(true);
+    try {
+      const result = isEditing
+        ? await services.clients.updateClient(client!.id, form as UpdateClientInput)
+        : await services.clients.createClient(form);
+      onSuccess?.(result as Client);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to save client.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
-			if (isEditing) {
-				result = await updateActions.mutate(form.values)
-			} else {
-				result = await createActions.mutate(form.values)
-			}
+  return (
+    <div className="grid gap-3">
+      <header className="mb-1 rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+              {isRu ? 'Форма клиента' : 'Mijoz formasi'}
+            </p>
+            <h2 className="mt-1 font-display text-[1.45rem] font-extrabold leading-[1.05] tracking-[-0.03em] text-text-primary">
+              {isEditing ? tx.titleEdit : tx.titleCreate}
+            </h2>
+          </div>
 
-			if (result) {
-				onSuccess?.(result)
-				formActions.reset()
-			}
-		} catch (error) {
-			console.error('Error submitting form:', error)
-		}
-	}
+          <button
+            type="button"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-60"
+            onClick={onClose}
+            disabled={isSubmitting}
+            aria-label={isRu ? 'Закрыть' : 'Yopish'}
+          >
+            <AppIcon name="close" className="h-4.5 w-4.5" aria-hidden="true" />
+          </button>
+        </div>
+      </header>
 
-	const errorMessage = createState.error?.message || updateState.error?.message
+      <form className="grid gap-3" onSubmit={handleSubmit} noValidate>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.fullName}</label>
+            <input className={inputClassName} value={form.full_name || ''} onChange={(e) => updateField('full_name', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.phone}</label>
+            <input className={inputClassName} value={form.phone || ''} onChange={(e) => updateField('phone', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.source}</label>
+            <FilterSelect
+              value={form.source_platform || 'manual'}
+              options={sourceOptions}
+              onChange={(value) => updateField('source_platform', value as any)}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.status}</label>
+            <FilterSelect
+              value={form.status || 'new'}
+              options={statusOptions}
+              onChange={(value) => updateField('status', value as any)}
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.region}</label>
+            <input className={inputClassName} value={form.region || ''} onChange={(e) => updateField('region', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.address}</label>
+            <input className={inputClassName} value={form.address || ''} onChange={(e) => updateField('address', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.objectType}</label>
+            <input className={inputClassName} value={form.object_type || ''} onChange={(e) => updateField('object_type', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.segment}</label>
+            <input className={inputClassName} value={form.customer_segment || ''} onChange={(e) => updateField('customer_segment', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.electricity}</label>
+            <input className={inputClassName} value={form.electricity_consumption || ''} onChange={(e) => updateField('electricity_consumption', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.monthlyBill}</label>
+            <input className={inputClassName} value={String(form.monthly_bill ?? '')} onChange={(e) => updateField('monthly_bill', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.solutionType}</label>
+            <input className={inputClassName} value={form.solution_type || ''} onChange={(e) => updateField('solution_type', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.budgetRange}</label>
+            <input className={inputClassName} value={form.budget_range || ''} onChange={(e) => updateField('budget_range', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <label className={labelClassName}>{tx.labels.notes}</label>
+            <textarea className={`${inputClassName} min-h-[92px] resize-y`} value={form.notes || ''} onChange={(e) => updateField('notes', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <label className={labelClassName}>{tx.labels.aiSummary}</label>
+            <textarea className={`${inputClassName} min-h-[92px] resize-y`} value={form.ai_summary || ''} onChange={(e) => updateField('ai_summary', e.target.value)} disabled={isSubmitting} />
+          </div>
+        </div>
 
-	return (
-		<div className='max-h-[85vh] overflow-y-auto'>
-			<div className='flex items-center justify-between border-b border-border-soft px-6 py-4'>
-				<h2 className='text-lg font-bold text-text-primary'>
-					{isEditing ? 'Edit Client' : 'New Client'}
-				</h2>
-				<button
-					onClick={onClose}
-					className='flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-subtle'
-				>
-					<FiX className='text-text-secondary' />
-				</button>
-			</div>
+        {errorMessage ? (
+          <p className="m-0 rounded-lg bg-danger-bg px-3 py-2 text-sm font-medium text-danger">{errorMessage}</p>
+        ) : null}
 
-			<div className='px-6 py-4'>
-				{errorMessage && (
-					<div className='mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600'>
-						{errorMessage}
-					</div>
-				)}
-
-				<Form
-					onSubmit={handleSubmit}
-					isSubmitting={isLoading}
-					submitLabel={isEditing ? 'Update Client' : 'Create Client'}
-					onCancel={onClose}
-					layout='grid'
-					columns={2}
-				>
-					<FormField
-						name='name'
-						label='Name'
-						placeholder='Enter client name'
-						value={form.values.name}
-						error={form.errors.name}
-						touched={form.touched.name}
-						required
-						onChange={formActions.handleChange}
-						onBlur={formActions.handleBlur}
-					/>
-
-					<FormField
-						name='email'
-						label='Email'
-						type='email'
-						placeholder='Enter email address'
-						value={form.values.email}
-						error={form.errors.email}
-						touched={form.touched.email}
-						onChange={formActions.handleChange}
-						onBlur={formActions.handleBlur}
-					/>
-
-					<FormField
-						name='phone'
-						label='Phone'
-						type='tel'
-						placeholder='Enter phone number'
-						value={form.values.phone}
-						error={form.errors.phone}
-						touched={form.touched.phone}
-						onChange={formActions.handleChange}
-						onBlur={formActions.handleBlur}
-					/>
-
-					<FormField
-						name='city'
-						label='City'
-						placeholder='Enter city'
-						value={form.values.city}
-						error={form.errors.city}
-						touched={form.touched.city}
-						onChange={formActions.handleChange}
-						onBlur={formActions.handleBlur}
-					/>
-
-					<FormField
-						name='status'
-						label='Status'
-						placeholder='Select status'
-						value={form.values.status}
-						error={form.errors.status}
-						touched={form.touched.status}
-						as='select'
-						options={[
-							{ label: 'Active', value: 'active' },
-							{ label: 'Inactive', value: 'inactive' },
-							{ label: 'Archived', value: 'archived' },
-						]}
-						onChange={formActions.handleChange}
-						onBlur={formActions.handleBlur}
-					/>
-				</Form>
-			</div>
-		</div>
-	)
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-card px-4 text-sm font-semibold text-text-secondary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            {isRu ? 'Отмена' : 'Bekor qilish'}
+          </button>
+          <button
+            type="submit"
+            className="ml-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? tx.saving : isEditing ? tx.submitEdit : tx.submitCreate}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }

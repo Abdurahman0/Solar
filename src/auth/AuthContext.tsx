@@ -73,7 +73,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [currentUser]);
 
   const login = useCallback(async (input: LoginInput) => {
-    return loginWithApi(input.email, input.password);
+    return loginWithApi(input.username, input.password);
   }, []);
 
   const logout = useCallback(() => {

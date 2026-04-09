@@ -61,8 +61,6 @@ function normalizePayload(
   input: LeadMutationInput | LeadPatchInput,
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
-  const normalizeText = (value: string | null | undefined): string =>
-    typeof value === 'string' ? value : '';
 
   if (input.full_name !== undefined) {
     payload.full_name = input.full_name;
@@ -70,23 +68,20 @@ function normalizePayload(
   if (input.phone !== undefined) {
     payload.phone = input.phone;
   }
-  if (input.instagram_username !== undefined) {
-    payload.instagram_username = normalizeText(input.instagram_username);
-  }
-  if (input.telegram_username !== undefined) {
-    payload.telegram_username = normalizeText(input.telegram_username);
-  }
   if (input.source !== undefined) {
     payload.source = input.source;
   }
   if (input.status !== undefined) {
     payload.status = input.status;
   }
-  if (input.notes !== undefined) {
-    payload.notes = normalizeText(input.notes);
+  if (input.ai_summary !== undefined) {
+    payload.ai_summary = input.ai_summary;
   }
-  if (input.assigned_operator !== undefined) {
-    payload.assigned_operator = input.assigned_operator;
+  if (input.manager !== undefined) {
+    payload.manager = input.manager;
+  }
+  if (input.metadata !== undefined) {
+    payload.metadata = input.metadata;
   }
 
   return payload;
@@ -121,11 +116,11 @@ export const apiLeadService: LeadService = {
     const { data } = await apiClient.get<unknown>('/api/leads/', {
       params: {
         page: params?.page,
-        page_size: params?.pageSize,
+        page_size: params?.pageSize ?? params?.page_size,
         search: params?.search,
         status: params?.status,
         source: params?.source,
-        assigned_operator: params?.assignedOperator ?? params?.assigned_operator,
+        manager: params?.assignedOperator ?? params?.assigned_operator ?? params?.manager,
         ordering:
           params?.ordering ??
           (params?.sortBy

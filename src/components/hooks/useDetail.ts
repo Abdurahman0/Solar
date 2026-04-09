@@ -89,9 +89,11 @@ export function useDetail<T extends { id?: string } = any>(
 		if (options?.autoFetch !== false) {
 			fetch()
 		}
-	}, [fetch, options?.autoFetch])
+		// Only run once on mount
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 
-	// Setup refetch interval
+	// Setup refetch interval  
 	useEffect(() => {
 		if (!options?.refetchInterval) return
 
@@ -100,7 +102,9 @@ export function useDetail<T extends { id?: string } = any>(
 		}, options.refetchInterval)
 
 		return () => clearInterval(interval)
-	}, [fetch, options?.refetchInterval])
+		// Only depend on interval, not fetch function
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [options?.refetchInterval])
 
 	return [
 		state,

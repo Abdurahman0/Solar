@@ -46,21 +46,21 @@ function IntegrationConfigDeleteDialog({
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 text-sm font-semibold text-white transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/35 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-subtle px-4 text-sm font-semibold text-text-secondary transition duration-fast hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={onCancel}
+            disabled={isDeleting}
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            className="ml-auto inline-flex min-h-10 items-center justify-center rounded-lg bg-danger px-4 text-sm font-semibold text-white transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/35 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={onConfirm}
             disabled={isDeleting}
           >
             {isDeleting
               ? t('integrations.deleteDialog.deleting')
               : t('integrations.deleteDialog.confirm')}
-          </button>
-          <button
-            type="button"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-subtle px-4 text-sm font-semibold text-text-secondary transition duration-fast hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={onCancel}
-            disabled={isDeleting}
-          >
-            {t('common.cancel')}
           </button>
         </div>
       </section>

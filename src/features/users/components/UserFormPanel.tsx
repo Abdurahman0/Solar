@@ -463,8 +463,16 @@ function UserFormPanel({
 
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <button
+              type="button"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-card px-4 text-sm font-semibold text-text-secondary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
               type="submit"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ml-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSubmitting || !canSubmit}
             >
               {isSubmitting
@@ -474,14 +482,6 @@ function UserFormPanel({
                 : mode === 'create'
                   ? t('users.form.createSubmit')
                   : t('users.form.editSubmit')}
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-card px-4 text-sm font-semibold text-text-secondary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              {t('common.cancel')}
             </button>
           </div>
         </form>

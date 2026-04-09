@@ -34,9 +34,11 @@ import { formatCurrencyAmount } from '../../../constants'
 import { services } from '../../../services'
 import type {
 	DashboardBreakdownItem,
+	DashboardManagerPerformanceItem,
 	DashboardInterval,
 	DashboardOverview,
 	DashboardOverviewParams,
+	DashboardRegionDemandItem,
 	DashboardTopProduct,
 } from '../../../services'
 import type { LeadStatus } from '../../../types/domain'
@@ -553,25 +555,14 @@ function DashboardPage() {
 		(sum, item) => sum + item.count,
 		0,
 	)
-	const sourcePieData: PieSlice[] =
-		displaySourceTotal <= 0
-			? [
-					{
-						key: 'empty',
-						label: t('dashboard.noLeads'),
-						count: 1,
-						color: 'rgb(var(--color-border-soft) / 0.55)',
-						share: 100,
-					},
-				]
-			: displaySourceItems.map((item, index) => ({
-					...item,
-					label: getChannelLabel(t, item.key, item.label),
-					color:
-						SOURCE_COLORS[item.key] ??
-						SOURCE_COLORS_FALLBACK[index % SOURCE_COLORS_FALLBACK.length]!,
-					share: (item.count / displaySourceTotal) * 100,
-				}))
+	const sourcePieData: PieSlice[] = displaySourceItems.map((item, index) => ({
+		...item,
+		label: getChannelLabel(t, item.key, item.label),
+		color:
+			SOURCE_COLORS[item.key] ??
+			SOURCE_COLORS_FALLBACK[index % SOURCE_COLORS_FALLBACK.length]!,
+		share: (item.count / displaySourceTotal) * 100,
+	}))
 
 	const leadStatusData = pickForDisplay(
 		overview.breakdowns.leads_by_status,
@@ -584,26 +575,15 @@ function DashboardPage() {
 		(sum, item) => sum + item.count,
 		0,
 	)
-	const leadStatusPieData: PieSlice[] =
-		leadStatusTotal <= 0
-			? [
-					{
-						key: 'empty',
-						label: t('dashboard.noLeads'),
-						count: 1,
-						color: 'rgb(var(--color-border-soft) / 0.55)',
-						share: 100,
-					},
-				]
-			: leadStatusData.map((item, index) => ({
-					...item,
-					color:
-						LEAD_STATUS_COLORS[item.key] ??
-						LEAD_STATUS_COLORS_FALLBACK[
-							index % LEAD_STATUS_COLORS_FALLBACK.length
-						]!,
-					share: (item.count / leadStatusTotal) * 100,
-				}))
+	const leadStatusPieData: PieSlice[] = leadStatusData.map((item, index) => ({
+		...item,
+		color:
+			LEAD_STATUS_COLORS[item.key] ??
+			LEAD_STATUS_COLORS_FALLBACK[
+				index % LEAD_STATUS_COLORS_FALLBACK.length
+			]!,
+		share: (item.count / leadStatusTotal) * 100,
+	}))
 	const orderStatusData = pickForDisplay(
 		overview.breakdowns.orders_by_status ?? [],
 		4,
@@ -626,6 +606,8 @@ function DashboardPage() {
 		label: getChannelLabel(t, item.key, item.label),
 	}))
 	const topProducts = overview.breakdowns.top_products.slice(0, 15)
+	const regionDemand = overview.region_demand ?? []
+	const managerPerformance = overview.manager_performance ?? []
 	const topProductColumns: DataTableColumn<DashboardTopProduct>[] = [
 		{
 			key: 'product',
@@ -660,6 +642,72 @@ function DashboardPage() {
 			),
 		},
 	]
+	const regionDemandColumns: DataTableColumn<DashboardRegionDemandItem>[] = [
+		{
+			key: 'region',
+			label: t('dashboard.regionDemand.columns.region'),
+			render: item => (
+				<span className={tablePrimaryTextClassName}>{item.region}</span>
+			),
+		},
+		{
+			key: 'total',
+			label: t('dashboard.regionDemand.columns.total'),
+			align: 'right',
+			render: item => (
+				<span className='block text-right text-sm font-semibold text-text-primary'>
+					{formatCount(item.total, locale)}
+				</span>
+			),
+		},
+	]
+	const managerPerformanceColumns: DataTableColumn<DashboardManagerPerformanceItem>[] =
+		[
+			{
+				key: 'manager',
+				label: t('dashboard.managerPerformance.columns.manager'),
+				render: item => (
+					<div className='grid gap-0.5'>
+						<span className={tablePrimaryTextClassName}>
+							{item.manager_username || t('common.na')}
+						</span>
+						<span className={tableSecondaryTextClassName}>
+							{item.manager_id ?? '-'}
+						</span>
+					</div>
+				),
+			},
+			{
+				key: 'total',
+				label: t('dashboard.managerPerformance.columns.total'),
+				align: 'right',
+				render: item => (
+					<span className='block text-right text-sm font-semibold text-text-primary'>
+						{formatCount(item.total, locale)}
+					</span>
+				),
+			},
+			{
+				key: 'won',
+				label: t('dashboard.managerPerformance.columns.won'),
+				align: 'right',
+				render: item => (
+					<span className='block text-right text-sm font-semibold text-success'>
+						{formatCount(item.won, locale)}
+					</span>
+				),
+			},
+			{
+				key: 'lost',
+				label: t('dashboard.managerPerformance.columns.lost'),
+				align: 'right',
+				render: item => (
+					<span className='block text-right text-sm font-semibold text-danger'>
+						{formatCount(item.lost, locale)}
+					</span>
+				),
+			},
+		]
 	const metricCards = [
 		{
 			label: t('dashboard.metrics.leads'),
@@ -693,11 +741,13 @@ function DashboardPage() {
 		},
 	]
 
-	const rangeLabel = `${formatDateLabel(
-		overview.date_range.date_from,
-		locale,
-		i18n.language,
-	)} - ${formatDateLabel(overview.date_range.date_to, locale, i18n.language)}`
+	const rangeLabel = overview.date_range?.date_from && overview.date_range?.date_to
+		? `${formatDateLabel(
+				overview.date_range.date_from,
+				locale,
+				i18n.language,
+			)} - ${formatDateLabel(overview.date_range.date_to, locale, i18n.language)}`
+		: t('dashboard.filters.pickRange')
 	const selectedDateRange: DateRange | undefined =
 		isIsoDate(filters.customDateFrom) && isIsoDate(filters.customDateTo)
 			? {
@@ -922,157 +972,64 @@ function DashboardPage() {
 						<p className='mt-1 text-sm text-text-secondary'>
 							{t('dashboard.descriptions.source')}
 						</p>
-						<div className='relative mt-4 grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
-							<div className='h-[198px] w-[198px]'>
-								<ChartContainer
-									config={sourceChartConfig}
-									className='h-full w-full'
-								>
-									<PieChart>
-										<Pie
-											data={sourcePieData}
-											dataKey='count'
-											nameKey='label'
-											innerRadius={52}
-											outerRadius={84}
-											paddingAngle={3}
-											cornerRadius={7}
-											stroke='rgb(var(--color-border-soft) / 0.45)'
-											strokeWidth={2}
+						{displaySourceTotal <= 0 ? (
+							<div className='mt-6 flex items-center justify-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-12'>
+								<div className='text-center'>
+									<p className='text-sm font-medium text-text-secondary'>
+										{t('dashboard.sourceDataHint')}
+									</p>
+								</div>
+							</div>
+						) : (
+							<>
+								<div className='relative mt-4 grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
+									<div className='h-[198px] w-[198px]'>
+										<ChartContainer
+											config={sourceChartConfig}
+											className='h-full w-full'
 										>
-											{sourcePieData.map(item => (
-												<Cell key={item.key} fill={item.color} />
-											))}
-										</Pie>
-										<ChartTooltip
-											content={
-												<ChartTooltipContent
-													hideLabel
-													formatter={value =>
-														`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
+											<PieChart>
+												<Pie
+													data={sourcePieData}
+													dataKey='count'
+													nameKey='label'
+													innerRadius={52}
+													outerRadius={84}
+													paddingAngle={3}
+													cornerRadius={7}
+													stroke='rgb(var(--color-border-soft) / 0.45)'
+													strokeWidth={2}
+												>
+													{sourcePieData.map(item => (
+														<Cell key={item.key} fill={item.color} />
+													))}
+												</Pie>
+												<ChartTooltip
+													content={
+														<ChartTooltipContent
+															hideLabel
+															formatter={value =>
+																`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
+															}
+														/>
 													}
 												/>
-											}
-										/>
-									</PieChart>
-								</ChartContainer>
-							</div>
-							<div className='pointer-events-none absolute inset-0 grid place-items-center'>
-								<div className='rounded-full bg-surface-card/90 px-3 py-1.5 text-center shadow-sm ring-1 ring-border-soft/60 backdrop-blur-sm'>
-									<p className='font-display text-[1.2rem] font-extrabold leading-none text-text-primary'>
-										{formatCount(sourceTotal, locale)}
-									</p>
-									<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
-										{t('dashboard.totalLeads')}
-									</p>
-								</div>
-							</div>
-						</div>
-						<ul className='mt-3 grid list-none gap-2 p-0'>
-							{sourcePieData[0]?.key === 'empty' ? (
-								<li className='rounded-lg bg-surface-subtle/85 px-3 py-2.5 text-sm font-medium text-text-secondary'>
-									{t('dashboard.sourceDataHint')}
-								</li>
-							) : (
-								sourcePieData.map(item => (
-									<li
-										key={item.key}
-										className='rounded-lg bg-surface-subtle/85 px-3 py-2.5'
-									>
-										<div className='flex items-center justify-between gap-2'>
-											<span className='inline-flex items-center gap-2 text-sm font-medium text-text-primary'>
-												<span
-													className='h-2.5 w-2.5 rounded-full'
-													style={{ backgroundColor: item.color }}
-												/>
-												{item.label}
-											</span>
-											<div className='flex items-center gap-2 text-sm font-semibold text-text-secondary'>
-												<span>{formatCount(item.count, locale)}</span>
-												<span className='rounded-pill bg-surface-card px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] text-text-muted'>
-													{formatPercent(item.share)}
-												</span>
-											</div>
+											</PieChart>
+										</ChartContainer>
+									</div>
+									<div className='pointer-events-none absolute inset-0 grid place-items-center'>
+										<div className='rounded-full bg-surface-card/90 px-3 py-1.5 text-center shadow-sm ring-1 ring-border-soft/60 backdrop-blur-sm'>
+											<p className='font-display text-[1.2rem] font-extrabold leading-none text-text-primary'>
+												{formatCount(sourceTotal, locale)}
+											</p>
+											<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
+												{t('dashboard.totalLeads')}
+											</p>
 										</div>
-										<div className='mt-2 h-1.5 overflow-hidden rounded-full bg-border-soft/35'>
-											<span
-												className='block h-full rounded-full'
-												style={{
-													width: `${item.share > 0 ? Math.max(item.share, 6) : 0}%`,
-													backgroundColor: item.color,
-												}}
-											/>
-										</div>
-									</li>
-								))
-							)}
-						</ul>
-					</article>
-				</section>
-
-				<section className='grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]'>
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
-						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
-							{t('dashboard.sections.leadStatus')}
-						</h2>
-						<p className='mt-1 text-sm text-text-secondary'>
-							{t('dashboard.descriptions.leadStatus')}
-						</p>
-						<div className='mt-4 grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]'>
-							<div className='relative grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
-								<div className='h-[210px] w-[210px]'>
-									<ChartContainer
-										config={statusChartConfig}
-										className='h-full w-full'
-									>
-										<PieChart>
-											<Pie
-												data={leadStatusPieData}
-												dataKey='count'
-												nameKey='label'
-												innerRadius={48}
-												outerRadius={78}
-												paddingAngle={3}
-												cornerRadius={6}
-												stroke='rgb(var(--color-border-soft) / 0.45)'
-												strokeWidth={2}
-											>
-												{leadStatusPieData.map(item => (
-													<Cell key={item.key} fill={item.color} />
-												))}
-											</Pie>
-											<ChartTooltip
-												content={
-													<ChartTooltipContent
-														hideLabel
-														formatter={value =>
-															`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
-														}
-													/>
-												}
-											/>
-										</PieChart>
-									</ChartContainer>
-								</div>
-								<div className='pointer-events-none absolute inset-0 grid place-items-center'>
-									<div className='rounded-full bg-surface-card/90 px-3 py-1.5 text-center shadow-sm ring-1 ring-border-soft/60 backdrop-blur-sm'>
-										<p className='font-display text-[1.2rem] font-extrabold leading-none text-text-primary'>
-											{formatCount(leadStatusTotal, locale)}
-										</p>
-										<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
-											{t('dashboard.totalLeads')}
-										</p>
 									</div>
 								</div>
-							</div>
-
-							<ul className='grid min-w-0 list-none gap-2 p-0'>
-								{leadStatusPieData[0]?.key === 'empty' ? (
-									<li className='rounded-lg bg-surface-subtle/85 px-3 py-2.5 text-sm font-medium text-text-secondary'>
-										{t('dashboard.sourceDataHint')}
-									</li>
-								) : (
-									leadStatusPieData.map(item => (
+								<ul className='mt-3 grid list-none gap-2 p-0'>
+									{sourcePieData.map(item => (
 										<li
 											key={item.key}
 											className='rounded-lg bg-surface-subtle/85 px-3 py-2.5'
@@ -1102,10 +1059,113 @@ function DashboardPage() {
 												/>
 											</div>
 										</li>
-									))
-								)}
-							</ul>
-						</div>
+									))}
+								</ul>
+							</>
+						)}
+					</article>
+				</section>
+
+				<section className='grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]'>
+					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
+							{t('dashboard.sections.leadStatus')}
+						</h2>
+						<p className='mt-1 text-sm text-text-secondary'>
+							{t('dashboard.descriptions.leadStatus')}
+						</p>
+						{leadStatusTotal <= 0 ? (
+							<div className='mt-6 flex items-center justify-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-12'>
+								<div className='text-center'>
+									<p className='text-sm font-medium text-text-secondary'>
+										{t('dashboard.sourceDataHint')}
+									</p>
+								</div>
+							</div>
+						) : (
+							<div className='mt-4 grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]'>
+								<div className='relative grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
+									<div className='h-[210px] w-[210px]'>
+										<ChartContainer
+											config={statusChartConfig}
+											className='h-full w-full'
+										>
+											<PieChart>
+												<Pie
+													data={leadStatusPieData}
+													dataKey='count'
+													nameKey='label'
+													innerRadius={48}
+													outerRadius={78}
+													paddingAngle={3}
+													cornerRadius={6}
+													stroke='rgb(var(--color-border-soft) / 0.45)'
+													strokeWidth={2}
+												>
+													{leadStatusPieData.map(item => (
+														<Cell key={item.key} fill={item.color} />
+													))}
+												</Pie>
+												<ChartTooltip
+													content={
+														<ChartTooltipContent
+															hideLabel
+															formatter={value =>
+																`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
+															}
+														/>
+													}
+												/>
+											</PieChart>
+										</ChartContainer>
+									</div>
+									<div className='pointer-events-none absolute inset-0 grid place-items-center'>
+										<div className='rounded-full bg-surface-card/90 px-3 py-1.5 text-center shadow-sm ring-1 ring-border-soft/60 backdrop-blur-sm'>
+											<p className='font-display text-[1.2rem] font-extrabold leading-none text-text-primary'>
+												{formatCount(leadStatusTotal, locale)}
+											</p>
+											<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
+												{t('dashboard.totalLeads')}
+											</p>
+										</div>
+									</div>
+								</div>
+
+								<ul className='grid min-w-0 list-none gap-2 p-0'>
+									{leadStatusPieData.map(item => (
+										<li
+											key={item.key}
+											className='rounded-lg bg-surface-subtle/85 px-3 py-2.5'
+										>
+											<div className='flex items-center justify-between gap-2'>
+												<span className='inline-flex items-center gap-2 text-sm font-medium text-text-primary'>
+													<span
+														className='h-2.5 w-2.5 rounded-full'
+														style={{ backgroundColor: item.color }}
+													/>
+													{item.label}
+												</span>
+												<div className='flex items-center gap-2 text-sm font-semibold text-text-secondary'>
+													<span>{formatCount(item.count, locale)}</span>
+													<span className='rounded-pill bg-surface-card px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] text-text-muted'>
+														{formatPercent(item.share)}
+													</span>
+												</div>
+											</div>
+											<div className='mt-2 h-1.5 overflow-hidden rounded-full bg-border-soft/35'>
+												<span
+													className='block h-full rounded-full'
+													style={{
+														width: `${item.share > 0 ? Math.max(item.share, 6) : 0}%`,
+														backgroundColor: item.color,
+													}}
+												/>
+											</div>
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
 					</article>
 
 					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
@@ -1240,6 +1300,50 @@ function DashboardPage() {
 								}
 								emptyTitle={t('dashboard.topProducts.empty')}
 								emptyDescription={t('dashboard.descriptions.topProducts')}
+							/>
+						</div>
+					</article>
+				</section>
+
+				<section className='grid gap-3 lg:grid-cols-2'>
+					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+						<div className='flex flex-wrap items-center justify-between gap-2'>
+							<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
+								{t('dashboard.sections.regionDemand')}
+							</h2>
+						</div>
+						<p className='mt-1 text-sm text-text-secondary'>
+							{t('dashboard.descriptions.regionDemand')}
+						</p>
+						<div className='mt-4'>
+							<DataTable
+								data={regionDemand}
+								columns={regionDemandColumns}
+								rowKey={(item, index) => item.region || `region-${index}`}
+								emptyTitle={t('dashboard.regionDemand.empty')}
+								emptyDescription={t('dashboard.regionDemand.emptyDescription')}
+							/>
+						</div>
+					</article>
+
+					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+						<div className='flex flex-wrap items-center justify-between gap-2'>
+							<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
+								{t('dashboard.sections.managerPerformance')}
+							</h2>
+						</div>
+						<p className='mt-1 text-sm text-text-secondary'>
+							{t('dashboard.descriptions.managerPerformance')}
+						</p>
+						<div className='mt-4'>
+							<DataTable
+								data={managerPerformance}
+								columns={managerPerformanceColumns}
+								rowKey={(item, index) =>
+									item.manager_id ?? `manager-${index}`
+								}
+								emptyTitle={t('dashboard.managerPerformance.empty')}
+								emptyDescription={t('dashboard.managerPerformance.emptyDescription')}
 							/>
 						</div>
 					</article>

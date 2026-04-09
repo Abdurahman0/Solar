@@ -8,8 +8,6 @@ export const LEAD_STATUSES = [
 	'new',
 	'contacted',
 	'qualified',
-	'negotiating',
-	'converted',
 	'lost',
 ] as const satisfies readonly LeadStatus[]
 
@@ -17,8 +15,6 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 	new: 'New',
 	contacted: 'Contacted',
 	qualified: 'Qualified',
-	negotiating: 'Negotiating',
-	converted: 'Converted',
 	lost: 'Lost',
 }
 
@@ -26,8 +22,6 @@ export const LEAD_STATUS_OPTIONS: SelectOption[] = [
 	{ value: 'new', label: LEAD_STATUS_LABELS.new },
 	{ value: 'contacted', label: LEAD_STATUS_LABELS.contacted },
 	{ value: 'qualified', label: LEAD_STATUS_LABELS.qualified },
-	{ value: 'negotiating', label: LEAD_STATUS_LABELS.negotiating },
-	{ value: 'converted', label: LEAD_STATUS_LABELS.converted },
 	{ value: 'lost', label: LEAD_STATUS_LABELS.lost },
 ]
 

@@ -418,8 +418,16 @@ function AISettingFormPanel({
 
           <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-subtle px-4 text-sm font-semibold text-text-secondary transition duration-fast hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
               type="submit"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ml-auto inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting
@@ -429,14 +437,6 @@ function AISettingFormPanel({
                 : mode === 'create'
                   ? t('aiSettings.form.createSubmit')
                   : t('aiSettings.form.editSubmit')}
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-subtle px-4 text-sm font-semibold text-text-secondary transition duration-fast hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              {t('common.cancel')}
             </button>
           </div>
         </form>

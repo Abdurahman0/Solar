@@ -21,7 +21,6 @@ interface AISettingDetailPanelProps {
 	onClose: () => void
 	onEdit: (setting: AISetting) => void
 	onDelete: (setting: AISetting) => void
-	onSetActive: (id: EntityId) => Promise<AISetting | null>
 }
 
 const labelClassName =
@@ -63,15 +62,12 @@ function AISettingDetailPanel({
 	onClose,
 	onEdit,
 	onDelete,
-	onSetActive,
 }: AISettingDetailPanelProps) {
 	const { t, i18n } = useTranslation()
 	const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ'
 	const [setting, setSetting] = useState<AISetting | null>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [hasError, setHasError] = useState(false)
-	const [isActivating, setIsActivating] = useState(false)
-	const [actionError, setActionError] = useState<string | null>(null)
 	const [resolvedUpdatedBy, setResolvedUpdatedBy] = useState<string | null>(
 		null,
 	)
@@ -82,7 +78,6 @@ function AISettingDetailPanel({
 		async function loadSetting() {
 			setIsLoading(true)
 			setHasError(false)
-			setActionError(null)
 
 			try {
 				const nextSetting = await services.aiSettings.getSetting(settingId)
@@ -170,31 +165,6 @@ function AISettingDetailPanel({
 			isActive = false
 		}
 	}, [setting?.updated_by, setting?.updated_by_name])
-
-	async function handleSetActive() {
-		if (!setting || setting.is_active || isActivating) {
-			return
-		}
-
-		setIsActivating(true)
-		setActionError(null)
-
-		try {
-			const nextSetting = await onSetActive(setting.id)
-			if (!nextSetting) {
-				throw new Error(t('aiSettings.actions.activateError'))
-			}
-			setSetting(nextSetting)
-		} catch (error) {
-			setActionError(
-				error instanceof Error
-					? error.message
-					: t('aiSettings.actions.activateError'),
-			)
-		} finally {
-			setIsActivating(false)
-		}
-	}
 
 	return (
 		<div
@@ -371,12 +341,6 @@ function AISettingDetailPanel({
 								</dl>
 							</PageCard>
 
-							{actionError ? (
-								<p className='m-0 rounded-lg bg-danger-bg px-3 py-2 text-sm font-medium text-danger'>
-									{actionError}
-								</p>
-							) : null}
-
 							<PageCard>
 								{canManage ? (
 									<div className='flex flex-wrap items-center gap-2'>
@@ -388,20 +352,6 @@ function AISettingDetailPanel({
 											<FiEdit2 className='h-4 w-4' />
 											{t('aiSettings.actions.edit')}
 										</button>
-										{!setting.is_active ? (
-											<button
-												type='button'
-												className='inline-flex min-h-10 items-center justify-center rounded-lg bg-info px-4 text-sm font-semibold text-white transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35 disabled:cursor-not-allowed disabled:opacity-60'
-												onClick={() => {
-													void handleSetActive()
-												}}
-												disabled={isActivating}
-											>
-												{isActivating
-													? t('aiSettings.actions.activating')
-													: t('aiSettings.actions.setActive')}
-											</button>
-										) : null}
 										<button
 											type='button'
 											className='inline-flex min-h-10 items-center gap-2 rounded-lg bg-danger-bg px-4 text-sm font-semibold text-danger transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/30 disabled:cursor-not-allowed disabled:opacity-60'

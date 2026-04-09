@@ -1,5 +1,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import ChatSessionFilters from '../../../features/chat/components/ChatSessionFilters';
 import ChatSessionList from '../../../features/chat/components/ChatSessionList';
@@ -84,6 +85,24 @@ function sortSessionsByLastMessage(
 }
 
 function ChatPage() {
+  const { i18n } = useTranslation();
+  const isRu = i18n.language === 'ru';
+  const copy = useMemo(
+    () => ({
+      orderingLatestMessage: isRu ? 'Последнее сообщение (новые)' : "Oxirgi xabar (yangi)",
+      orderingOldestMessage: isRu ? 'Последнее сообщение (старые)' : "Oxirgi xabar (eski)",
+      orderingNewestCreated: isRu ? 'Добавлено (новые)' : "Qo'shilgan (yangi)",
+      orderingOldestCreated: isRu ? 'Добавлено (старые)' : "Qo'shilgan (eski)",
+      sessionLoadError: isRu ? 'Не удалось загрузить данные чата.' : "Suhbat tafsilotlarini yuklab bo'lmadi.",
+      messagesLoadError: isRu ? 'Не удалось загрузить сообщения.' : "Xabarlarni yuklab bo'lmadi.",
+      messageSendError: isRu ? 'Сообщение не отправлено.' : 'Xabar yuborilmadi.',
+      sessionsTitle: isRu ? 'Чаты' : 'Suhbatlar',
+      countSuffix: isRu ? 'шт.' : 'ta',
+      closeSessionAria: isRu ? 'Закрыть чат' : 'Suhbatni yopish',
+    }),
+    [isRu],
+  );
+
   const [search, setSearch] = usePersistentState('chat:search', '');
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>(ALL_CHANNEL_VALUE);
   const [operatorFilter, setOperatorFilter] = useState<OperatorFilter>('all');
@@ -113,12 +132,12 @@ function ChatPage() {
 
   const orderingOptions = useMemo<SelectOption[]>(
     () => [
-      { value: '-last_message_at', label: "Oxirgi xabar (yangi)" },
-      { value: 'last_message_at', label: "Oxirgi xabar (eski)" },
-      { value: '-created_at', label: "Qo'shilgan (yangi)" },
-      { value: 'created_at', label: "Qo'shilgan (eski)" },
+      { value: '-last_message_at', label: copy.orderingLatestMessage },
+      { value: 'last_message_at', label: copy.orderingOldestMessage },
+      { value: '-created_at', label: copy.orderingNewestCreated },
+      { value: 'created_at', label: copy.orderingOldestCreated },
     ],
-    [],
+    [copy],
   );
 
   const sessionQuery = useMemo(
@@ -207,14 +226,14 @@ function ChatPage() {
           return;
         }
 
-        setActionError("Suhbat tafsilotlarini yuklab bo'lmadi.");
+        setActionError(copy.sessionLoadError);
       } finally {
         if (!options?.silent && requestId === sessionRequestRef.current) {
           setIsSessionLoading(false);
         }
       }
     },
-    [],
+    [copy.sessionLoadError],
   );
 
   const markActiveSessionRead = useCallback(
@@ -274,14 +293,14 @@ function ChatPage() {
           return;
         }
 
-        setActionError("Xabarlarni yuklab bo'lmadi.");
+        setActionError(copy.messagesLoadError);
       } finally {
         if (!options?.silent && requestId === messagesRequestRef.current) {
           setIsMessagesLoading(false);
         }
       }
     },
-    [],
+    [copy.messagesLoadError],
   );
 
   useEffect(() => {
@@ -361,6 +380,10 @@ function ChatPage() {
     try {
       const createdMessage = await services.chat.sendMessage(activeSessionId, {
         content,
+        metadata: {
+          platform: activeSession?.channel ?? 'telegram',
+          platform_user_id: activeSession?.external_id ?? String(activeSessionId),
+        },
       });
 
       setMessages((current) =>
@@ -413,7 +436,7 @@ function ChatPage() {
       setMessages((current) =>
         current.filter((message) => message.id !== optimisticId),
       );
-      setActionError("Xabar yuborilmadi.");
+      setActionError(copy.messageSendError);
     } finally {
       setIsSendingMessage(false);
     }
@@ -435,7 +458,7 @@ function ChatPage() {
 
   return (
     <>
-      <div className="grid h-full min-h-0 gap-0 min-[1024px]:items-start min-[1024px]:gap-3 min-[1024px]:grid-cols-[430px_minmax(0,1fr)] min-[1380px]:grid-cols-[470px_minmax(0,1fr)]">
+      <div className="grid h-full min-h-0 gap-0 min-[1024px]:h-[calc(100dvh-15vh)] min-[1024px]:max-h-[860px] min-[1024px]:items-start min-[1024px]:gap-3 min-[1024px]:grid-cols-[430px_minmax(0,1fr)] min-[1380px]:grid-cols-[470px_minmax(0,1fr)]">
         <section
           className={[
             'h-full min-h-0',
@@ -446,10 +469,10 @@ function ChatPage() {
           <div className="grid h-full min-h-0 grid-rows-[auto_auto_1fr] gap-3 rounded-none bg-background-default p-3 min-[1024px]:rounded-xl min-[1024px]:bg-surface-card min-[1024px]:p-5 min-[1024px]:shadow-sm min-[1024px]:ring-1 min-[1024px]:ring-border-soft/40">
             <div className="flex items-center justify-between gap-2">
               <h2 className="m-0 text-[1rem] font-semibold text-text-primary">
-                Suhbatlar
+                {copy.sessionsTitle}
               </h2>
               <span className="text-[12px] font-medium text-text-muted">
-                {sessions.length} ta
+                {sessions.length} {copy.countSuffix}
               </span>
             </div>
 
@@ -498,7 +521,7 @@ function ChatPage() {
             type="button"
             className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-surface-card/90 text-text-primary ring-1 ring-border-soft/60 transition duration-fast hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
             onClick={() => setActiveSessionId(null)}
-            aria-label="Suhbatni yopish"
+            aria-label={copy.closeSessionAria}
           >
             <AppIcon name="close" className="h-4.5 w-4.5" aria-hidden="true" />
           </button>

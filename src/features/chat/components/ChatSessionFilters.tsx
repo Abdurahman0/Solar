@@ -1,5 +1,6 @@
 import { FaInstagram, FaTelegramPlane } from 'react-icons/fa';
 import { FiLayers } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { FilterSelect, SearchInput } from '../../../components/shared/data';
 import type { ChatChannel, SelectOption } from '../../../types/domain';
 
@@ -25,17 +26,6 @@ interface ChannelOption {
   shortLabel: string;
 }
 
-const channelOptions: ChannelOption[] = [
-  { value: 'all', label: 'Barcha kanallar', shortLabel: 'Barcha' },
-  { value: 'telegram', label: 'Telegram', shortLabel: 'TG' },
-  { value: 'instagram', label: 'Instagram', shortLabel: 'IG' },
-];
-
-const operatorOptions: Array<{ value: Exclude<OperatorFilterValue, 'all'>; label: string }> = [
-  { value: 'active', label: 'Faol operator' },
-  { value: 'inactive', label: 'Nofaol operator' },
-];
-
 function ChannelFilterIcon({ value }: { value: ChannelFilterValue }) {
   if (value === 'telegram') {
     return <FaTelegramPlane className="h-3.5 w-3.5 text-sky-500" />;
@@ -60,17 +50,31 @@ function ChatSessionFilters({
   onOperatorFilterChange,
   onOrderingChange,
 }: ChatSessionFiltersProps) {
+  const { i18n } = useTranslation();
+  const isRu = i18n.language === 'ru';
+
+  const channelOptions: ChannelOption[] = [
+    { value: 'all', label: isRu ? 'Все каналы' : 'Barcha kanallar', shortLabel: isRu ? 'Все' : 'Barcha' },
+    { value: 'telegram', label: 'Telegram', shortLabel: 'TG' },
+    { value: 'instagram', label: 'Instagram', shortLabel: 'IG' },
+  ];
+
+  const operatorOptions: Array<{ value: Exclude<OperatorFilterValue, 'all'>; label: string }> = [
+    { value: 'active', label: isRu ? 'Активный оператор' : 'Faol operator' },
+    { value: 'inactive', label: isRu ? 'Неактивный оператор' : 'Nofaol operator' },
+  ];
+
   return (
     <div className="grid gap-2.5 pb-2">
       <SearchInput
         value={search}
         onChange={onSearchChange}
-        placeholder="Suhbat, mijoz yoki tashqi ID bo'yicha qidirish"
+        placeholder={isRu ? 'Поиск по чату, клиенту или внешнему ID' : "Suhbat, mijoz yoki tashqi ID bo'yicha qidirish"}
       />
 
       <div className="grid gap-1.5">
         <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-          Kanal
+          {isRu ? 'Канал' : 'Kanal'}
         </p>
         <div className="grid grid-cols-3 gap-2">
           {channelOptions.map((option) => {
@@ -104,7 +108,7 @@ function ChatSessionFilters({
 
       <div className="grid gap-1.5">
         <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-          Operator
+          {isRu ? 'Оператор' : 'Operator'}
         </p>
         <div className="grid grid-cols-2 gap-2">
           {operatorOptions.map((option) => {
@@ -135,7 +139,7 @@ function ChatSessionFilters({
 
       <div className="grid gap-1.5">
         <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.1em] text-text-muted">
-          Saralash
+          {isRu ? 'Сортировка' : 'Saralash'}
         </p>
         <FilterSelect
           value={ordering}
@@ -149,3 +153,4 @@ function ChatSessionFilters({
 }
 
 export default ChatSessionFilters;
+

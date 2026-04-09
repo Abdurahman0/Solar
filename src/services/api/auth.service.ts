@@ -7,7 +7,7 @@ import { PERMISSION_CODES, type AuthenticatedUser, type PermissionCode } from '.
 import type { AppRole } from '../../types/architecture';
 
 interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -184,43 +184,53 @@ export interface AuthLoginResult extends AuthTokens {
 }
 
 export const authService = {
-  async login(email: string, password: string): Promise<AuthLoginResult> {
-    const payload: LoginRequest = { email, password };
-    const { data } = await apiClient.post<LoginResponse>('/api/auth/login/', payload, {
+  async login(username: string, password: string): Promise<AuthLoginResult> {
+    const payload: LoginRequest = { username, password };
+    const { data } = await apiClient.post<any>('/api/auth/login/', payload, {
       _skipAuthRefresh: true,
     });
 
-    if (typeof data.access !== 'string' || typeof data.refresh !== 'string') {
+    // Handle both response formats:
+    // Format 1: { access: "...", refresh: "...", user: {...} }
+    // Format 2: { status: "success", data: { access: "...", refresh: "...", user: {...} } }
+    const responseData = data.data || data;
+
+    if (typeof responseData.access !== 'string' || typeof responseData.refresh !== 'string') {
       throw new Error('Invalid login response.');
     }
 
     return {
-      access: data.access,
-      refresh: data.refresh,
-      user: normalizeUser(data.user),
+      access: responseData.access,
+      refresh: responseData.refresh,
+      user: normalizeUser(responseData.user),
     };
   },
 
   async getMe(): Promise<AuthenticatedUser> {
-    const { data } = await apiClient.get<MeResponse>('/api/auth/me/');
-    return normalizeUser(data);
+    const { data } = await apiClient.get<any>('/api/auth/me/');
+    // Handle both response formats
+    const userData = data.data || data;
+    return normalizeUser(userData);
   },
 
   async refreshToken(refresh: string): Promise<AuthTokens> {
-    const { data } = await apiClient.post<Partial<AuthTokens>>(
+    const { data } = await apiClient.post<any>(
       '/api/auth/refresh/',
       { refresh },
       { _skipAuthRefresh: true },
     );
 
-    if (typeof data.access !== 'string' || data.access.length === 0) {
+    // Handle both response formats
+    const responseData = data.data || data;
+
+    if (typeof responseData.access !== 'string' || responseData.access.length === 0) {
       throw new Error('Invalid refresh response.');
     }
 
     return {
-      access: data.access,
-      refresh: typeof data.refresh === 'string' && data.refresh.length > 0
-        ? data.refresh
+      access: responseData.access,
+      refresh: typeof responseData.refresh === 'string' && responseData.refresh.length > 0
+        ? responseData.refresh
         : refresh,
     };
   },

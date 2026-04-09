@@ -38,6 +38,6 @@ export interface AuthSession {
 }
 
 export interface LoginInput {
-	email: string
+	username: string
 	password: string
 }

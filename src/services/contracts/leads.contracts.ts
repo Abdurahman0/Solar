@@ -11,30 +11,28 @@ import type {
 } from './common.contracts'
 
 export interface Lead extends BaseEntity {
-	name: string
-	email?: string
+	full_name: string
 	phone?: string
-	company?: string
-	source?: string
-	status?: string
-	description?: string
-	assigned_to?: string
-	tags?: string[]
+	source: 'instagram' | 'manual' | 'telegram'
+	status: 'new' | 'contacted' | 'qualified' | 'lost'
+	manager?: string | null
+	manager_username?: string
+	ai_summary?: string
 	metadata?: Record<string, unknown>
 }
 
 export interface CreateLeadInput extends CreateInput<Lead> {
-	name: string
-	email?: string
-	phone?: string
+	full_name: string
+	source: 'instagram' | 'manual' | 'telegram'
+	status: 'new' | 'contacted' | 'qualified' | 'lost'
 }
 
 export interface UpdateLeadInput extends UpdateInput<Lead> {}
 
 export interface LeadsListParams extends ListParams {
-	status?: string
-	source?: string
-	assigned_to?: string
+	status?: 'new' | 'contacted' | 'qualified' | 'lost'
+	source?: 'instagram' | 'manual' | 'telegram'
+	manager?: string
 	search?: string
 }
 

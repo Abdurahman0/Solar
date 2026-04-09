@@ -8,7 +8,7 @@ Backend/API mapping is defined in:
 
 - `Solar CRM Frontend Pages.txt`
 
-Template documentation from the original Chikko clone has been removed.
+Template documentation from the original Solar clone has been removed.
 
 ## Run
 

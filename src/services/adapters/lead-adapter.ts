@@ -1,26 +1,13 @@
 ﻿// @ts-nocheck
 
 
-import type { Lead, LeadSource, LeadStatus, UserSummary } from '../../types/domain';
+import type { Lead, LeadSource, LeadStatus } from '../../types/domain';
 
 export type LeadDto = Record<string, unknown>;
 
-const ALLOWED_STATUSES: readonly LeadStatus[] = [
-  'new',
-  'contacted',
-  'qualified',
-  'negotiating',
-  'converted',
-  'lost',
-];
+const ALLOWED_STATUSES: readonly LeadStatus[] = ['new', 'contacted', 'qualified', 'lost'];
 
-const ALLOWED_SOURCES: readonly LeadSource[] = [
-  'telegram',
-  'instagram',
-  'manual',
-  'website',
-  'web',
-];
+const ALLOWED_SOURCES: readonly LeadSource[] = ['telegram', 'instagram', 'manual'];
 
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -41,24 +28,6 @@ function readString(value: unknown, fallback = ''): string {
   }
 
   return fallback;
-}
-
-function readBoolean(value: unknown): boolean {
-  if (typeof value === 'boolean') {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === 'true') {
-      return true;
-    }
-    if (normalized === 'false') {
-      return false;
-    }
-  }
-
-  return Boolean(value);
 }
 
 function normalizeMetadataValue(
@@ -123,41 +92,6 @@ function mapMetadata(value: unknown): Lead['metadata'] {
   return Object.keys(normalized).length > 0 ? normalized : null;
 }
 
-function mapAssignedOperator(value: unknown): UserSummary | undefined {
-  if (typeof value === 'string') {
-    const userId = readString(value);
-    if (!userId) {
-      return undefined;
-    }
-
-    return {
-      id: userId,
-      fullName: userId,
-      role: 'operator',
-    };
-  }
-
-  const userRecord = toRecord(value);
-  if (!userRecord) {
-    return undefined;
-  }
-
-  const userId = readString(userRecord.id);
-  if (!userId) {
-    return undefined;
-  }
-
-  return {
-    id: userId,
-    fullName: readString(userRecord.full_name) || readString(userRecord.fullName) || userId,
-    role:
-      userRecord.role === 'developer' || userRecord.role === 'admin' || userRecord.role === 'operator'
-        ? userRecord.role
-        : 'operator',
-    avatarUrl: readString(userRecord.avatar_url) || readString(userRecord.avatarUrl) || undefined,
-  };
-}
-
 function normalizeSource(value: unknown): LeadSource {
   const source = readString(value) as LeadSource;
   return ALLOWED_SOURCES.includes(source) ? source : 'manual';
@@ -172,38 +106,30 @@ export function mapLeadDtoToModel(dto: LeadDto): Lead {
   const nowIso = new Date().toISOString();
   const fullName = readString(dto.full_name) || readString(dto.fullName) || "Noma'lum lid";
   const phone = readString(dto.phone) || undefined;
-  const email = readString(dto.email) || undefined;
-  const instagramUsername = readString(dto.instagram_username) || undefined;
-  const telegramUsername = readString(dto.telegram_username) || undefined;
-  const username =
-    readString(dto.username) ||
-    instagramUsername ||
-    telegramUsername ||
-    undefined;
   const status = normalizeStatus(dto.status);
+  const managerId = readString(dto.manager) || undefined;
+  const managerUsername = readString(dto.manager_username) || undefined;
+  const aiSummary = readString(dto.ai_summary) || undefined;
 
   return {
     id: readString(dto.id) || `lead-${nowIso}`,
+    full_name: fullName,
     fullName,
-    username,
+    phone,
     contact: {
       phone,
-      email,
-      username,
     },
     source: normalizeSource(dto.source),
     status,
-    assignedOperator: mapAssignedOperator(dto.assigned_operator),
-    instagramUsername,
-    telegramUsername,
-    notes: readString(dto.notes) || undefined,
+    manager: managerId,
+    managerId,
+    manager_username: managerUsername,
+    managerUsername,
+    ai_summary: aiSummary,
+    aiSummary,
     metadata: mapMetadata(dto.metadata),
-    notesSummary: readString(dto.notes) || undefined,
-    tags: [],
-    lastMessageAt: readString(dto.last_message_at) || undefined,
-    lastContactAt: readString(dto.last_contact_at) || undefined,
-    replied: dto.replied !== undefined ? readBoolean(dto.replied) : undefined,
-    dmSent: dto.dm_sent !== undefined ? readBoolean(dto.dm_sent) : undefined,
+    created_at: readString(dto.created_at, nowIso),
+    updated_at: readString(dto.updated_at, nowIso),
     createdAt: readString(dto.created_at, nowIso),
     updatedAt: readString(dto.updated_at, nowIso),
   };
@@ -222,11 +148,15 @@ export function mapLeadListDtoToItems(value: unknown): Lead[] {
     return [];
   }
 
-  const items = Array.isArray(payload.results)
-    ? payload.results
-    : Array.isArray(payload.items)
-      ? payload.items
-      : [];
+  const wrappedData = toRecord(payload.data);
+  const sourcePayload = wrappedData ?? payload;
+  const items = Array.isArray(sourcePayload.results)
+    ? sourcePayload.results
+    : Array.isArray(sourcePayload.items)
+      ? sourcePayload.items
+      : Array.isArray(sourcePayload.data)
+        ? sourcePayload.data
+        : [];
 
   return items
     .map((item) => toRecord(item))

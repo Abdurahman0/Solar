@@ -11,35 +11,53 @@ import type {
 } from './common.contracts'
 
 export interface Client extends BaseEntity {
-	name: string
-	email?: string
+	lead?: string | null
+	lead_id?: string | null
+	full_name: string
 	phone?: string
-	company?: string
+	region?: string
 	address?: string
-	city?: string
-	country?: string
-	postal_code?: string
-	type?: string
-	status?: 'active' | 'inactive' | 'archived'
-	assigned_to?: string
-	tags?: string[]
+	object_type?: string
+	customer_segment?: string
+	electricity_consumption?: string
+	monthly_bill?: string | number
+	solution_type?: string
+	budget_range?: string
+	source_platform?: 'instagram' | 'manual' | 'telegram'
+	source_platform_label?: string
+	status?:
+		| 'new'
+		| 'contacted'
+		| 'qualified'
+		| 'need_follow_up'
+		| 'proposal_preparing'
+		| 'proposal_sent'
+		| 'negotiation'
+		| 'waiting_for_decision'
+		| 'won'
+		| 'lost'
+		| 'postponed'
+	status_label?: string
+	manager?: string | null
+	manager_username?: string
+	notes?: string
+	ai_summary?: string
 	metadata?: Record<string, unknown>
 }
 
 export interface CreateClientInput extends CreateInput<Client> {
-	name: string
-	email?: string
-	phone?: string
+	full_name: string
 }
 
 export interface UpdateClientInput extends UpdateInput<Client> {}
 
 export interface ClientsListParams extends ListParams {
-	status?: string
-	type?: string
-	assigned_to?: string
+	status?: Client['status']
+	source_platform?: Client['source_platform']
+	customer_segment?: string
+	manager?: string
+	region?: string
 	search?: string
-	country?: string
 }
 
 export interface IClientsService {
@@ -50,6 +68,7 @@ export interface IClientsService {
 	// Write operations
 	createClient(input: CreateClientInput): Promise<Client>
 	updateClient(id: string, input: UpdateClientInput): Promise<Client>
+	patchClient?(id: string, input: UpdateClientInput): Promise<Client>
 	deleteClient(id: string): Promise<void>
 
 	// Bulk operations

@@ -1,5 +1,6 @@
 import { FaInstagram, FaTelegramPlane } from 'react-icons/fa'
 import { FiAlertTriangle, FiEdit3, FiGlobe } from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
 import { EmptyState, LoadingState } from '../../../components/shared/page'
 import type { Conversation, EntityId } from '../../../types/domain'
 
@@ -26,19 +27,6 @@ const channelDotClassNameByValue: Record<Conversation['channel'], string> = {
 	manual: 'bg-neutral text-white',
 }
 
-const sessionStateLabel: Record<Conversation['state'], string> = {
-	open: 'Ochiq',
-	pending: 'Kutilmoqda',
-	resolved: 'Yakunlangan',
-}
-
-const channelLabelByValue: Record<Conversation['channel'], string> = {
-	telegram: 'Telegram',
-	instagram: 'Instagram',
-	web: 'Veb',
-	manual: "Qo'lda",
-}
-
 const avatarGradientByChannel: Record<Conversation['channel'], string> = {
 	telegram: 'from-sky-500 to-blue-600',
 	instagram: 'from-fuchsia-500 to-pink-600',
@@ -46,18 +34,21 @@ const avatarGradientByChannel: Record<Conversation['channel'], string> = {
 	manual: 'from-amber-500 to-orange-600',
 }
 
-function formatSessionTime(value: string | null): string {
+function formatSessionTime(value: string | null, locale: string, emptyLabel: string): string {
 	if (!value) {
-		return "Vaqt yo'q"
+		return emptyLabel
 	}
 
-	return new Intl.DateTimeFormat('uz-UZ', {
+	return new Intl.DateTimeFormat(locale, {
 		dateStyle: 'short',
 		timeStyle: 'short',
 	}).format(new Date(value))
 }
 
-function getSessionTitle(session: Conversation): string {
+function getSessionTitle(
+	session: Conversation,
+	fallbackUnknown: string,
+): string {
 	const stateRecord =
 		session.state_data &&
 		typeof session.state_data === 'object' &&
@@ -71,10 +62,10 @@ function getSessionTitle(session: Conversation): string {
 
 	return (
 		stateCustomerName ||
-		(session.client?.name ??
-			session.lead?.name ??
+		(session.client?.fullName ??
+			session.lead?.fullName ??
 			session.external_id ??
-			"Noma'lum chat")
+			fallbackUnknown)
 	)
 }
 
@@ -125,10 +116,43 @@ function ChatSessionList({
 	hasError,
 	onSelectSession,
 }: ChatSessionListProps) {
+	const { i18n } = useTranslation()
+	const isRu = i18n.language === 'ru'
+	const labels = {
+		loadingTitle: isRu ? 'Загрузка чатов' : 'Suhbatlar yuklanmoqda',
+		loadingDescription: isRu
+			? 'Получаем список сессий чата.'
+			: "Suhbat sessiyalari ro'yxati olinmoqda.",
+		errorTitle: isRu ? 'Не удалось загрузить чаты' : "Suhbatlarni yuklab bo'lmadi",
+		errorDescription: isRu
+			? 'Попробуйте обновить список сессий.'
+			: "Chat sessiyalarini qayta yuklab urinib ko'ring.",
+		emptyTitle: isRu ? 'Чаты не найдены' : 'Suhbat topilmadi',
+		emptyDescription: isRu
+			? 'Измените поиск или фильтры и попробуйте снова.'
+			: "Qidiruv yoki filtrlarni o'zgartirib qayta urinib ko'ring.",
+		unknownChat: isRu ? 'Неизвестный чат' : "Noma'lum chat",
+		noTime: isRu ? 'Нет времени' : "Vaqt yo'q",
+		noMessage: isRu ? 'Нет сообщений' : "Xabar yo'q",
+		operatorRequired: isRu ? 'Нужен оператор' : 'Operator kerak',
+		aiPaused: isRu ? 'AI приостановлен' : "AI to'xtatilgan",
+	}
+	const channelLabels: Record<Conversation['channel'], string> = {
+		telegram: 'Telegram',
+		instagram: 'Instagram',
+		web: isRu ? 'Веб' : 'Veb',
+		manual: isRu ? 'Вручную' : "Qo'lda",
+	}
+	const stateLabels: Record<Conversation['state'], string> = {
+		open: isRu ? 'Открыт' : 'Ochiq',
+		pending: isRu ? 'В ожидании' : 'Kutilmoqda',
+		resolved: isRu ? 'Завершен' : 'Yakunlangan',
+	}
+
 	const prioritizedSessions: Conversation[] = []
 	const regularSessions: Conversation[] = []
 
-	sessions.forEach(session => {
+	sessions.forEach((session) => {
 		if (session.operator_needed) {
 			prioritizedSessions.push(session)
 			return
@@ -142,8 +166,8 @@ function ChatSessionList({
 	if (isLoading) {
 		return (
 			<LoadingState
-				title='Suhbatlar yuklanmoqda'
-				description="Suhbat sessiyalari ro'yxati olinmoqda."
+				title={labels.loadingTitle}
+				description={labels.loadingDescription}
 			/>
 		)
 	}
@@ -151,8 +175,8 @@ function ChatSessionList({
 	if (hasError) {
 		return (
 			<EmptyState
-				title="Suhbatlarni yuklab bo'lmadi"
-				description="Chat sessiyalarini qayta yuklab urinib ko'ring."
+				title={labels.errorTitle}
+				description={labels.errorDescription}
 			/>
 		)
 	}
@@ -160,19 +184,19 @@ function ChatSessionList({
 	if (!sessions.length) {
 		return (
 			<EmptyState
-				title='Suhbat topilmadi'
-				description="Qidiruv yoki filtrlarni o'zgartirib qayta urinib ko'ring."
+				title={labels.emptyTitle}
+				description={labels.emptyDescription}
 			/>
 		)
 	}
 
 	return (
 		<div className='grid w-full min-w-0 gap-2 pb-1 pr-1'>
-			{visibleSessions.map(session => {
+			{visibleSessions.map((session) => {
 				const isSelected = selectedSessionId === session.id
 				const unreadCount = unreadBySessionId[session.id] ?? 0
 				const aiPaused = hasAiPause(session)
-				const title = getSessionTitle(session)
+				const title = getSessionTitle(session, labels.unknownChat)
 
 				return (
 					<button
@@ -227,12 +251,16 @@ function ChatSessionList({
 
 								<div className='mt-1 flex items-center gap-2'>
 									<span className='inline-flex min-h-6 items-center rounded-pill bg-surface-subtle px-2 text-[11px] font-semibold text-text-secondary ring-1 ring-border-soft/45'>
-										{formatSessionTime(session.last_message_at)}
+										{formatSessionTime(
+											session.last_message_at,
+											isRu ? 'ru-RU' : 'uz-UZ',
+											labels.noTime,
+										)}
 									</span>
 								</div>
 
 								<p className='m-0 mt-1.5 truncate text-[12px] text-text-secondary'>
-									{session.last_message ?? "Xabar yo'q"}
+									{session.last_message ?? labels.noMessage}
 								</p>
 							</div>
 						</div>
@@ -244,20 +272,20 @@ function ChatSessionList({
 									channelClassNameByValue[session.channel],
 								].join(' ')}
 							>
-								{channelLabelByValue[session.channel]}
+								{channelLabels[session.channel]}
 							</span>
 							<span className='inline-flex min-h-6 items-center rounded-pill bg-surface-card px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-text-secondary ring-1 ring-border-soft/45'>
-								{sessionStateLabel[session.state]}
+								{stateLabels[session.state]}
 							</span>
 							{session.operator_needed ? (
 								<span className='inline-flex min-h-6 items-center gap-1 rounded-pill bg-warning-bg px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-warning ring-1 ring-warning/30'>
 									<FiAlertTriangle className='h-3 w-3' aria-hidden='true' />
-									Operator Kerak
+									{labels.operatorRequired}
 								</span>
 							) : null}
 							{aiPaused ? (
 								<span className='inline-flex min-h-6 items-center rounded-pill bg-warning-bg px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-warning'>
-									AI to'xtatilgan
+									{labels.aiPaused}
 								</span>
 							) : null}
 						</div>

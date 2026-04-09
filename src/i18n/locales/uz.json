@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Chikko",
+    "appName": "Solar",
     "loading": "Yuklanmoqda...",
     "save": "Saqlash",
     "cancel": "Bekor qilish",
@@ -51,9 +51,17 @@
       "title": "Mijozlar",
       "description": "Mijozlar ro'yxati va profillari."
     },
+    "clients": {
+      "title": "Mijozlar",
+      "description": "Mijozlar ro'yxati va profillari."
+    },
     "products": {
       "title": "Mahsulotlar",
       "description": "Katalog, narx va zaxira boshqaruvi."
+    },
+    "contracts": {
+      "title": "Shartnomalar",
+      "description": "Shartnomalar va hujjatlar holatini boshqarish."
     },
     "orders": {
       "title": "Buyurtmalar",
@@ -114,7 +122,9 @@
       "integrations": "Ulanishlar",
       "leads": "Lid oqimi",
       "customers": "Mijozlar",
+      "clients": "Mijozlar",
       "products": "Katalog",
+      "contracts": "Shartnomalar",
       "orders": "Buyurtmalar",
       "couriers": "Yetkazib berish",
       "agents": "Agentlar",
@@ -138,19 +148,19 @@
   },
   "auth": {
     "login": {
-      "eyebrow": "Chikko CRM",
+      "eyebrow": "Solar CRM",
       "subtitle": "CRM boshqaruv platformasi",
-      "emailLabel": "Email yoki telefon",
-      "emailPlaceholder": "developer@example.com",
+      "usernameLabel": "Foydalanuvchi nomi",
+      "usernamePlaceholder": "developer",
       "passwordLabel": "Parol",
-      "emailError": "To'g'ri email manzilini kiriting.",
+      "usernameError": "Foydalanuvchi nomini kiriting.",
       "passwordError": "Parol kamida 8 ta belgidan iborat bo'lishi kerak.",
-      "invalidCredentials": "Email yoki parol noto'g'ri.",
+      "invalidCredentials": "Foydalanuvchi nomi yoki parol noto'g'ri.",
       "signIn": "Kirish",
       "signingIn": "Kirilmoqda...",
       "hidePassword": "Parolni yashirish",
       "showPassword": "Parolni ko'rsatish",
-      "footerRights": "© 2026 Chikko. Barcha huquqlar himoyalangan.",
+      "footerRights": "© 2026 Solar. Barcha huquqlar himoyalangan.",
       "footerPowered": "Ishlab chiquvchi"
     },
     "accessDenied": {
@@ -245,13 +255,17 @@
       "paymentStatus": "To'lov holati",
       "chatChannels": "Chat kanallari",
       "performance": "Asosiy ko'rsatkichlar",
-      "topProducts": "Top mahsulotlar"
+      "topProducts": "Top mahsulotlar",
+      "regionDemand": "Hududlar bo'yicha talab",
+      "managerPerformance": "Menejerlar samaradorligi"
     },
     "descriptions": {
       "trend": "Tanlangan davr bo'yicha lidlar, mijozlar va buyurtmalar dinamikasi.",
       "source": "Lidlar hajmi bo'yicha eng faol kanallar.",
       "leadStatus": "Jarayon bo'ylab holatlar taqsimoti.",
-      "topProducts": "Sotuv hajmi bo'yicha eng ko'p sotilgan mahsulotlar ro'yxati."
+      "topProducts": "Sotuv hajmi bo'yicha eng ko'p sotilgan mahsulotlar ro'yxati.",
+      "regionDemand": "Tanlangan davrda hududlar kesimidagi lidlar taqsimoti.",
+      "managerPerformance": "Menejerlar kesimida umumiy, yutilgan va yo'qotilgan lidlar ko'rsatkichlari."
     },
     "performance": {
       "leadConversionRate": "Lid konversiya darajasi",
@@ -265,6 +279,24 @@
         "product": "Mahsulot",
         "sold": "Sotilgan",
         "revenue": "Tushum"
+      }
+    },
+    "regionDemand": {
+      "empty": "Hududlar bo'yicha ma'lumot topilmadi.",
+      "emptyDescription": "Tanlangan davrda hududlar bo'yicha ma'lumot mavjud emas.",
+      "columns": {
+        "region": "Hudud",
+        "total": "Lidlar"
+      }
+    },
+    "managerPerformance": {
+      "empty": "Menejerlar bo'yicha ma'lumot topilmadi.",
+      "emptyDescription": "Tanlangan davrda menejerlar bo'yicha ma'lumot mavjud emas.",
+      "columns": {
+        "manager": "Menejer",
+        "total": "Jami",
+        "won": "Yutilgan",
+        "lost": "Yo'qotilgan"
       }
     },
     "noLeads": "Lidlar yo'q",
@@ -607,9 +639,7 @@
     "subtitle": "Narxlar, zaxira va faol holatni bitta katalogdan boshqaring.",
     "newProduct": "Yangi mahsulot",
     "newCategory": "Yangi kategoriya",
-    "newBrand": "Yangi brend",
     "allCurrencies": "Barcha valyutalar",
-    "allBrands": "Barcha brendlar",
     "allStatuses": "Barcha holatlar",
     "allReviewsModes": "Sharhlar: barchasi",
     "reviewsEnabled": "Sharhlar yoqilgan",
@@ -639,14 +669,6 @@
     "promotedCountLabel": "reklamadagi mahsulotlar",
     "categoriesCatalogTitle": "Categoriyalar katalogi",
     "categoriesCatalogHint": "Kategoriyani tahrirlash uchun amallarni tanlang",
-    "brandsCatalogTitle": "Brendlar katalogi",
-    "brandsCatalogHint": "Brendni tahrirlash uchun satrni bosing",
-    "brandsCountLabel": "brendlar",
-    "brandSearchPlaceholder": "Brend nomi yoki kodi bo'yicha qidirish...",
-    "brandsEmptyTitle": "Brendlar topilmadi",
-    "brandsEmptyDescription": "Hali birorta ham brend qo'shilmagan.",
-    "brandsErrorTitle": "Xatolik yuz berdi",
-    "brandsErrorDescription": "Brendlarni yuklab bo'lmadi.",
     "loadingTitle": "Mahsulotlar yuklanmoqda",
     "loadingDescription": "Katalog ma'lumotlari olinmoqda.",
     "errorTitle": "Mahsulotlar mavjud emas",
@@ -675,13 +697,6 @@
       "updated": "Yangilangan sana",
       "actions": "Amallar"
     },
-    "brandColumns": {
-      "name": "Brend",
-      "code": "Kod",
-      "status": "Holat",
-      "updated": "Yangilangan sana",
-      "actions": "Amallar"
-    },
     "noDescription": "Tavsif yo'q",
     "promotedBadge": "Reklama",
     "actions": {
@@ -689,10 +704,6 @@
       "delete": "O'chirish"
     },
     "categoryActions": {
-      "edit": "Tahrirlash",
-      "delete": "O'chirish"
-    },
-    "brandActions": {
       "edit": "Tahrirlash",
       "delete": "O'chirish"
     },
@@ -723,35 +734,6 @@
       "title": "\"{{name}}\" kategoriyasini o'chirasizmi?",
       "description": "Bu amal kategoriyani ro'yxatdan o'chiradi va ortga qaytarib bo'lmaydi.",
       "confirm": "Kategoriyani o'chirish",
-      "deleting": "O'chirilmoqda..."
-    },
-    "brandForm": {
-      "ariaLabel": "Brend qo'shish formasi",
-      "eyebrow": "Brend formasi",
-      "createTitle": "Yangi Brend",
-      "editTitle": "Brendni tahrirlash",
-      "createSubtitle": "Mahsulotlar uchun yangi brend qo'shing.",
-      "editSubtitle": "Brend ma'lumotlarini yangilang.",
-      "name": "Brend nomi",
-      "namePlaceholder": "Masalan: Nestle",
-      "code": "Kod",
-      "description": "Tavsif",
-      "descriptionPlaceholder": "Brend bo'yicha qisqa tavsif",
-      "active": "Faol brend",
-      "activeHint": "Brendni faol yoki nofaol holatga o'tkazing.",
-      "create": "Brend qo'shish",
-      "save": "O'zgarishlarni saqlash",
-      "creating": "Qo'shilmoqda...",
-      "saving": "Saqlanmoqda...",
-      "requiredError": "Brend nomini kiriting.",
-      "saveError": "Brendni saqlab bo'lmadi."
-    },
-    "brandDeleteDialog": {
-      "ariaLabel": "Brendni o'chirish oynasi",
-      "eyebrow": "O'chirishni tasdiqlash",
-      "title": "\"{{name}}\" brendini o'chirasizmi?",
-      "description": "Bu amal brendni ro'yxatdan o'chiradi va ortga qaytarib bo'lmaydi.",
-      "confirm": "Brendni o'chirish",
       "deleting": "O'chirilmoqda..."
     },
     "detail": {
@@ -794,7 +776,6 @@
       "skuAutoHint": "SKU kategoriya bo'yicha avtomatik yaratiladi.",
       "description": "Tavsif",
       "category": "Kategoriya",
-      "brand": "Brend",
       "categoryPlaceholder": "Masalan: care",
       "price": "Narx",
       "stockQuantity": "Zaxira soni",

@@ -1,20 +1,38 @@
 import { useTranslation } from 'react-i18next';
-import type { ManagedUser } from '../../../services/contracts';
+import type { Client } from '../../../services/contracts';
 
-interface UserDeleteDialogProps {
-  user: ManagedUser;
+interface ClientDeleteDialogProps {
+  client: Client;
   isDeleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-function UserDeleteDialog({
-  user,
+function ClientDeleteDialog({
+  client,
   isDeleting,
   onCancel,
   onConfirm,
-}: UserDeleteDialogProps) {
-  const { t } = useTranslation();
+}: ClientDeleteDialogProps) {
+  const { i18n } = useTranslation();
+  const isRu = i18n.language === 'ru';
+  const tx = isRu
+    ? {
+        eyebrow: 'Подтверждение удаления',
+        title: `Удалить клиента "${client.full_name}"?`,
+        description: 'Это действие нельзя отменить.',
+        deleting: 'Удаляется...',
+        confirm: 'Удалить клиента',
+        cancel: 'Отмена',
+      }
+    : {
+        eyebrow: 'O`chirishni tasdiqlash',
+        title: '"' + client.full_name + '" mijozini o`chirasizmi?',
+        description: 'Bu amalni ortga qaytarib bo`lmaydi.',
+        deleting: 'O`chirilmoqda...',
+        confirm: 'Mijozni o`chirish',
+        cancel: 'Bekor qilish',
+      };
 
   return (
     <div
@@ -29,17 +47,17 @@ function UserDeleteDialog({
       <section
         className="w-full max-w-[420px] rounded-2xl bg-surface-card p-5 shadow-xl ring-1 ring-border-soft/45"
         onClick={(event) => event.stopPropagation()}
-        aria-label={t('users.deleteDialog.title', { name: user.full_name })}
+        aria-label={tx.title}
       >
         <div className="grid gap-2">
           <p className="m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-danger">
-            {t('users.deleteDialog.eyebrow')}
+            {tx.eyebrow}
           </p>
           <h2 className="m-0 font-display text-[1.24rem] font-extrabold leading-[1.1] tracking-[-0.02em] text-text-primary">
-            {t('users.deleteDialog.title', { name: user.full_name })}
+            {tx.title}
           </h2>
           <p className="m-0 text-sm leading-6 text-text-secondary">
-            {t('users.deleteDialog.description')}
+            {tx.description}
           </p>
         </div>
 
@@ -50,7 +68,7 @@ function UserDeleteDialog({
             onClick={onCancel}
             disabled={isDeleting}
           >
-            {t('common.cancel')}
+            {tx.cancel}
           </button>
           <button
             type="button"
@@ -58,9 +76,7 @@ function UserDeleteDialog({
             onClick={onConfirm}
             disabled={isDeleting}
           >
-            {isDeleting
-              ? t('users.deleteDialog.deleting')
-              : t('users.deleteDialog.confirm')}
+            {isDeleting ? tx.deleting : tx.confirm}
           </button>
         </div>
       </section>
@@ -68,4 +84,4 @@ function UserDeleteDialog({
   );
 }
 
-export default UserDeleteDialog;
+export default ClientDeleteDialog;

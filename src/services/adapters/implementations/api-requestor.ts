@@ -48,6 +48,7 @@ export class ApiRequestor {
 			const response = await fetch(url.toString(), {
 				method: config?.method || 'GET',
 				headers,
+				cache: 'no-store',
 				body: config?.body ? JSON.stringify(config.body) : undefined,
 				signal: config?.timeout
 					? AbortSignal.timeout(config.timeout)

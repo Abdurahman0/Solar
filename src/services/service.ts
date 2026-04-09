@@ -7,19 +7,23 @@ import { getServices } from './registry'
 import { apiConversationService } from './api/conversation-service'
 import { apiProductService } from './api/product-service'
 import { apiDashboardService } from './api/dashboard-service'
-import { apiNotificationService } from './api/notification-service'
 import { apiIntegrationsService } from './api/integrations.service'
 import { apiAISettingsService } from './api/ai-settings.service'
 import { apiLogsService } from './api/common.service'
+import { apiLeadService } from './api/lead-service'
+import { apiClientService } from './api/client-service'
+import { apiNotificationService } from './api/notification-service'
 
 const coreServices = getServices()
 const conversationApi = apiConversationService as any
 const productApi = apiProductService as any
 const dashboardApi = apiDashboardService as any
-const notificationApi = apiNotificationService as any
 const integrationsApi = apiIntegrationsService as any
 const aiSettingsApi = apiAISettingsService as any
 const logsApi = apiLogsService as any
+const leadApi = apiLeadService as any
+const clientApi = apiClientService as any
+const notificationApi = apiNotificationService as any
 
 export const services = {
 	...coreServices,
@@ -36,43 +40,47 @@ export const services = {
 		listNotifications: notificationApi.listNotifications.bind(notificationApi),
 		getNotificationById: notificationApi.getNotificationById.bind(notificationApi),
 		getNotification: notificationApi.getNotificationById.bind(notificationApi),
-		markAsRead: notificationApi.markNotificationRead.bind(notificationApi),
-		markAllAsRead: notificationApi.markAllRead.bind(notificationApi),
-		clearAll: notificationApi.deleteAll.bind(notificationApi),
+		markAsRead: notificationApi.markAsRead.bind(notificationApi),
+		markNotificationRead: notificationApi.markNotificationRead.bind(notificationApi),
+		markAllAsRead: notificationApi.markAllAsRead.bind(notificationApi),
+		delete: notificationApi.delete.bind(notificationApi),
 	} as any,
 	integrations: {
 		listConfigs: integrationsApi.listIntegrationConfigs.bind(integrationsApi),
-		getConfigById: integrationsApi.getIntegrationConfigById.bind(integrationsApi),
-		getConfig: integrationsApi.getIntegrationConfigById.bind(integrationsApi),
-		createConfig: integrationsApi.createIntegrationConfig.bind(integrationsApi),
-		updateConfig: integrationsApi.updateIntegrationConfig.bind(integrationsApi),
 		patchConfig: integrationsApi.patchIntegrationConfig.bind(integrationsApi),
-		deleteConfig: integrationsApi.deleteIntegrationConfig.bind(integrationsApi),
-		listEvents: integrationsApi.listIntegrationEvents.bind(integrationsApi),
-		getEventById: integrationsApi.getIntegrationEventById.bind(integrationsApi),
-		getEvent: integrationsApi.getIntegrationEventById.bind(integrationsApi),
 	} as any,
 	aiSettings: {
 		listSettings: aiSettingsApi.listAISettings.bind(aiSettingsApi),
 		getSettingById: aiSettingsApi.getAISettingById.bind(aiSettingsApi),
 		getSetting: aiSettingsApi.getAISettingById.bind(aiSettingsApi),
-		getActiveSetting: aiSettingsApi.getActiveAISetting.bind(aiSettingsApi),
 		createSetting: aiSettingsApi.createAISetting.bind(aiSettingsApi),
 		updateSetting: aiSettingsApi.updateAISetting.bind(aiSettingsApi),
 		patchSetting: aiSettingsApi.patchAISetting.bind(aiSettingsApi),
 		deleteSetting: aiSettingsApi.deleteAISetting.bind(aiSettingsApi),
-		setActiveSetting: aiSettingsApi.setActiveAISetting.bind(aiSettingsApi),
 	} as any,
 	logs: {
+		...coreServices.logs,
 		getHealth: logsApi.getHealth.bind(logsApi),
-		listLogs: logsApi.listLogs.bind(logsApi),
-		getLogById: logsApi.getLogById.bind(logsApi),
-		getApiLog: logsApi.getLogById.bind(logsApi),
-		getCleanupSettings: logsApi.getCleanupSettings.bind(logsApi),
-		updateCleanupSettings: logsApi.patchCleanupSettings.bind(logsApi),
+	} as any,
+	leads: {
+		listLeads: leadApi.listLeads.bind(leadApi),
+		getLead: leadApi.getLeadById.bind(leadApi),
+		getLeadById: leadApi.getLeadById.bind(leadApi),
+		createLead: leadApi.createLead.bind(leadApi),
+		updateLead: leadApi.updateLead.bind(leadApi),
+		patchLead: leadApi.patchLead.bind(leadApi),
+		deleteLead: leadApi.deleteLead.bind(leadApi),
+	} as any,
+	clients: {
+		listClients: clientApi.listClients.bind(clientApi),
+		getClient: clientApi.getClient.bind(clientApi),
+		createClient: clientApi.createClient.bind(clientApi),
+		updateClient: clientApi.updateClient.bind(clientApi),
+		patchClient: clientApi.patchClient.bind(clientApi),
+		deleteClient: clientApi.deleteClient.bind(clientApi),
 	} as any,
 	products: {
-		...productApi,
 		...coreServices.products,
+		...productApi,
 	} as any,
 }

@@ -7,19 +7,53 @@ import { ApiRequestor } from './api-requestor'
 import { getAccessToken } from '../../../lib/auth-storage'
 import type {
 	Contract,
+	CreateInput,
 	ContractsListParams,
 	CreateContractInput,
 	IContractsService,
 	PaginatedResponse,
+	UpdateInput,
 	UpdateContractInput,
 } from '../../contracts'
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return null
+	}
+
+	return value as Record<string, unknown>
+}
+
+function parseListResponse(
+	data: unknown,
+	params?: ContractsListParams,
+): PaginatedResponse<Contract> {
+	const payload = toRecord(data) ?? {}
+	const results = Array.isArray(payload.results)
+		? payload.results
+		: Array.isArray(payload.items)
+			? payload.items
+			: []
+	const items = results as Contract[]
+	const count = typeof payload.count === 'number' ? payload.count : items.length
+
+	return {
+		items,
+		total: count,
+		page: params?.page,
+		page_size: params?.page_size,
+		count,
+		next: typeof payload.next === 'string' ? payload.next : null,
+		previous: typeof payload.previous === 'string' ? payload.previous : null,
+	}
+}
 
 export class ContractsAdapter
 	extends BaseCrudAdapter<
 		Contract,
 		ContractsListParams,
-		CreateContractInput,
-		UpdateContractInput
+		CreateInput<Contract>,
+		UpdateInput<Contract>
 	>
 	implements IContractsService
 {
@@ -38,7 +72,11 @@ export class ContractsAdapter
 	async listContracts(
 		params?: ContractsListParams,
 	): Promise<PaginatedResponse<Contract>> {
-		return this.list(params)
+		const data = await this.requestor.get<unknown>(
+			this.endpoint,
+			params as Record<string, unknown>,
+		)
+		return parseListResponse(data, params)
 	}
 
 	async getContract(id: string): Promise<Contract> {
@@ -47,23 +85,23 @@ export class ContractsAdapter
 
 	async createContract(
 		input: CreateContractInput,
-		file?: File,
+		file?: File | null,
 	): Promise<Contract> {
-		if (file) {
-			return this.uploadWithFile(input, file, 'create')
+		if (file || input.file || input.cadastre_file || input.house_image) {
+			return this.uploadWithFile(input, file ?? undefined, 'create')
 		}
-		return this.create(input)
+		return this.create(input as CreateInput<Contract>)
 	}
 
 	async updateContract(
 		id: string,
 		input: UpdateContractInput,
-		file?: File,
+		file?: File | null,
 	): Promise<Contract> {
-		if (file) {
-			return this.uploadWithFile(input, file, 'update', id)
+		if (file || input.file || input.cadastre_file || input.house_image) {
+			return this.uploadWithFile(input, file ?? undefined, 'update', id)
 		}
-		return this.update(id, input)
+		return this.update(id, input as UpdateInput<Contract>)
 	}
 
 	async deleteContract(id: string): Promise<void> {
@@ -134,7 +172,7 @@ export class ContractsAdapter
 
 	private async uploadWithFile(
 		input: CreateContractInput | UpdateContractInput,
-		file: File,
+		file: File | undefined,
 		mode: 'create' | 'update',
 		id?: string,
 	): Promise<Contract> {
@@ -142,13 +180,34 @@ export class ContractsAdapter
 
 		// Add form fields
 		Object.entries(input).forEach(([key, value]) => {
+			if (
+				key === 'file' ||
+				key === 'cadastre_file' ||
+				key === 'house_image'
+			) {
+				return
+			}
 			if (value !== undefined && value !== null) {
+				if (key === 'items' && Array.isArray(value)) {
+					formData.append(key, JSON.stringify(value))
+					return
+				}
 				formData.append(key, String(value))
 			}
 		})
 
-		// Add file
-		formData.append('file', file)
+		if (file) {
+			formData.append('file', file)
+		}
+		if (input.file instanceof File) {
+			formData.append('file', input.file)
+		}
+		if (input.cadastre_file instanceof File) {
+			formData.append('cadastre_file', input.cadastre_file)
+		}
+		if (input.house_image instanceof File) {
+			formData.append('house_image', input.house_image)
+		}
 
 		const token = getAccessToken()
 		const headers: Record<string, string> = {}

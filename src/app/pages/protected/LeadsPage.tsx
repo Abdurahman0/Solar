@@ -28,10 +28,8 @@ import { services } from '../../../services'
 import { useAuth } from '../../../auth'
 import type {
 	Lead,
-	LeadsListParams,
 	CreateLeadInput,
 	UpdateLeadInput,
-	PaginatedResponse,
 } from '../../../services/contracts'
 
 type LeadStatusFilter = string | 'all'
@@ -52,16 +50,9 @@ const STATUS_VALUES: readonly string[] = [
 	'new',
 	'contacted',
 	'qualified',
-	'negotiating',
-	'converted',
 	'lost',
 ]
-const SOURCE_VALUES: readonly string[] = [
-	'manual',
-	'telegram',
-	'instagram',
-	'web',
-]
+const SOURCE_VALUES: readonly string[] = ['manual', 'telegram', 'instagram']
 
 const DEFAULT_PAGINATION = {
 	page: 1,
@@ -107,10 +98,6 @@ function formatDate(
 }
 
 function normalizeLeadSource(source: string): string {
-	if (source === 'website') {
-		return 'web'
-	}
-
 	return source
 }
 
@@ -151,8 +138,6 @@ function channelAbbreviation(source: string): string {
 			return 'IG'
 		case 'telegram':
 			return 'TG'
-		case 'web':
-			return 'WEB'
 		case 'manual':
 			return 'MN'
 		default:
@@ -170,10 +155,6 @@ function getLeadStatusTone(
 			return 'warning'
 		case 'qualified':
 			return 'accent'
-		case 'negotiating':
-			return 'warning'
-		case 'converted':
-			return 'success'
 		case 'lost':
 			return 'danger'
 		default:
@@ -294,16 +275,11 @@ function LeadsPage() {
 		let isActive = true
 
 		async function loadOperatorOptions() {
-			const [usersResult, leadsResult] = await Promise.allSettled([
+			const usersResult = await Promise.allSettled([
 				services.users.listUsers({
 					page: 1,
 					page_size: SERVICE_FETCH_SIZE,
 					ordering: 'full_name',
-				}),
-				services.leads.listLeads({
-					page: 1,
-					pageSize: SERVICE_FETCH_SIZE,
-					ordering: '-updated_at',
 				}),
 			])
 
@@ -313,22 +289,11 @@ function LeadsPage() {
 
 			const operatorsById = new Map<string, string>()
 
-			if (usersResult.status === 'fulfilled') {
-				usersResult.value.items.forEach(operator => {
+			if (usersResult[0].status === 'fulfilled') {
+				usersResult[0].value.items.forEach(operator => {
 					if (operator.full_name) {
 						operatorsById.set(operator.id, operator.full_name)
 					}
-				})
-			}
-
-			if (leadsResult.status === 'fulfilled') {
-				leadsResult.value.items.forEach(lead => {
-					if (!lead.assigned_to) {
-						return
-					}
-
-					// For the new type, we don't have operator names in the lead object
-					// We'll resolve them separately if needed
 				})
 			}
 
@@ -355,16 +320,8 @@ function LeadsPage() {
 	}, [allOperatorsOption, currentUser, reloadCursor])
 
 	const leadsWithOperatorNames = useMemo<Lead[]>(() => {
-		if (operatorNameById.size === 0) {
-			return leads
-		}
-
-		return leads.map(lead => {
-			// For now, just return the lead as-is since the new type structure is different
-			// The operator name resolution will be handled in the UI rendering
-			return lead
-		})
-	}, [leads, operatorNameById])
+		return leads
+	}, [leads])
 
 	useEffect(() => {
 		let isActive = true
@@ -380,7 +337,7 @@ function LeadsPage() {
 					search: debouncedSearch || undefined,
 					status: statusFilter === 'all' ? undefined : statusFilter,
 					source: sourceFilter === 'all' ? undefined : sourceFilter,
-					assigned_to:
+					manager:
 						assignedOperatorFilter === ALL_OPERATORS_VALUE
 							? undefined
 							: assignedOperatorFilter,
@@ -391,7 +348,10 @@ function LeadsPage() {
 					return
 				}
 
-				const totalPages = Math.ceil(result.total / PAGE_SIZE)
+				const totalItems = result.meta?.totalItems ?? 0
+				const resultPage = result.meta?.page ?? currentPage
+				const resultPageSize = result.meta?.pageSize ?? PAGE_SIZE
+				const totalPages = Math.ceil(totalItems / PAGE_SIZE)
 				if (currentPage > totalPages && totalPages > 0) {
 					setCurrentPage(totalPages)
 					return
@@ -399,55 +359,10 @@ function LeadsPage() {
 
 				setLeads(result.items)
 				setPagination({
-					page: result.page || currentPage,
-					page_size: result.page_size || PAGE_SIZE,
-					total: result.total,
+					page: resultPage,
+					page_size: resultPageSize,
+					total: totalItems,
 				})
-
-				const unresolvedOperatorIds = Array.from(
-					new Set(
-						result.items
-							.map(lead => lead.assigned_to)
-							.filter((id): id is string => Boolean(id)),
-					),
-				)
-
-				if (unresolvedOperatorIds.length > 0) {
-					void (async () => {
-						const resolvedEntries = await Promise.all(
-							unresolvedOperatorIds.map(async operatorId => {
-								try {
-									const user = await services.users.getUserById(operatorId)
-									return [operatorId, user?.full_name ?? null] as const
-								} catch {
-									return [operatorId, null] as const
-								}
-							}),
-						)
-
-						if (!isActive) {
-							return
-						}
-
-						setOperatorNameById(current => {
-							const next = new Map(current)
-							let changed = false
-
-							for (const [operatorId, operatorName] of resolvedEntries) {
-								if (!operatorName || isUuidLike(operatorName)) {
-									continue
-								}
-
-								if (next.get(operatorId) !== operatorName) {
-									next.set(operatorId, operatorName)
-									changed = true
-								}
-							}
-
-							return changed ? next : current
-						})
-					})()
-				}
 			} catch {
 				if (!isActive) {
 					return
@@ -568,7 +483,7 @@ function LeadsPage() {
 		id: string,
 		status: string,
 	): Promise<Lead | null> {
-		const updated = await services.leads.updateLead(id, { status })
+		const updated = await services.leads.patchLead(id, { status })
 		if (!updated) {
 			return null
 		}
@@ -587,10 +502,10 @@ function LeadsPage() {
 				render: lead => (
 					<div className='grid gap-0.5'>
 						<span className={tablePrimaryTextClassName}>
-							{lead.name || t('leads.detail.titleFallback')}
+							{lead.full_name || t('leads.detail.titleFallback')}
 						</span>
 						<span className={tableSecondaryTextClassName}>
-							{lead.company ?? t('leads.unknownHandle')}
+							{lead.ai_summary ?? t('leads.awaitingOutreach')}
 						</span>
 					</div>
 				),
@@ -603,8 +518,10 @@ function LeadsPage() {
 						<span className={tablePrimaryTextClassName}>
 							{lead.phone ?? t('leads.noPhone')}
 						</span>
-						{lead.email && (
-							<span className={tableSecondaryTextClassName}>{lead.email}</span>
+						{lead.manager_username && (
+							<span className={tableSecondaryTextClassName}>
+								{lead.manager_username}
+							</span>
 						)}
 					</div>
 				),
@@ -624,7 +541,7 @@ function LeadsPage() {
 								{getChannelLabel(t, normalizedSource)}
 							</span>
 							<span className={tableSecondaryTextClassName}>
-								{lead.description ?? t('leads.awaitingOutreach')}
+								{lead.ai_summary ?? t('leads.awaitingOutreach')}
 							</span>
 						</div>
 					)
@@ -645,13 +562,15 @@ function LeadsPage() {
 				key: 'owner',
 				label: t('leads.owner'),
 				render: lead => {
-					const operatorName = lead.assigned_to
-						? operatorNameById.get(lead.assigned_to)
+					const managerName = lead.manager
+						? operatorNameById.get(lead.manager)
 						: null
 					return (
 						<div className='grid gap-0.5'>
 							<span className={tablePrimaryTextClassName}>
-								{operatorName ?? t('common.unassigned')}
+								{managerName ??
+									lead.manager_username ??
+									t('common.unassigned')}
 							</span>
 						</div>
 					)
@@ -696,7 +615,7 @@ function LeadsPage() {
 								event.stopPropagation()
 								openEditForm(lead)
 							}}
-							aria-label={`${t('leads.actions.edit')} ${lead.name ?? ''}`}
+							aria-label={`${t('leads.actions.edit')} ${lead.full_name ?? ''}`}
 						>
 							<FiEdit2 className='h-3.5 w-3.5' />
 						</button>
@@ -707,7 +626,7 @@ function LeadsPage() {
 								event.stopPropagation()
 								requestDelete(lead)
 							}}
-							aria-label={`${t('leads.actions.delete')} ${lead.name ?? ''}`}
+							aria-label={`${t('leads.actions.delete')} ${lead.full_name ?? ''}`}
 						>
 							<FiTrash2 className='h-3.5 w-3.5' />
 						</button>

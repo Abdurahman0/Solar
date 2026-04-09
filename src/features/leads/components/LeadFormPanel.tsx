@@ -22,14 +22,12 @@ interface LeadFormPanelProps {
 }
 
 interface LeadFormState {
-  name: string;
+  fullName: string;
   phone: string;
-  email: string;
-  company: string;
   source: string;
   status: string;
-  description: string;
-  assignedTo: string;
+  aiSummary: string;
+  manager: string;
 }
 
 const inputClassName = [
@@ -45,10 +43,6 @@ const labelClassName =
 const UNASSIGNED_OPERATOR_VALUE = '';
 
 function normalizeLeadSource(source: string): string {
-  if (source === 'website') {
-    return 'web';
-  }
-
   return source;
 }
 
@@ -58,26 +52,22 @@ function createInitialState(
 ): LeadFormState {
   if (mode === 'edit' && lead) {
     return {
-      name: lead.name ?? '',
+      fullName: lead.full_name ?? '',
       phone: lead.phone ?? '',
-      email: lead.email ?? '',
-      company: lead.company ?? '',
       source: normalizeLeadSource(lead.source ?? 'manual'),
       status: lead.status ?? 'new',
-      description: lead.description ?? '',
-      assignedTo: lead.assigned_to ?? UNASSIGNED_OPERATOR_VALUE,
+      aiSummary: lead.ai_summary ?? '',
+      manager: lead.manager ?? UNASSIGNED_OPERATOR_VALUE,
     };
   }
 
   return {
-    name: '',
+    fullName: '',
     phone: '',
-    email: '',
-    company: '',
     source: 'manual',
     status: 'new',
-    description: '',
-    assignedTo: UNASSIGNED_OPERATOR_VALUE,
+    aiSummary: '',
+    manager: UNASSIGNED_OPERATOR_VALUE,
   };
 }
 
@@ -116,7 +106,8 @@ function LeadFormPanel({
 
   const canSubmit = useMemo(() => {
     return (
-      form.name.trim().length > 0 &&
+      form.fullName.trim().length > 0 &&
+      form.phone.trim().length > 0 &&
       form.source.length > 0 &&
       form.status.length > 0
     );
@@ -126,26 +117,22 @@ function LeadFormPanel({
     event.preventDefault();
     setFieldError(null);
 
-    const name = form.name.trim();
+    const fullName = form.fullName.trim();
     const phone = form.phone.trim();
-    const email = form.email.trim();
-    const company = form.company.trim();
-    const description = form.description.trim();
+    const aiSummary = form.aiSummary.trim();
 
-    if (!name) {
+    if (!fullName || !phone) {
       setFieldError(t('leads.form.requiredError'));
       return;
     }
 
     onSubmit({
-      name,
-      phone: phone || undefined,
-      email: email || undefined,
-      company: company || undefined,
-      source: form.source,
-      status: form.status,
-      description: description || undefined,
-      assigned_to: form.assignedTo || undefined,
+      full_name: fullName,
+      phone,
+      source: form.source as CreateLeadInput['source'],
+      status: form.status as CreateLeadInput['status'],
+      ai_summary: aiSummary || undefined,
+      manager: form.manager || undefined,
     });
   }
 
@@ -201,9 +188,9 @@ function LeadFormPanel({
               <input
                 id="lead-form-full-name"
                 type="text"
-                value={form.name}
+                value={form.fullName}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, name: event.target.value }))
+                  setForm((current) => ({ ...current, fullName: event.target.value }))
                 }
                 className={inputClassName}
                 placeholder={t('leads.form.fullNamePlaceholder')}
@@ -231,50 +218,14 @@ function LeadFormPanel({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <label className={labelClassName} htmlFor="lead-form-email">
-                {t('leads.form.email')}
-              </label>
-              <input
-                id="lead-form-email"
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, email: event.target.value }))
-                }
-                className={inputClassName}
-                placeholder="name@example.com"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <label className={labelClassName} htmlFor="lead-form-company">
-                {t('leads.form.company')}
-              </label>
-              <input
-                id="lead-form-company"
-                type="text"
-                value={form.company}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, company: event.target.value }))
-                }
-                className={inputClassName}
-                placeholder={t('leads.form.companyPlaceholder')}
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-
           <div className="grid gap-3">
             <div className="grid gap-1.5">
               <span className={labelClassName}>{t('leads.form.operator')}</span>
               <FilterSelect
-                value={form.assignedTo}
+                value={form.manager}
                 options={operatorOptions}
                 onChange={(value) =>
-                  setForm((current) => ({ ...current, assignedTo: value }))
+                  setForm((current) => ({ ...current, manager: value }))
                 }
                 disabled={isSubmitting}
               />
@@ -313,9 +264,9 @@ function LeadFormPanel({
             </label>
             <textarea
               id="lead-form-notes"
-              value={form.description}
+              value={form.aiSummary}
               onChange={(event) =>
-                setForm((current) => ({ ...current, description: event.target.value }))
+                setForm((current) => ({ ...current, aiSummary: event.target.value }))
               }
               className={`${inputClassName} min-h-[96px] resize-y`}
               placeholder={t('leads.form.notesPlaceholder')}
@@ -337,8 +288,16 @@ function LeadFormPanel({
 
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <button
+              type="button"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-card px-4 text-sm font-semibold text-text-secondary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              {t('common.cancel')}
+            </button>
+            <button
               type="submit"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ml-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSubmitting || !canSubmit}
             >
               {isSubmitting
@@ -348,14 +307,6 @@ function LeadFormPanel({
                 : mode === 'create'
                   ? t('leads.form.createSubmit')
                   : t('leads.form.editSubmit')}
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-surface-card px-4 text-sm font-semibold text-text-secondary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              {t('common.cancel')}
             </button>
           </div>
         </form>

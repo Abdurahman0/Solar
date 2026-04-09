@@ -15,7 +15,7 @@ interface AppTopbarProps {
 	showRouteMeta?: boolean
 }
 
-const THEME_STORAGE_KEY = 'chikko-theme'
+const THEME_STORAGE_KEY = 'solar-theme'
 
 function getInitialIsDarkTheme() {
 	if (typeof window === 'undefined') {

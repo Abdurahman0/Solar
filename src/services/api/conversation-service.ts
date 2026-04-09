@@ -33,6 +33,14 @@ function readNumber(value: unknown): number | null {
   return null;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 function toPaginatedResult<T>(
   allItems: T[],
   params: { page?: number; pageSize?: number } | undefined,
@@ -143,17 +151,45 @@ export const apiConversationService: ConversationService = {
   },
 
   async sendMessage(sessionId, payload: SendMessageInput) {
-    const { data } = await apiClient.post<ChatMessageDto>(
+    const payloadMetadata = asRecord(payload.metadata);
+    const explicitPlatform = payloadMetadata?.platform;
+    const explicitPlatformUserId = payloadMetadata?.platform_user_id;
+    const explicitRawPayload = payloadMetadata?.raw_payload;
+    const platform =
+      explicitPlatform === 'telegram' || explicitPlatform === 'instagram' || explicitPlatform === 'manual'
+        ? explicitPlatform
+        : 'telegram';
+    const platformUserId =
+      typeof explicitPlatformUserId === 'string' && explicitPlatformUserId.trim()
+        ? explicitPlatformUserId.trim()
+        : sessionId;
+
+    const { data } = await apiClient.post<unknown>(
       '/api/chat/messages/inbound/',
       {
-        session_id: sessionId,
-        content: payload.content,
-        external_message_id: payload.external_message_id,
-        metadata: payload.metadata,
+        platform,
+        platform_user_id: platformUserId,
+        message: payload.content,
+        raw_payload:
+          typeof explicitRawPayload === 'string'
+            ? explicitRawPayload
+            : payload.metadata
+              ? JSON.stringify(payload.metadata)
+              : null,
       },
     );
 
-    return mapChatMessageDtoToModel(data, sessionId);
+    const responseRecord = asRecord(data);
+    const wrappedData = asRecord(responseRecord?.data);
+    const outgoingRecord = asRecord(wrappedData?.outgoing);
+    const incomingRecord = asRecord(wrappedData?.incoming);
+    const fallbackRecord = asRecord(data);
+    const messageRecord =
+      outgoingRecord ??
+      incomingRecord ??
+      fallbackRecord;
+
+    return mapChatMessageDtoToModel(messageRecord ?? {}, sessionId);
   },
 
   async markSessionRead(sessionId) {

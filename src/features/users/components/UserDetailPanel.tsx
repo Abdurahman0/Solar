@@ -27,7 +27,6 @@ interface UserDetailPanelProps {
 	onClose: () => void
 	onEdit: (user: ManagedUser) => void
 	onDelete: (user: ManagedUser) => void
-	onToggleActive: (id: string) => Promise<ManagedUser | null>
 }
 
 const labelClassName =
@@ -88,7 +87,6 @@ function UserDetailPanel({
 	onClose,
 	onEdit,
 	onDelete,
-	onToggleActive,
 }: UserDetailPanelProps) {
 	const { t, i18n } = useTranslation()
 	const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ'
@@ -96,8 +94,6 @@ function UserDetailPanel({
 	const [permissions, setPermissions] = useState<UserPermission[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [hasError, setHasError] = useState(false)
-	const [isToggling, setIsToggling] = useState(false)
-	const [actionError, setActionError] = useState<string | null>(null)
 
 	useEffect(() => {
 		let isActive = true
@@ -105,7 +101,6 @@ function UserDetailPanel({
 		async function loadUserDetail() {
 			setIsLoading(true)
 			setHasError(false)
-			setActionError(null)
 
 			try {
 				const [nextUser, nextPermissions] = await Promise.all([
@@ -177,27 +172,6 @@ function UserDetailPanel({
 		(user.id === currentManagedUserId ||
 			user.id === `managed-${currentManagedUserId}`),
 	)
-
-	async function handleToggleActive() {
-		if (!user || isToggling) {
-			return
-		}
-
-		setActionError(null)
-		setIsToggling(true)
-
-		try {
-			const next = await onToggleActive(user.id)
-			if (!next) {
-				throw new Error()
-			}
-			setUser(next)
-		} catch {
-			setActionError(t('users.actions.toggleError'))
-		} finally {
-			setIsToggling(false)
-		}
-	}
 
 	return (
 		<div
@@ -382,12 +356,6 @@ function UserDetailPanel({
 								</dl>
 							</PageCard>
 
-							{actionError ? (
-								<p className='m-0 rounded-lg bg-danger-bg px-3 py-2 text-sm font-medium text-danger'>
-									{actionError}
-								</p>
-							) : null}
-
 							<PageCard>
 								{canManageUsers && targetManageable ? (
 									<div className='flex flex-wrap items-center gap-2'>
@@ -398,18 +366,6 @@ function UserDetailPanel({
 										>
 											<FiEdit2 className='h-4 w-4' />
 											{t('users.actions.edit')}
-										</button>
-										<button
-											type='button'
-											className='inline-flex min-h-10 items-center gap-2 rounded-lg bg-info px-4 text-sm font-semibold text-white transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/35 disabled:cursor-not-allowed disabled:opacity-60'
-											onClick={() => void handleToggleActive()}
-											disabled={isToggling || isCurrentManagedUser}
-										>
-											{isToggling
-												? t('users.actions.toggling')
-												: user.is_active
-													? t('users.actions.deactivate')
-													: t('users.actions.activate')}
 										</button>
 										<button
 											type='button'

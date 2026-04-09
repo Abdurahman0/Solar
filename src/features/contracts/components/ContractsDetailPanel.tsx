@@ -1,299 +1,320 @@
-// @ts-nocheck
-
-/**
- * ContractsDetailPanel - Read-only detail view for contracts
- */
-
-import { useEffect, useState } from 'react'
-import {
-	FiX,
-	FiEdit,
-	FiTrash2,
-	FiFileText,
-	FiUser,
-	FiDollarSign,
-	FiCalendar,
-} from 'react-icons/fi'
+import { useTranslation } from 'react-i18next'
+import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useDetail } from '../../../components/hooks'
-import {
-	EmptyState,
-	LoadingState,
-	PageCard,
-} from '../../../components/shared/page'
+import { EmptyState, LoadingState, PageCard } from '../../../components/shared/page'
 import { StatusBadge } from '../../../components/shared/data'
+import AppIcon from '../../../components/shared/icons/AppIcon'
+import { formatLocalizedDate } from '../../../i18n/date-format'
 import { services } from '../../../services'
-import type { Contract, Client } from '../../../services/contracts'
+import type { Contract } from '../../../services/contracts'
 
 export interface ContractsDetailPanelProps {
 	contractId: string
 	onClose?: () => void
 	onEdit?: (contract: Contract) => void
-	onDelete?: (contract: Contract) => void
+	onRequestDelete?: (contract: Contract) => void
+}
+
+const labelClassName =
+	'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'
+const valueClassName =
+	'text-sm font-semibold text-text-primary [overflow-wrap:anywhere]'
+
+function getStatusTone(
+	status: string,
+): 'info' | 'warning' | 'accent' | 'success' | 'danger' {
+	if (status === 'paid' || status === 'signed' || status === 'delivered') {
+		return 'success'
+	}
+	if (status === 'canceled') {
+		return 'danger'
+	}
+	if (status === 'audit_paid' || status === 'contract_ready') {
+		return 'accent'
+	}
+	if (status === 'draft') {
+		return 'info'
+	}
+	return 'warning'
+}
+
+function getStatusLabel(status: string, isRu: boolean): string {
+	const map: Record<string, string> = isRu
+		? {
+				draft: 'Черновик',
+				audit_pending: 'Аудит ожидается',
+				audit_paid: 'Аудит оплачен',
+				moderation: 'Модерация',
+				contract_ready: 'Договор готов',
+				payment_pending: 'Ожидает оплату',
+				paid: 'Оплачен',
+				delivered: 'Доставлен',
+				sent: 'Отправлен',
+				signed: 'Подписан',
+				canceled: 'Отменен',
+			}
+		: {
+				draft: 'Qoralama',
+				audit_pending: 'Audit kutilmoqda',
+				audit_paid: 'Audit to`langan',
+				moderation: 'Moderatsiya',
+				contract_ready: 'Shartnoma tayyor',
+				payment_pending: 'To`lov kutilmoqda',
+				paid: 'To`langan',
+				delivered: 'Yetkazilgan',
+				sent: 'Yuborilgan',
+				signed: 'Imzolangan',
+				canceled: 'Bekor qilingan',
+			}
+	return map[status] ?? status
+}
+
+function formatDetailsText(details: Contract['details']): string {
+	if (!details) {
+		return '-'
+	}
+	if (typeof details === 'string') {
+		const trimmed = details.trim()
+		return trimmed.length ? trimmed : '-'
+	}
+	const values = Object.values(details)
+		.map(value => (typeof value === 'string' ? value.trim() : String(value)))
+		.filter(value => value.length > 0)
+	if (!values.length) {
+		return '-'
+	}
+	return values.join(', ')
 }
 
 export function ContractsDetailPanel({
 	contractId,
 	onClose,
 	onEdit,
-	onDelete,
+	onRequestDelete,
 }: ContractsDetailPanelProps) {
-	const [state, actions] = useDetail(
-		() => services.contracts.getContract(contractId),
-		{ autoFetch: true },
-	)
-
-	const [client, setClient] = useState<Client | null>(null)
-
-	useEffect(() => {
-		if (state.data?.client_id) {
-			services.clients
-				.getClient(state.data.client_id)
-				.then(setClient)
-				.catch(console.error)
-		}
-	}, [state.data?.client_id])
-
-	const handleDelete = async () => {
-		if (!state.data) return
-
-		if (window.confirm('Are you sure you want to delete this contract?')) {
-			try {
-				await services.contracts.deleteContract(state.data.id)
-				onDelete?.(state.data)
-			} catch (error) {
-				console.error('Error deleting contract:', error)
+	const { i18n } = useTranslation()
+	const isRu = i18n.language === 'ru'
+	const locale = isRu ? 'ru-RU' : 'uz-UZ'
+	const tx = isRu
+		? {
+				title: 'Профиль договора',
+				loadingTitle: 'Загрузка...',
+				loadingDescription: 'Получаем данные договора.',
+				errorTitle: 'Договор не найден',
+				errorDescription: 'Договор недоступен или был удален.',
+				edit: 'Редактировать',
+				delete: 'Удалить',
+				fields: {
+					client: 'Клиент',
+					panel: 'Тип панели',
+					inverter: 'Тип инвертора',
+					power: 'Мощность (кВт)',
+					auditPower: 'Аудит мощность (кВт)',
+					subsidy: 'Субсидия (%)',
+					phone: 'Телефон',
+					address: 'Адрес установки',
+					deliveryStatus: 'Статус доставки',
+					deliveryNotes: 'Примечание доставки',
+					total: 'Итоговая сумма',
+					details: 'Детали',
+					created: 'Создан',
+					updated: 'Обновлен',
+					items: 'Позиции договора',
+				},
 			}
-		}
-	}
+		: {
+				title: 'Shartnoma profili',
+				loadingTitle: 'Yuklanmoqda...',
+				loadingDescription: "Shartnoma ma`lumotlari olinmoqda.",
+				errorTitle: 'Shartnoma topilmadi',
+				errorDescription: "Shartnoma mavjud emas yoki o`chirilgan.",
+				edit: 'Tahrirlash',
+				delete: "O`chirish",
+				fields: {
+					client: 'Mijoz',
+					panel: 'Panel turi',
+					inverter: 'Invertor turi',
+					power: 'Quvvat (kW)',
+					auditPower: 'Audit quvvati (kW)',
+					subsidy: 'Subsidiya (%)',
+					phone: 'Telefon',
+					address: "O`rnatish manzili",
+					deliveryStatus: 'Yetkazish holati',
+					deliveryNotes: 'Yetkazish izohi',
+					total: 'Jami summa',
+					details: 'Tafsilotlar',
+					created: 'Yaratilgan',
+					updated: 'Yangilangan',
+					items: 'Shartnoma pozitsiyalari',
+				},
+			}
+
+	const [state] = useDetail(() => services.contracts.getContract(contractId), {
+		autoFetch: true,
+	})
 
 	if (state.isLoading) {
-		return (
-			<div className='max-h-[85vh] overflow-y-auto'>
-				<div className='flex items-center justify-between border-b border-border-soft px-6 py-4'>
-					<h2 className='text-lg font-bold text-text-primary'>
-						Contract Details
-					</h2>
-					<button
-						onClick={onClose}
-						className='flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-subtle'
-					>
-						<FiX className='text-text-secondary' />
-					</button>
-				</div>
-				<div className='p-6'>
-					<LoadingState />
-				</div>
-			</div>
-		)
+		return <LoadingState title={tx.loadingTitle} description={tx.loadingDescription} />
 	}
-
 	if (state.error || !state.data) {
-		return (
-			<div className='max-h-[85vh] overflow-y-auto'>
-				<div className='flex items-center justify-between border-b border-border-soft px-6 py-4'>
-					<h2 className='text-lg font-bold text-text-primary'>
-						Contract Details
-					</h2>
-					<button
-						onClick={onClose}
-						className='flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-subtle'
-					>
-						<FiX className='text-text-secondary' />
-					</button>
-				</div>
-				<div className='p-6'>
-					<EmptyState
-						title='Contract Not Found'
-						description="The contract you're looking for doesn't exist or has been deleted."
-					/>
-				</div>
-			</div>
-		)
+		return <EmptyState title={tx.errorTitle} description={tx.errorDescription} />
 	}
 
 	const contract = state.data
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'active':
-				return 'success'
-			case 'completed':
-				return 'info'
-			case 'cancelled':
-				return 'danger'
-			case 'draft':
-				return 'warning'
-			default:
-				return 'neutral'
-		}
-	}
-
-	const formatCurrency = (amount: number, currency: string) => {
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: currency,
-		}).format(amount)
-	}
-
 	return (
-		<div className='max-h-[85vh] overflow-y-auto'>
-			<div className='flex items-center justify-between border-b border-border-soft px-6 py-4'>
-				<h2 className='text-lg font-bold text-text-primary'>
-					Contract Details
-				</h2>
-				<div className='flex items-center gap-2'>
-					<button
-						onClick={() => onEdit?.(contract)}
-						className='flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-subtle'
-						title='Edit contract'
-					>
-						<FiEdit className='text-text-secondary' />
-					</button>
-					<button
-						onClick={handleDelete}
-						className='flex h-8 w-8 items-center justify-center rounded-lg hover:bg-red-500/10 hover:text-red-600'
-						title='Delete contract'
-					>
-						<FiTrash2 className='text-text-secondary' />
-					</button>
-					<button
-						onClick={onClose}
-						className='flex h-8 w-8 items-center justify-center rounded-lg hover:bg-surface-subtle'
-					>
-						<FiX className='text-text-secondary' />
-					</button>
-				</div>
-			</div>
-
-			<div className='p-6 space-y-6'>
-				{/* Header */}
-				<div className='flex items-start justify-between'>
-					<div>
-						<h3 className='text-xl font-bold text-text-primary'>
+		<div className='grid gap-3'>
+			<header className='mb-1 rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40'>
+				<div className='flex items-start justify-between gap-3'>
+					<div className='min-w-0'>
+						<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>
+							{tx.title}
+						</p>
+						<h2 className='mt-1 font-display text-[1.45rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-text-primary [overflow-wrap:anywhere]'>
 							{contract.title}
-						</h3>
-						<div className='mt-1'>
-							<StatusBadge tone={getStatusColor(contract.status)}>
-								{contract.status}
-							</StatusBadge>
-						</div>
+						</h2>
 					</div>
-					<div className='text-right'>
-						<div className='text-2xl font-bold text-text-primary'>
-							{formatCurrency(contract.amount, contract.currency)}
-						</div>
-						<div className='text-sm text-text-secondary'>
-							{contract.currency}
-						</div>
+					<button
+						type='button'
+						className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'
+						onClick={onClose}
+						aria-label={tx.title}
+					>
+						<AppIcon name='close' className='h-4.5 w-4.5' aria-hidden='true' />
+					</button>
+				</div>
+				<div className='mt-3'>
+					<StatusBadge
+						tone={getStatusTone(contract.status)}
+						status={contract.status}
+						label={getStatusLabel(contract.status, isRu)}
+					/>
+				</div>
+			</header>
+
+			<PageCard>
+				<div className='grid gap-2.5 sm:grid-cols-2'>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.client}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.client_name || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.panel}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{contract.panel_type_label || contract.panel_type || '-'}
+						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.inverter}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{contract.inverter_type_label || contract.inverter_type || '-'}
+						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.power}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.requested_power_kw ?? '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.auditPower}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.audit_power_kw ?? '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.subsidy}</p>
+						<p className={`mt-1 ${valueClassName}`}>{String(contract.subsidy_percent ?? '-')}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.phone}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.customer_phone || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.deliveryStatus}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{contract.delivery_status_label || contract.delivery_status || '-'}
+						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
+						<p className={labelClassName}>{tx.fields.address}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.installation_address || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
+						<p className={labelClassName}>{tx.fields.deliveryNotes}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.delivery_notes || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
+						<p className={labelClassName}>{tx.fields.details}</p>
+						<p className={`mt-1 ${valueClassName}`}>{formatDetailsText(contract.details)}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.total}</p>
+						<p className={`mt-1 ${valueClassName}`}>{String(contract.total_amount ?? '-')}</p>
 					</div>
 				</div>
+			</PageCard>
 
-				{/* Description */}
-				{contract.description && (
-					<PageCard>
-						<h4 className='text-lg font-semibold text-text-primary mb-4'>
-							Description
-						</h4>
-						<div className='text-sm text-text-primary whitespace-pre-wrap'>
-							{contract.description}
-						</div>
-					</PageCard>
-				)}
-
-				{/* Client Information */}
-				<PageCard>
-					<h4 className='text-lg font-semibold text-text-primary mb-4'>
-						Client Information
-					</h4>
-					<div className='flex items-center gap-3'>
-						<FiUser className='text-text-secondary flex-shrink-0' />
-						<div>
-							<div className='text-sm font-medium text-text-primary'>
-								{client?.name || 'Loading client...'}
+			<PageCard>
+				<p className={labelClassName}>{tx.fields.items}</p>
+				<div className='mt-2 grid gap-2'>
+					{contract.items?.length ? (
+						contract.items.map((item, index) => (
+							<div
+								key={item.id ?? `${item.product}-${index}`}
+								className='rounded-lg bg-surface-subtle/70 p-3 text-sm text-text-primary'
+							>
+								{item.product_name || item.product} x {item.quantity} - {String(item.unit_price)}
 							</div>
-							{client?.email && (
-								<div className='text-sm text-text-secondary'>
-									{client.email}
-								</div>
-							)}
-						</div>
+						))
+					) : (
+						<div className='rounded-lg bg-surface-subtle/70 p-3 text-sm text-text-secondary'>-</div>
+					)}
+				</div>
+			</PageCard>
+
+			<PageCard>
+				<div className='grid gap-2.5 sm:grid-cols-2'>
+					<div className='rounded-lg bg-surface-subtle/35 p-3 ring-1 ring-border-soft/20'>
+						<p className={labelClassName}>{tx.fields.created}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{formatLocalizedDate(contract.created_at, locale, {
+								locale,
+								withYear: true,
+								withTime: true,
+								shortMonth: true,
+								fallback: '-',
+							})}
+						</p>
 					</div>
-				</PageCard>
-
-				{/* Contract Details */}
-				<PageCard>
-					<h4 className='text-lg font-semibold text-text-primary mb-4'>
-						Contract Details
-					</h4>
-					<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-						<div className='flex items-center gap-3'>
-							<FiCalendar className='text-text-secondary flex-shrink-0' />
-							<div>
-								<div className='text-sm font-medium text-text-primary'>
-									Start Date
-								</div>
-								<div className='text-sm text-text-primary'>
-									{new Date(contract.start_date).toLocaleDateString()}
-								</div>
-							</div>
-						</div>
-
-						{contract.end_date && (
-							<div className='flex items-center gap-3'>
-								<FiCalendar className='text-text-secondary flex-shrink-0' />
-								<div>
-									<div className='text-sm font-medium text-text-primary'>
-										End Date
-									</div>
-									<div className='text-sm text-text-primary'>
-										{new Date(contract.end_date).toLocaleDateString()}
-									</div>
-								</div>
-							</div>
-						)}
-
-						<div className='flex items-center gap-3'>
-							<FiDollarSign className='text-text-secondary flex-shrink-0' />
-							<div>
-								<div className='text-sm font-medium text-text-primary'>
-									Amount
-								</div>
-								<div className='text-sm text-text-primary'>
-									{formatCurrency(contract.amount, contract.currency)}
-								</div>
-							</div>
-						</div>
+					<div className='rounded-lg bg-surface-subtle/35 p-3 ring-1 ring-border-soft/20'>
+						<p className={labelClassName}>{tx.fields.updated}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{formatLocalizedDate(contract.updated_at, locale, {
+								locale,
+								withYear: true,
+								withTime: true,
+								shortMonth: true,
+								fallback: '-',
+							})}
+						</p>
 					</div>
-				</PageCard>
+				</div>
+			</PageCard>
 
-				{/* Terms & Conditions */}
-				{contract.terms && (
-					<PageCard title='Terms & Conditions'>
-						<div className='text-sm text-text-primary whitespace-pre-wrap'>
-							{contract.terms}
-						</div>
-					</PageCard>
-				)}
-
-				{/* Metadata */}
-				<PageCard title='Additional Information'>
-					<div className='grid grid-cols-2 gap-4 text-sm'>
-						<div>
-							<div className='font-medium text-text-secondary'>Created</div>
-							<div className='text-text-primary'>
-								{new Date(contract.created_at).toLocaleDateString()}
-							</div>
-						</div>
-						<div>
-							<div className='font-medium text-text-secondary'>
-								Last Updated
-							</div>
-							<div className='text-text-primary'>
-								{new Date(contract.updated_at).toLocaleDateString()}
-							</div>
-						</div>
-					</div>
-				</PageCard>
+			<div className='mt-1 flex flex-wrap items-center gap-2'>
+				<button
+					type='button'
+					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35'
+					onClick={() => onEdit?.(contract)}
+				>
+					<FiEdit2 className='h-4 w-4' />
+					{tx.edit}
+				</button>
+				<button
+					type='button'
+					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-surface-card px-4 text-sm font-semibold text-danger shadow-sm ring-1 ring-danger/25 transition duration-fast hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/25'
+					onClick={() => onRequestDelete?.(contract)}
+				>
+					<FiTrash2 className='h-4 w-4' />
+					{tx.delete}
+				</button>
 			</div>
 		</div>
 	)

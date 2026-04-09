@@ -2,6 +2,7 @@
 
 
 import type { AppNotification, NotificationChannel } from '../../../types/domain';
+import { formatLocalizedDate } from '../../../i18n/date-format';
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -78,6 +79,10 @@ export interface NotificationMetadataEntry {
   key: string;
   label: string;
   value: string;
+}
+
+function isRussian(language?: string): boolean {
+  return (language ?? '').toLowerCase().startsWith('ru');
 }
 
 function isUuidLike(value: string | null | undefined): boolean {
@@ -305,16 +310,17 @@ function resolveReadableUserNameFromMetadata(
   return null;
 }
 
-export function getNotificationChannelLabel(channel: NotificationChannel): string {
+export function getNotificationChannelLabel(channel: NotificationChannel, language = 'uz'): string {
+  const isRu = isRussian(language);
   if (channel === 'in_app') {
-    return 'Ilova ichida';
+    return isRu ? 'В приложении' : 'Ilova ichida';
   }
 
   if (channel === 'telegram') {
     return 'Telegram';
   }
 
-  return 'Tizim';
+  return isRu ? 'Система' : 'Tizim';
 }
 
 export function getNotificationChannelClassName(channel: NotificationChannel): string {
@@ -329,68 +335,68 @@ export function getNotificationChannelClassName(channel: NotificationChannel): s
   return 'bg-neutral-bg text-neutral';
 }
 
-export function getNotificationReadLabel(isRead: boolean): string {
+export function getNotificationReadLabel(isRead: boolean, language = 'uz'): string {
+  if (isRussian(language)) {
+    return isRead ? 'Прочитано' : 'Не прочитано';
+  }
+
   return isRead ? "O'qilgan" : "O'qilmagan";
 }
 
 export function formatNotificationDateTime(
   timestamp: string,
-  locale?: string,
+  language = 'uz',
+  withTime = true,
 ): string {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) {
-    return 'Sana mavjud emas';
-  }
-
-  const uzMonths = ['YAN', 'FEV', 'MAR', 'APR', 'MAY', 'IYN', 'IYL', 'AVG', 'SEN', 'OKT', 'NOY', 'DEK'];
-  const ruMonths = ['РЇРќР’', 'Р¤Р•Р’', 'РњРђР ', 'РђРџР ', 'РњРђР™', 'РР®Рќ', 'РР®Р›', 'РђР’Р“', 'РЎР•Рќ', 'РћРљРў', 'РќРћРЇ', 'Р”Р•Рљ'];
-
-  const monthIndex = date.getMonth();
-  const isRuLocale = (locale ?? '').toLowerCase().startsWith('ru');
-  const month = isRuLocale ? ruMonths[monthIndex] : uzMonths[monthIndex];
-
-  const year = date.getFullYear();
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-
-  // Product requirement: handmade date format for notifications.
-  return `${year} ${month} ${day} ${hours}:${minutes}`;
+  const isRu = isRussian(language);
+  return formatLocalizedDate(timestamp, language, {
+    locale: isRu ? 'ru-RU' : 'uz-UZ',
+    withYear: true,
+    withTime,
+    shortMonth: true,
+    fallback: isRu ? 'Дата недоступна' : 'Sana mavjud emas',
+  });
 }
 
-export function formatNotificationTitle(title: string): string {
+export function formatNotificationTitle(title: string, language = 'uz'): string {
   const cleaned = cleanupSpaces(title.replace(UUID_PATTERN_GLOBAL, ''));
   if (!cleaned) {
-    return 'Bildirishnoma';
+    return isRussian(language) ? 'Уведомление' : 'Bildirishnoma';
   }
 
-  return capitalizeFirstLetter(replaceKnownEnglishWords(cleaned));
+  return isRussian(language)
+    ? capitalizeFirstLetter(cleaned)
+    : capitalizeFirstLetter(replaceKnownEnglishWords(cleaned));
 }
 
-export function formatNotificationMessage(message: string): string {
+export function formatNotificationMessage(message: string, language = 'uz'): string {
   const cleaned = cleanupSpaces(message.replace(UUID_PATTERN_GLOBAL, ''));
   if (!cleaned) {
-    return "Bildirishnoma matni mavjud emas.";
+    return isRussian(language)
+      ? 'Текст уведомления недоступен.'
+      : "Bildirishnoma matni mavjud emas.";
   }
 
-  const translated = replaceKnownEnglishWords(cleaned);
+  const translated = isRussian(language) ? cleaned : replaceKnownEnglishWords(cleaned);
   return formatChangedFieldsSegment(translated);
 }
 
 export function getNotificationUserLabel(
   user: AppNotification['user'],
   metadata?: AppNotification['metadata'] | null,
+  language = 'uz',
 ): string {
   return (
     resolveReadableUserName(user) ??
     resolveReadableUserNameFromMetadata(metadata ?? undefined) ??
-    "Foydalanuvchi ko'rsatilmagan"
+    (isRussian(language) ? 'Пользователь не указан' : "Foydalanuvchi ko'rsatilmagan")
   );
 }
 
 export function getFormattedNotificationMetadata(
   metadata: AppNotification['metadata'],
   user: AppNotification['user'],
+  language = 'uz',
 ): NotificationMetadataEntry[] {
   if (!metadata) {
     return [];
@@ -408,19 +414,22 @@ export function getFormattedNotificationMetadata(
       return entries;
     }
 
-    const translatedValue = translateMetadataValue(value, key);
-    if (!translatedValue) {
+      const translatedValue = translateMetadataValue(value, key);
+      const valueText = isRussian(language)
+        ? String(value ?? '')
+        : translatedValue;
+    if (!valueText) {
       return entries;
     }
 
-    if (normalizeMetadataKey(key).endsWith('_id') && isUuidLike(translatedValue)) {
+    if (normalizeMetadataKey(key).endsWith('_id') && isUuidLike(valueText)) {
       return entries;
     }
 
     entries.push({
       key,
-      label: humanizeMetadataKey(key),
-      value: translatedValue,
+      label: isRussian(language) ? key.replace(/_/g, ' ') : humanizeMetadataKey(key),
+      value: valueText,
     });
     return entries;
   }, []);

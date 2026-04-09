@@ -365,9 +365,20 @@ function resolveChannel(value: unknown): Conversation['channel'] {
   return 'manual';
 }
 
-function resolveSenderType(value: unknown): ChatMessage['sender_type'] {
+function resolveSenderType(
+  value: unknown,
+  direction?: ChatMessage['direction'],
+): ChatMessage['sender_type'] {
   if (value === 'customer' || value === 'ai' || value === 'operator' || value === 'system') {
     return value;
+  }
+
+  if (direction === 'incoming') {
+    return 'customer';
+  }
+
+  if (direction === 'outgoing') {
+    return 'operator';
   }
 
   return 'system';
@@ -378,6 +389,14 @@ function resolveDirection(value: unknown): ChatMessage['direction'] {
     return value;
   }
 
+  if (value === 'in') {
+    return 'incoming';
+  }
+
+  if (value === 'out') {
+    return 'outgoing';
+  }
+
   return 'incoming';
 }
 
@@ -386,6 +405,7 @@ function resolveConversationState(
   stateData: Record<string, unknown> | null,
 ): Conversation['state'] {
   const candidates = [
+    dto.state,
     dto.state_status,
     dto.status,
     stateData?.status,
@@ -440,7 +460,7 @@ function mapLeadSummary(value: unknown): Conversation['lead'] {
   };
 }
 
-function mapCustomerSummary(value: unknown): Conversation['customer'] {
+function mapClientSummary(value: unknown): Conversation['client'] {
   if (typeof value === 'string') {
     const id = readString(value);
     return id
@@ -462,7 +482,6 @@ function mapCustomerSummary(value: unknown): Conversation['customer'] {
     id,
     fullName: readString(record.fullName) || readString(record.full_name) || id,
     phone: readString(record.phone) || undefined,
-    username: readString(record.username) || undefined,
   };
 }
 
@@ -505,7 +524,14 @@ export function mapConversationDtoToModel(dto: ConversationDto): Conversation {
     toRecord(dto.session_state) ??
     null;
 
-  const rawLastMessage = dto.last_message;
+  const embeddedMessages = Array.isArray(dto.messages)
+    ? dto.messages
+      .map((entry) => toRecord(entry))
+      .filter((entry): entry is ChatMessageDto => entry !== null)
+    : [];
+  const lastEmbeddedMessage =
+    embeddedMessages.length > 0 ? embeddedMessages[embeddedMessages.length - 1] : null;
+  const rawLastMessage = dto.last_message ?? lastEmbeddedMessage;
   const lastMessagePayload = toRecord(rawLastMessage)
     ? mapChatMessageDtoToModel(toRecord(rawLastMessage) as ChatMessageDto, sessionId)
     : null;
@@ -527,19 +553,29 @@ export function mapConversationDtoToModel(dto: ConversationDto): Conversation {
   );
   const operatorNeededDefined =
     topLevelOperatorNeeded !== undefined || stateOperatorNeeded !== undefined;
+  const externalId =
+    readString(dto.platform_user_id) ||
+    readString(dto.external_id) ||
+    readString(dto.externalId) ||
+    null;
+  const channel = resolveChannel(dto.platform ?? dto.channel);
+  const lastMessageAt =
+    readString(dto.last_message_at) ||
+    readString(lastMessagePayload?.created_at) ||
+    null;
 
   return {
     id: sessionId,
-    channel: resolveChannel(dto.channel),
-    external_id: readString(dto.external_id) || null,
+    channel,
+    external_id: externalId,
     lead: mapLeadSummary(dto.lead),
-    customer: mapCustomerSummary(dto.customer),
+    client: mapClientSummary(dto.client ?? dto.customer),
     assigned_operator: mapUserSummary(dto.assigned_operator),
     ai_paused_until: readString(dto.ai_paused_until) || null,
     is_operator_active: readBoolean(dto.is_operator_active),
     operator_needed: topLevelOperatorNeeded ?? stateOperatorNeeded ?? false,
     operator_needed_defined: operatorNeededDefined,
-    last_message_at: readString(dto.last_message_at) || null,
+    last_message_at: lastMessageAt,
     state: resolveConversationState(dto, stateData),
     state_data: stateData,
     last_message: lastMessageContent,
@@ -556,19 +592,22 @@ export function mapChatMessageDtoToModel(
 ): ChatMessage {
   const nowIso = new Date().toISOString();
   const id = readString(dto.id) || `message-${nowIso}`;
+  const direction = resolveDirection(dto.direction);
+  const senderType = resolveSenderType(dto.sender_type, direction);
+  const metadata = mapMetadata(dto.metadata ?? dto.raw_payload);
 
   return {
     id,
     created_at: readString(dto.created_at, nowIso),
     updated_at: readString(dto.updated_at, nowIso),
-    sender_type: resolveSenderType(dto.sender_type),
-    direction: resolveDirection(dto.direction),
+    sender_type: senderType,
+    direction,
     content: readMessageContent(dto),
     image_urls: readMessageImageUrls(dto),
     external_message_id: readString(dto.external_message_id) || null,
-    metadata: mapMetadata(dto.metadata),
+    metadata,
     is_read: readBoolean(dto.is_read),
-    session: readString(dto.session) || sessionIdFallback || '',
+    session: readString(dto.session) || readString(dto.chat_session) || sessionIdFallback || '',
     sent_by: mapUserSummary(dto.sent_by),
   };
 }
@@ -590,6 +629,8 @@ export function mapConversationListDtoToItems(payload: unknown): Conversation[] 
     ? record.results
     : Array.isArray(record.items)
       ? record.items
+      : Array.isArray(record.data)
+        ? record.data
       : [];
 
   return items
@@ -615,6 +656,8 @@ export function mapMessageListDtoToItems(payload: unknown): ChatMessage[] {
     ? record.results
     : Array.isArray(record.items)
       ? record.items
+      : Array.isArray(record.data)
+        ? record.data
       : [];
 
   return items

@@ -105,3 +105,29 @@ export function formatLocalizedDate(
     ...(withYear ? { year: 'numeric' } : {}),
   }).format(date);
 }
+
+export function formatUzbekShortDate(
+  value: Date | string | null | undefined,
+  fallback = '',
+): string {
+  return formatLocalizedDate(value, 'uz', {
+    locale: 'uz-UZ',
+    withYear: true,
+    withTime: false,
+    shortMonth: true,
+    fallback,
+  });
+}
+
+export function formatUzbekShortDateTime(
+  value: Date | string | null | undefined,
+  fallback = '',
+): string {
+  return formatLocalizedDate(value, 'uz', {
+    locale: 'uz-UZ',
+    withYear: true,
+    withTime: true,
+    shortMonth: true,
+    fallback,
+  });
+}

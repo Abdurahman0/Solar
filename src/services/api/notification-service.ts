@@ -210,15 +210,26 @@ export const apiNotificationService: NotificationService = {
   async listNotifications(params) {
     const { data } = await apiClient.get<unknown>('/api/notifications/', {
       params: {
+        page: params?.page,
+        page_size: params?.pageSize,
         search: params?.search,
-        channel: params?.channel,
-        is_read: params?.is_read,
         ordering: params?.ordering,
       },
     });
 
     const mappedItems = mapNotificationListDtoToItems(data);
-    const items = await hydrateNotificationUsers(mappedItems);
+    const filteredItems = mappedItems.filter((item) => {
+      if (params?.channel && item.channel !== params.channel) {
+        return false;
+      }
+
+      if (typeof params?.is_read === 'boolean' && item.is_read !== params.is_read) {
+        return false;
+      }
+
+      return true;
+    });
+    const items = await hydrateNotificationUsers(filteredItems);
     const payload =
       data && typeof data === 'object' && !Array.isArray(data)
         ? (data as Record<string, unknown>)
@@ -239,20 +250,56 @@ export const apiNotificationService: NotificationService = {
   },
 
   async markNotificationRead(id) {
-    const { data } = await apiClient.post<NotificationDto>(
-      `/api/notifications/${id}/mark_read/`,
+    const existing = await apiNotificationService.getNotificationById(id);
+    if (!existing) {
+      return null;
+    }
+
+    const { data } = await apiClient.patch<NotificationDto>(
+      `/api/notifications/${id}/`,
+      {
+        title: existing.title,
+        body: existing.message,
+        category: existing.channel,
+        is_read: true,
+      },
     );
     const [item] = await hydrateNotificationUsers([mapNotificationDtoToModel(data)]);
     return item ?? null;
   },
 
-  async markAllRead() {
-    await apiClient.post('/api/notifications/mark_all_read/');
+  async markAllAsRead() {
+    let page = 1;
+    const pageSize = 100;
+
+    while (true) {
+      const result = await apiNotificationService.listNotifications({
+        page,
+        pageSize,
+        ordering: '-created_at',
+      });
+
+      const unreadItems = result.items.filter((item) => !item.is_read);
+      if (unreadItems.length === 0 && page >= result.meta.totalPages) {
+        break;
+      }
+
+      await Promise.all(
+        unreadItems.map((item) => apiNotificationService.markNotificationRead(item.id)),
+      );
+
+      if (page >= result.meta.totalPages) {
+        break;
+      }
+
+      page += 1;
+    }
+
     return true;
   },
 
-  async deleteAll() {
-    await apiClient.delete('/api/notifications/delete_all/');
+  async delete(id) {
+    await apiClient.delete(`/api/notifications/${id}/`);
     return true;
   },
 };
