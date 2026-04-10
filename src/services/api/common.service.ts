@@ -204,6 +204,14 @@ export const apiLogsService: LogsService = {
     return getHealth();
   },
 
+  async getPublicCompanyInfo() {
+    return getPublicCompanyInfo();
+  },
+
+  async calculateSubsidy(input) {
+    return calculateSubsidy(input);
+  },
+
   async listLogs(params) {
     return getLogs(params);
   },

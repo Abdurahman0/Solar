@@ -322,6 +322,38 @@
         "week": "Haftalik",
         "month": "Oylik"
       }
+    },
+    "publicApi": {
+      "title": "Ommaviy API",
+      "subtitle": "Kompaniya ma'lumoti va subsidiya kalkulyatorini tekshirish.",
+      "companyTitle": "Kompaniya ma'lumoti",
+      "companyDescription": "Rekvizitlar, platforma va narxlar matritsasi bo'yicha public endpoint.",
+      "loadCompany": "Kompaniya ma'lumotini yuklash",
+      "loadingCompany": "Yuklanmoqda...",
+      "companyError": "Kompaniya ma'lumotini olib bo'lmadi.",
+      "companyEmpty": "Kompaniya ma'lumotini olish uchun tugmani bosing.",
+      "subsidyTitle": "Subsidiya kalkulyatori",
+      "subsidyDescription": "Panel, invertor va quvvat bo`yicha yakuniy narxni hisoblash.",
+      "panelType": "Panel turi",
+      "inverterType": "Invertor turi",
+      "requestedPower": "So'ralgan quvvat (kW)",
+      "auditPower": "Audit quvvati (kW)",
+      "calculate": "Hisoblash",
+      "calculating": "Hisoblanmoqda...",
+      "subsidyError": "Subsidiya hisobini olib bo'lmadi.",
+      "subsidyEmpty": "Parametrlarni kiriting va 'Hisoblash' tugmasini bosing.",
+      "basePrice": "Bazaviy narx",
+      "subsidyAmount": "Subsidiya summasi",
+      "customerAmount": "Mijoz to`lovi",
+      "referencePower": "Subsidiya tayanch quvvati",
+      "panelTypes": {
+        "jinkoJa": "Jinko / JA Solar",
+        "longiHiMoX10": "Longi HI MO X10"
+      },
+      "inverterTypes": {
+        "deye": "Deye",
+        "solax": "Solax"
+      }
     }
   },
   "leads": {
@@ -1953,6 +1985,99 @@
       "description": "Bu amal ortga qaytarilmaydi.",
       "deleting": "O'chirilmoqda...",
       "confirm": "So'rovni o'chirish"
+    }
+  },
+  "contractsPage": {
+    "eyebrow": "Shartnoma voronkasi",
+    "title": "Shartnomalar",
+    "subtitle": "Shartnomalar holatini, panel va yetkazishni bitta oynada boshqaring.",
+    "newContract": "Yangi shartnoma",
+    "visible": "ko'rinmoqda",
+    "detailOpen": "Profil ochiq",
+    "searchPlaceholder": "Shartnoma, mijoz yoki telefon bo'yicha qidiring...",
+    "statusLabel": "Holat",
+    "panelLabel": "Panel",
+    "inverterLabel": "Invertor",
+    "powerLabel": "Quvvat (kW)",
+    "allStatuses": "Barcha holatlar",
+    "allPanels": "Barcha panellar",
+    "allInverters": "Barcha invertorlar",
+    "listTitle": "Shartnomalar katalogi",
+    "listHint": "Profilni ko'rish uchun satrni bosing.",
+    "errorTitle": "Shartnomalar mavjud emas",
+    "errorDescription": "Shartnomalar ro'yxatini yuklab bo'lmadi.",
+    "columns": {
+      "title": "Shartnoma",
+      "panel": "Panel",
+      "inverter": "Invertor",
+      "power": "Quvvat",
+      "status": "Holat",
+      "updated": "Yangilangan",
+      "actions": "Amallar"
+    },
+    "statuses": {
+      "draft": "Qoralama",
+      "audit_pending": "Audit kutilmoqda",
+      "audit_paid": "Audit to'langan",
+      "moderation": "Moderatsiya",
+      "contract_ready": "Shartnoma tayyor",
+      "payment_pending": "To'lov kutilmoqda",
+      "paid": "To'langan",
+      "delivered": "Yetkazilgan",
+      "sent": "Yuborilgan",
+      "signed": "Imzolangan",
+      "canceled": "Bekor qilingan"
+    },
+    "edit": "Tahrirlash",
+    "delete": "O'chirish",
+    "pricing": {
+      "button": "Pricing matrix",
+      "title": "Narxlar jadvali",
+      "loadingTitle": "Yuklanmoqda...",
+      "loadingDescription": "Matritsa ma'lumotlari olinmoqda.",
+      "emptyTitle": "Matritsa bo'sh",
+      "emptyDescription": "Ko'rsatish uchun ma'lumot yo'q.",
+      "subsidy": "Subsidiya",
+      "auditPowers": "Qo'llab-quvvatlanadigan audit (kW)",
+      "configurations": "konfiguratsiya",
+      "power": "Quvvat",
+      "view": "Ko'rish",
+      "basePrice": "Bazaviy narx",
+      "customerPrice": "Mijoz narxi",
+      "audit": "Audit",
+      "currency": "so'm"
+    }
+  },
+  "clients": {
+    "importExport": {
+      "importClients": "Import",
+      "exportClients": "Eksport",
+      "importTitle": "Mijozlarni import qilish",
+      "importSubtitle": "JSON fayl yuklang yoki mijozlar JSON massivini joylang.",
+      "uploadFile": "Fayl yuklash",
+      "downloadTemplate": "Shablonni yuklash",
+      "importPlaceholder": "[{\"full_name\":\"Ali Valiyev\",\"phone\":\"+998901234567\",\"region\":\"Toshkent\"}]",
+      "startImport": "Import qilish",
+      "importing": "Import qilinmoqda...",
+      "close": "Yopish",
+      "exportInProgress": "Eksport qilinmoqda...",
+      "importFileReadError": "Import faylini o`qib bo`lmadi.",
+      "invalidImportJson": "JSON noto`g`ri. Obyektlar massivi bo`lishi kerak.",
+      "importNoValidRows": "Yaroqli yozuv topilmadi (full_name maydoni majburiy).",
+      "exportFailed": "Mijozlarni eksport qilib bo`lmadi.",
+      "importFailed": "Mijozlarni import qilib bo`lmadi.",
+      "exportSuccess": "Eksport yakunlandi: {{count}} ta yozuv.",
+      "importResult": "Import yakunlandi. Muvaffaqiyatli: {{success}}, xatolik: {{failed}}."
+    },
+    "page": {
+      "eyebrow": "Mijoz voronkasi",
+      "title": "Mijozlar",
+      "subtitle": "Mijozlarni boshqaring, holatlarni kuzating va kartochkalar bilan yagona oynada ishlang.",
+      "newClient": "Yangi mijoz",
+      "visible": "ko'rinmoqda",
+      "detailOpen": "Profil ochiq",
+      "errorTitle": "Mijozlar mavjud emas",
+      "errorDescription": "Mijozlar ro`yxatini yuklab bo`lmadi."
     }
   }
 }

@@ -115,6 +115,25 @@ export interface ContractsListParams extends ListParams {
 	search?: string
 }
 
+export interface PricingMatrixRow {
+	power_kw: number
+	base_prices: Record<string, string>
+	default_customer_prices: Record<string, string>
+	audit_customer_prices: Record<string, Record<string, string>>
+}
+
+export interface PricingMatrixPanel {
+	panel_type: Contract['panel_type'] | string
+	label: string
+	rows: PricingMatrixRow[]
+}
+
+export interface PricingMatrixData {
+	subsidy_percent: string
+	supported_audit_powers: number[]
+	panels: PricingMatrixPanel[]
+}
+
 export interface IContractsService {
 	// Read operations
 	listContracts(
@@ -138,7 +157,7 @@ export interface IContractsService {
 
 	// Business operations
 	recalculate(id: string, input?: UpdateContractInput): Promise<Contract>
-	getPricingMatrix(): Promise<Contract[]>
+	getPricingMatrix(): Promise<PricingMatrixData>
 
 	// Bulk operations
 	bulkUpdateContracts(

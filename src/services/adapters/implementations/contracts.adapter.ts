@@ -12,6 +12,7 @@ import type {
 	CreateContractInput,
 	IContractsService,
 	PaginatedResponse,
+	PricingMatrixData,
 	UpdateInput,
 	UpdateContractInput,
 } from '../../contracts'
@@ -164,18 +165,28 @@ export class ContractsAdapter
 		)
 	}
 
-	async getPricingMatrix(): Promise<Contract[]> {
+	async getPricingMatrix(): Promise<PricingMatrixData> {
 		const data = await this.fileRequestor.get<unknown>('/api/contracts/pricing-matrix/')
-		if (Array.isArray(data)) {
-			return data as Contract[]
-		}
 
 		const payload = toRecord(data)
-		if (payload && Array.isArray(payload.results)) {
-			return payload.results as Contract[]
-		}
+		const root = toRecord(payload?.data) ?? payload
 
-		return data ? [data as Contract] : []
+		const subsidyPercent =
+			typeof root?.subsidy_percent === 'string'
+				? root.subsidy_percent
+				: String(root?.subsidy_percent ?? '0')
+		const supportedAuditPowers = Array.isArray(root?.supported_audit_powers)
+			? root.supported_audit_powers.filter(
+					power => typeof power === 'number' && Number.isFinite(power),
+				)
+			: []
+		const panels = Array.isArray(root?.panels) ? root.panels : []
+
+		return {
+			subsidy_percent: subsidyPercent,
+			supported_audit_powers: supportedAuditPowers,
+			panels: panels as PricingMatrixData['panels'],
+		}
 	}
 
 	async bulkUpdateContracts(

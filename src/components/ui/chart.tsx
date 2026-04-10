@@ -56,7 +56,7 @@ function ChartContainer({
   return (
     <ChartContext.Provider value={{ config }}>
       <div
-        className={className}
+        className={['min-w-0 overflow-hidden', className].filter(Boolean).join(' ')}
         style={{ ...chartStyle, ...style }}
         {...props}
       >

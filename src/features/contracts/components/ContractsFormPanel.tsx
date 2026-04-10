@@ -604,7 +604,7 @@ export function ContractsFormPanel({
 						{form.items.map((item, index) => (
 							<div
 								key={`item-${index}`}
-								className='grid gap-2 rounded-lg bg-surface-subtle/60 p-2 sm:grid-cols-[1fr_110px_140px_auto]'
+								className='grid min-w-0 gap-2 rounded-lg bg-surface-subtle/60 p-2 sm:grid-cols-[minmax(0,1fr)_110px_140px_auto]'
 							>
 								<FilterSelect
 									value={item.product}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ru, uz } from 'date-fns/locale'
 import { type DateRange } from 'react-day-picker'
@@ -109,6 +109,27 @@ interface DashboardIntervalDropdownProps {
 	options: Array<{ value: DashboardInterval; label: string }>
 	onChange: (value: DashboardInterval) => void
 	ariaLabel: string
+}
+
+interface StylishDropdownProps {
+	value: string
+	options: Array<{ value: string; label: string }>
+	onChange: (value: string) => void
+	ariaLabel: string
+}
+
+interface SubsidyInputState {
+	panel_type: string
+	inverter_type: string
+	requested_power_kw: number
+	audit_power_kw: number
+}
+
+interface SubsidyResultCardData {
+	basePrice: number
+	subsidyAmount: number
+	customerAmount: number
+	subsidyReferencePowerKw: number
 }
 
 const DASHBOARD_DEFAULT_DAYS = 30
@@ -342,7 +363,7 @@ function DashboardIntervalDropdown({
 				type='button'
 				onClick={() => setIsOpen(current => !current)}
 				className={[
-					'group inline-flex h-8 min-w-[130px] items-center justify-between gap-2 rounded-pill border px-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition duration-fast',
+					'group inline-flex h-8 w-full min-w-0 items-center justify-between gap-2 rounded-pill border px-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition duration-fast min-[480px]:w-auto min-[480px]:min-w-[130px]',
 					'bg-gradient-to-b from-surface-card to-surface-subtle/80 shadow-[0_15px_26px_-22px_rgba(37,99,235,0.85)]',
 					isOpen
 						? 'border-primary/60 text-text-primary ring-2 ring-primary/20'
@@ -413,6 +434,34 @@ function DashboardPage() {
 	const { t, i18n } = useTranslation()
 	const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ'
 	const calendarLocale = i18n.language === 'ru' ? ru : uz
+	const publicTx = {
+		title: t('dashboard.publicApi.title'),
+		subtitle: t('dashboard.publicApi.subtitle'),
+		companyTitle: t('dashboard.publicApi.companyTitle'),
+		companyDescription: t('dashboard.publicApi.companyDescription'),
+		loadCompany: t('dashboard.publicApi.loadCompany'),
+		loadingCompany: t('dashboard.publicApi.loadingCompany'),
+		companyError: t('dashboard.publicApi.companyError'),
+		companyEmpty: t('dashboard.publicApi.companyEmpty'),
+		subsidyTitle: t('dashboard.publicApi.subsidyTitle'),
+		subsidyDescription: t('dashboard.publicApi.subsidyDescription'),
+		panelType: t('dashboard.publicApi.panelType'),
+		inverterType: t('dashboard.publicApi.inverterType'),
+		requestedPower: t('dashboard.publicApi.requestedPower'),
+		auditPower: t('dashboard.publicApi.auditPower'),
+		calculate: t('dashboard.publicApi.calculate'),
+		calculating: t('dashboard.publicApi.calculating'),
+		subsidyError: t('dashboard.publicApi.subsidyError'),
+		subsidyEmpty: t('dashboard.publicApi.subsidyEmpty'),
+		basePrice: t('dashboard.publicApi.basePrice'),
+		subsidyAmount: t('dashboard.publicApi.subsidyAmount'),
+		customerAmount: t('dashboard.publicApi.customerAmount'),
+		referencePower: t('dashboard.publicApi.referencePower'),
+		jinkoLabel: t('dashboard.publicApi.panelTypes.jinkoJa'),
+		longiLabel: t('dashboard.publicApi.panelTypes.longiHiMoX10'),
+		deyeLabel: t('dashboard.publicApi.inverterTypes.deye'),
+		solaxLabel: t('dashboard.publicApi.inverterTypes.solax'),
+	}
 	const [overview, setOverview] = useState<DashboardOverview | null>(null)
 	const [filters, setFilters] = useState<DashboardFilters>({
 		interval: 'day',
@@ -420,6 +469,18 @@ function DashboardPage() {
 	const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false)
 	const [loading, setLoading] = useState(true)
 	const [hasError, setHasError] = useState(false)
+	const [companyInfo, setCompanyInfo] = useState<unknown>(null)
+	const [companyInfoLoading, setCompanyInfoLoading] = useState(false)
+	const [companyInfoError, setCompanyInfoError] = useState<string | null>(null)
+	const [subsidyInput, setSubsidyInput] = useState<SubsidyInputState>({
+		panel_type: 'jinko_ja',
+		inverter_type: 'deye',
+		requested_power_kw: 10,
+		audit_power_kw: 10,
+	})
+	const [subsidyResult, setSubsidyResult] = useState<unknown>(null)
+	const [subsidyLoading, setSubsidyLoading] = useState(false)
+	const [subsidyError, setSubsidyError] = useState<string | null>(null)
 
 	const query = useMemo(() => buildDashboardQuery(filters), [filters])
 	const intervalOptions = useMemo(
@@ -768,11 +829,56 @@ function DashboardPage() {
 				})}`
 			: t('dashboard.filters.pickRange')
 
+	const panelTypeOptions = [
+		{ value: 'jinko_ja', label: publicTx.jinkoLabel },
+		{ value: 'longi_hi_mo_x10', label: publicTx.longiLabel },
+	]
+	const inverterTypeOptions = [
+		{ value: 'deye', label: publicTx.deyeLabel },
+		{ value: 'solax', label: publicTx.solaxLabel },
+	]
+	const requestedPowerOptions = [10, 20, 30, 40, 50].map(value => ({
+		value: String(value),
+		label: `${value} kW`,
+	}))
+	const parsedSubsidyResult = parseSubsidyResult(subsidyResult)
+
+	async function handleLoadCompanyInfo() {
+		setCompanyInfoLoading(true)
+		setCompanyInfoError(null)
+
+		try {
+			const payload = await services.common.getPublicCompanyInfo()
+			setCompanyInfo(payload)
+		} catch {
+			setCompanyInfoError(publicTx.companyError)
+			setCompanyInfo(null)
+		} finally {
+			setCompanyInfoLoading(false)
+		}
+	}
+
+	async function handleCalculateSubsidy(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault()
+		setSubsidyLoading(true)
+		setSubsidyError(null)
+
+		try {
+			const payload = await services.common.calculateSubsidy(subsidyInput)
+			setSubsidyResult(payload)
+		} catch {
+			setSubsidyError(publicTx.subsidyError)
+			setSubsidyResult(null)
+		} finally {
+			setSubsidyLoading(false)
+		}
+	}
+
 	return (
 		<PageLayout>
 			<section className='grid gap-4 min-[768px]:gap-5'>
 				<header className='flex flex-wrap items-center justify-between gap-2'>
-					<p className='m-0 rounded-pill bg-surface-subtle/80 px-3 py-1.5 text-sm text-text-secondary ring-1 ring-border-soft/45'>
+					<p className='m-0 max-w-full break-words rounded-pill bg-surface-subtle/80 px-3 py-1.5 text-sm text-text-secondary ring-1 ring-border-soft/45'>
 						{rangeLabel} ({overview.date_range.timezone})
 					</p>
 				</header>
@@ -781,7 +887,7 @@ function DashboardPage() {
 					{metricCards.map(card => (
 						<article
 							key={card.label}
-							className='rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'
+							className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'
 						>
 							<p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted'>
 								{card.label}
@@ -796,12 +902,12 @@ function DashboardPage() {
 					))}
 				</section>
 
-				<section className='flex flex-wrap items-center justify-end gap-2'>
+				<section className='flex flex-wrap items-stretch justify-start gap-2 min-[480px]:items-center min-[480px]:justify-end'>
 					<Popover open={isDatePopoverOpen} onOpenChange={setIsDatePopoverOpen}>
 						<PopoverTrigger asChild>
 							<button
 								type='button'
-								className='inline-flex h-8 min-w-[248px] items-center justify-between gap-2 rounded-pill border border-border-soft/70 bg-gradient-to-b from-surface-card to-surface-subtle/80 px-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary shadow-[0_15px_26px_-22px_rgba(37,99,235,0.6)] transition duration-fast hover:border-primary/45 hover:text-text-primary'
+								className='inline-flex h-8 w-full items-center justify-between gap-2 rounded-pill border border-border-soft/70 bg-gradient-to-b from-surface-card to-surface-subtle/80 px-3.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-secondary shadow-[0_15px_26px_-22px_rgba(37,99,235,0.6)] transition duration-fast hover:border-primary/45 hover:text-text-primary min-[480px]:w-auto min-[480px]:min-w-[248px]'
 								aria-label={t('dashboard.filters.customRange')}
 							>
 								<span className='inline-flex items-center gap-2 truncate'>
@@ -901,22 +1007,203 @@ function DashboardPage() {
 					/>
 				</section>
 
-				<section className='grid gap-3 xl:grid-cols-[minmax(0,1fr)_340px]'>
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+				<section className='grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
+					<article className='min-w-0 rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+						<div className='flex flex-wrap items-center justify-between gap-2'>
+							<div>
+								<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
+									{publicTx.companyTitle}
+								</h2>
+								<p className='mt-1 text-sm text-text-secondary'>
+									{publicTx.companyDescription}
+								</p>
+							</div>
+							<button
+								type='button'
+								className='inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65 min-[560px]:w-auto'
+								onClick={() => {
+									void handleLoadCompanyInfo()
+								}}
+								disabled={companyInfoLoading}
+							>
+								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
+								{companyInfoLoading
+									? publicTx.loadingCompany
+									: publicTx.loadCompany}
+							</button>
+						</div>
+
+						<div className='mt-4 min-w-0 rounded-lg bg-surface-subtle/70 p-3 ring-1 ring-border-soft/35'>
+							{companyInfoError ? (
+								<p className='m-0 text-sm font-medium text-danger'>{companyInfoError}</p>
+							) : companyInfo ? (
+								<pre className='m-0 max-h-[280px] max-w-full overflow-auto whitespace-pre-wrap break-words text-[12px] leading-5 text-text-primary'>
+									{JSON.stringify(companyInfo, null, 2)}
+								</pre>
+							) : (
+								<p className='m-0 text-sm text-text-secondary'>{publicTx.companyEmpty}</p>
+							)}
+						</div>
+					</article>
+
+					<article className='min-w-0 rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
+							{publicTx.subsidyTitle}
+						</h2>
+						<p className='mt-1 text-sm text-text-secondary'>
+							{publicTx.subsidyDescription}
+						</p>
+
+						<form className='mt-4 grid gap-3' onSubmit={handleCalculateSubsidy}>
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.panelType}
+								</span>
+								<StylishDropdown
+									value={subsidyInput.panel_type}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											panel_type: value,
+										}))
+									}
+									options={panelTypeOptions}
+									ariaLabel={publicTx.panelType}
+								/>
+							</label>
+
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.inverterType}
+								</span>
+								<StylishDropdown
+									value={subsidyInput.inverter_type}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											inverter_type: value,
+										}))
+									}
+									options={inverterTypeOptions}
+									ariaLabel={publicTx.inverterType}
+								/>
+							</label>
+
+							<div className='grid gap-3 sm:grid-cols-2'>
+								<label className='grid gap-1.5'>
+									<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+										{publicTx.requestedPower}
+									</span>
+									<StylishDropdown
+										value={String(subsidyInput.requested_power_kw)}
+										onChange={value =>
+											setSubsidyInput(current => ({
+												...current,
+												requested_power_kw: Number(value),
+											}))
+										}
+										options={requestedPowerOptions}
+										ariaLabel={publicTx.requestedPower}
+									/>
+								</label>
+
+								<label className='grid gap-1.5'>
+									<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+										{publicTx.auditPower}
+									</span>
+									<input
+										type='number'
+										min={1}
+										step={1}
+										className='h-10 rounded-lg border border-border-soft bg-surface-card px-3 text-sm text-text-primary outline-none ring-primary/25 transition duration-fast focus:border-primary focus:ring-2'
+										value={subsidyInput.audit_power_kw}
+										onChange={event =>
+											setSubsidyInput(current => ({
+												...current,
+												audit_power_kw: Math.max(1, Number(event.target.value) || 1),
+											}))
+										}
+									/>
+								</label>
+							</div>
+
+							<button
+								type='submit'
+								className='inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65'
+								disabled={subsidyLoading}
+							>
+								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
+								{subsidyLoading ? publicTx.calculating : publicTx.calculate}
+							</button>
+						</form>
+
+						<div className='mt-4 rounded-lg bg-surface-subtle/70 p-3 ring-1 ring-border-soft/35'>
+							{subsidyError ? (
+								<p className='m-0 text-sm font-medium text-danger'>{subsidyError}</p>
+							) : parsedSubsidyResult ? (
+								<div className='grid gap-2 sm:grid-cols-2'>
+									<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+											{publicTx.basePrice}
+										</p>
+										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-text-primary'>
+											{formatAmount(parsedSubsidyResult.basePrice, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-success-bg/65 p-3 ring-1 ring-success/35'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-success'>
+											{publicTx.subsidyAmount}
+										</p>
+										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-success'>
+											{formatAmount(parsedSubsidyResult.subsidyAmount, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-primary/10 p-3 ring-1 ring-primary/30 sm:col-span-2'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-primary'>
+											{publicTx.customerAmount}
+										</p>
+										<p className='mt-1 font-display text-[1.4rem] font-extrabold text-text-primary'>
+											{formatAmount(parsedSubsidyResult.customerAmount, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50 sm:col-span-2'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+											{publicTx.referencePower}
+										</p>
+										<p className='mt-1 text-sm font-semibold text-text-primary'>
+											{formatCount(parsedSubsidyResult.subsidyReferencePowerKw, locale)} kW
+										</p>
+									</div>
+								</div>
+							) : subsidyResult ? (
+								<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
+									<pre className='m-0 max-h-[220px] overflow-auto text-[12px] leading-5 text-text-primary'>
+										{JSON.stringify(subsidyResult, null, 2)}
+									</pre>
+								</div>
+							) : (
+								<p className='m-0 text-sm text-text-secondary'>{publicTx.subsidyEmpty}</p>
+							)}
+						</div>
+					</article>
+				</section>
+
+				<section className='grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,340px)]'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.trend')}
 						</h2>
 						<p className='mt-1 text-sm text-text-secondary'>
 							{t('dashboard.descriptions.trend')}
 						</p>
-						<div className='mt-4 h-[290px]'>
+						<div className='mt-4 h-[250px] min-[480px]:h-[290px]'>
 							<ChartContainer
 								config={trendChartConfig}
 								className='h-full w-full'
 							>
 								<LineChart
 									data={localizedTimeSeries}
-									margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+									margin={{ top: 8, right: 6, left: 0, bottom: 0 }}
 								>
 									<CartesianGrid
 										vertical={false}
@@ -928,6 +1215,8 @@ function DashboardPage() {
 										axisLine={false}
 										tickLine={false}
 										tickMargin={8}
+										minTickGap={22}
+										interval='preserveStartEnd'
 										className='text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted'
 									/>
 									<YAxis
@@ -965,7 +1254,7 @@ function DashboardPage() {
 						</div>
 					</article>
 
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.08rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.source')}
 						</h2>
@@ -982,8 +1271,8 @@ function DashboardPage() {
 							</div>
 						) : (
 							<>
-								<div className='relative mt-4 grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
-									<div className='h-[198px] w-[198px]'>
+								<div className='relative mt-4 min-w-0 grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
+									<div className='h-[170px] w-[170px] min-[420px]:h-[198px] min-[420px]:w-[198px]'>
 										<ChartContainer
 											config={sourceChartConfig}
 											className='h-full w-full'
@@ -1035,14 +1324,14 @@ function DashboardPage() {
 											className='rounded-lg bg-surface-subtle/85 px-3 py-2.5'
 										>
 											<div className='flex items-center justify-between gap-2'>
-												<span className='inline-flex items-center gap-2 text-sm font-medium text-text-primary'>
+												<span className='inline-flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary'>
 													<span
 														className='h-2.5 w-2.5 rounded-full'
 														style={{ backgroundColor: item.color }}
 													/>
-													{item.label}
+													<span className='truncate'>{item.label}</span>
 												</span>
-												<div className='flex items-center gap-2 text-sm font-semibold text-text-secondary'>
+												<div className='flex shrink-0 items-center gap-2 text-sm font-semibold text-text-secondary'>
 													<span>{formatCount(item.count, locale)}</span>
 													<span className='rounded-pill bg-surface-card px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] text-text-muted'>
 														{formatPercent(item.share)}
@@ -1066,8 +1355,8 @@ function DashboardPage() {
 					</article>
 				</section>
 
-				<section className='grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]'>
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+				<section className='grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.leadStatus')}
 						</h2>
@@ -1085,7 +1374,7 @@ function DashboardPage() {
 						) : (
 							<div className='mt-4 grid gap-4 xl:grid-cols-[240px_minmax(0,1fr)]'>
 								<div className='relative grid place-items-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-3'>
-									<div className='h-[210px] w-[210px]'>
+									<div className='h-[180px] w-[180px] min-[420px]:h-[210px] min-[420px]:w-[210px]'>
 										<ChartContainer
 											config={statusChartConfig}
 											className='h-full w-full'
@@ -1138,14 +1427,14 @@ function DashboardPage() {
 											className='rounded-lg bg-surface-subtle/85 px-3 py-2.5'
 										>
 											<div className='flex items-center justify-between gap-2'>
-												<span className='inline-flex items-center gap-2 text-sm font-medium text-text-primary'>
+												<span className='inline-flex min-w-0 items-center gap-2 text-sm font-medium text-text-primary'>
 													<span
 														className='h-2.5 w-2.5 rounded-full'
 														style={{ backgroundColor: item.color }}
 													/>
-													{item.label}
+													<span className='truncate'>{item.label}</span>
 												</span>
-												<div className='flex items-center gap-2 text-sm font-semibold text-text-secondary'>
+												<div className='flex shrink-0 items-center gap-2 text-sm font-semibold text-text-secondary'>
 													<span>{formatCount(item.count, locale)}</span>
 													<span className='rounded-pill bg-surface-card px-2 py-0.5 text-[11px] uppercase tracking-[0.08em] text-text-muted'>
 														{formatPercent(item.share)}
@@ -1168,7 +1457,7 @@ function DashboardPage() {
 						)}
 					</article>
 
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.performance')}
 						</h2>
@@ -1277,8 +1566,8 @@ function DashboardPage() {
 					</article>
 				</section>
 
-				<section>
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+				<section className='min-w-0'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<div className='flex flex-wrap items-center justify-between gap-2'>
 							<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 								{t('dashboard.sections.topProducts')}
@@ -1291,7 +1580,7 @@ function DashboardPage() {
 							{t('dashboard.descriptions.topProducts')}
 						</p>
 
-						<div className='mt-4'>
+						<div className='mt-4 min-w-0'>
 							<DataTable
 								data={topProducts}
 								columns={topProductColumns}
@@ -1306,7 +1595,7 @@ function DashboardPage() {
 				</section>
 
 				<section className='grid gap-3 lg:grid-cols-2'>
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<div className='flex flex-wrap items-center justify-between gap-2'>
 							<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 								{t('dashboard.sections.regionDemand')}
@@ -1315,7 +1604,7 @@ function DashboardPage() {
 						<p className='mt-1 text-sm text-text-secondary'>
 							{t('dashboard.descriptions.regionDemand')}
 						</p>
-						<div className='mt-4'>
+						<div className='mt-4 min-w-0 overflow-x-auto'>
 							<DataTable
 								data={regionDemand}
 								columns={regionDemandColumns}
@@ -1326,7 +1615,7 @@ function DashboardPage() {
 						</div>
 					</article>
 
-					<article className='rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<div className='flex flex-wrap items-center justify-between gap-2'>
 							<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 								{t('dashboard.sections.managerPerformance')}
@@ -1335,7 +1624,7 @@ function DashboardPage() {
 						<p className='mt-1 text-sm text-text-secondary'>
 							{t('dashboard.descriptions.managerPerformance')}
 						</p>
-						<div className='mt-4'>
+						<div className='mt-4 min-w-0 overflow-x-auto'>
 							<DataTable
 								data={managerPerformance}
 								columns={managerPerformanceColumns}
@@ -1353,4 +1642,174 @@ function DashboardPage() {
 	)
 }
 
+function StylishDropdown({
+	value,
+	options,
+	onChange,
+	ariaLabel,
+}: StylishDropdownProps) {
+	const [isOpen, setIsOpen] = useState(false)
+	const [openAbove, setOpenAbove] = useState(false)
+	const rootRef = useRef<HTMLDivElement | null>(null)
+
+	const selectedOption = useMemo(
+		() => options.find(option => option.value === value) ?? options[0],
+		[options, value],
+	)
+
+	useEffect(() => {
+		function handlePointerDown(event: MouseEvent) {
+			if (!rootRef.current?.contains(event.target as Node)) {
+				setIsOpen(false)
+			}
+		}
+
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				setIsOpen(false)
+			}
+		}
+
+		window.addEventListener('mousedown', handlePointerDown)
+		window.addEventListener('keydown', handleKeyDown)
+
+		return () => {
+			window.removeEventListener('mousedown', handlePointerDown)
+			window.removeEventListener('keydown', handleKeyDown)
+		}
+	}, [])
+
+	useEffect(() => {
+		if (!isOpen) {
+			return
+		}
+
+		function updatePlacement() {
+			const rect = rootRef.current?.getBoundingClientRect()
+			if (!rect) {
+				return
+			}
+
+			const expectedMenuHeight = 176
+			const spaceBelow = window.innerHeight - rect.bottom
+			const spaceAbove = rect.top
+			setOpenAbove(spaceBelow < expectedMenuHeight && spaceAbove > spaceBelow)
+		}
+
+		updatePlacement()
+		window.addEventListener('resize', updatePlacement)
+		window.addEventListener('scroll', updatePlacement, true)
+
+		return () => {
+			window.removeEventListener('resize', updatePlacement)
+			window.removeEventListener('scroll', updatePlacement, true)
+		}
+	}, [isOpen])
+
+	return (
+		<div
+			ref={rootRef}
+			className={['relative', isOpen ? 'z-[140]' : 'z-20'].join(' ')}
+		>
+			<button
+				type='button'
+				onClick={() => setIsOpen(current => !current)}
+				className={[
+					'group inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border px-3 text-sm font-semibold transition duration-fast',
+					'bg-gradient-to-b from-surface-card to-surface-subtle/80 shadow-[0_15px_26px_-22px_rgba(37,99,235,0.55)]',
+					isOpen
+						? 'border-primary/60 text-text-primary ring-2 ring-primary/20'
+						: 'border-border-soft/70 text-text-secondary hover:border-primary/45 hover:text-text-primary',
+				].join(' ')}
+				aria-label={ariaLabel}
+				aria-haspopup='listbox'
+				aria-expanded={isOpen}
+			>
+				<span className='truncate'>{selectedOption?.label}</span>
+				<AppIcon
+					name='chevron-down'
+					className={[
+						'h-3.5 w-3.5 shrink-0 text-text-muted transition duration-fast',
+						isOpen
+							? 'rotate-180 text-primary'
+							: 'group-hover:text-text-secondary',
+					].join(' ')}
+					aria-hidden='true'
+				/>
+			</button>
+
+			{isOpen ? (
+				<div
+					className={[
+						'absolute left-0 z-[150] min-w-full overflow-hidden rounded-xl bg-surface-card/95 p-1.5 shadow-[0_26px_46px_-28px_rgba(15,23,42,0.52)] ring-1 ring-border-soft/80 backdrop-blur-sm',
+						openAbove ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]',
+					].join(' ')}
+					role='listbox'
+					aria-label={ariaLabel}
+				>
+					<div className='grid gap-1'>
+						{options.map(option => {
+							const isSelected = option.value === value
+
+							return (
+								<button
+									key={option.value}
+									type='button'
+									className={[
+										'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition duration-fast',
+										isSelected
+											? 'bg-primary text-primary-foreground shadow-sm'
+											: 'text-text-secondary hover:bg-primary/10 hover:text-text-primary',
+									].join(' ')}
+									role='option'
+									aria-selected={isSelected}
+									onClick={() => {
+										onChange(option.value)
+										setIsOpen(false)
+									}}
+								>
+									<span>{option.label}</span>
+									{isSelected ? (
+										<span className='h-1.5 w-1.5 rounded-full bg-current' />
+									) : null}
+								</button>
+							)
+						})}
+					</div>
+				</div>
+			) : null}
+		</div>
+	)
+}
+
+function parseSubsidyResult(payload: unknown): SubsidyResultCardData | null {
+	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+		return null
+	}
+
+	const item = payload as Record<string, unknown>
+	const basePrice = Number(item.base_price)
+	const subsidyAmount = Number(item.subsidy_amount)
+	const customerAmount = Number(item.customer_amount)
+	const subsidyReferencePowerKw = Number(item.subsidy_reference_power_kw)
+
+	if (
+		!Number.isFinite(basePrice) ||
+		!Number.isFinite(subsidyAmount) ||
+		!Number.isFinite(customerAmount) ||
+		!Number.isFinite(subsidyReferencePowerKw)
+	) {
+		return null
+	}
+
+	return {
+		basePrice,
+		subsidyAmount,
+		customerAmount,
+		subsidyReferencePowerKw,
+	}
+}
+
 export default DashboardPage
+
+

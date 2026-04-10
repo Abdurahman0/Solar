@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useDetail } from '../../../components/hooks'
@@ -156,15 +156,19 @@ export function ContractsDetailPanel({
 				},
 			}
 
-	const [state, detailActions] = useDetail(() => services.contracts.getContract(contractId), {
+	const fetchContract = useCallback(
+		() => services.contracts.getContract(contractId),
+		[contractId],
+	)
+	const [state, { fetch: fetchContractDetail }] = useDetail(fetchContract, {
 		autoFetch: true,
 	})
 
 	useEffect(() => {
 		if (refreshToken > 0) {
-			void detailActions.fetch()
+			void fetchContractDetail()
 		}
-	}, [detailActions, refreshToken])
+	}, [fetchContractDetail, refreshToken])
 
 	if (state.isLoading) {
 		return <LoadingState title={tx.loadingTitle} description={tx.loadingDescription} />
@@ -319,7 +323,7 @@ export function ContractsDetailPanel({
 					onClick={() => onRecalculate?.(contract)}
 					disabled={isRecalculating}
 				>
-					<AppIcon name='refresh' className='h-4 w-4' />
+					<AppIcon name='activity' className='h-4 w-4' />
 					{recalculateLabel}
 				</button>
 				<button

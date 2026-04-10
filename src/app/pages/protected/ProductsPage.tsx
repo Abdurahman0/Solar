@@ -714,7 +714,8 @@ function ProductsPage() {
 
         <PageCard>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex flex-wrap items-center gap-1 rounded-full bg-surface-subtle p-1 ring-1 ring-border-soft/50">
+            <div className="min-w-0 max-w-full overflow-x-auto">
+              <div className="inline-flex min-w-max flex-nowrap items-center gap-1 rounded-pill bg-surface-subtle/85 p-1 ring-1 ring-border-soft/50">
               {[
                 { id: 'products' as const, label: t('products.catalogTitle') },
                 { id: 'categories' as const, label: t('products.categoriesCatalogTitle') },
@@ -725,15 +726,16 @@ function ProductsPage() {
                   type="button"
                   onClick={() => setCatalogView(tab.id)}
                   className={[
-                    'rounded-full px-4 py-2 text-sm font-semibold transition duration-fast',
+                    'shrink-0 whitespace-nowrap rounded-pill px-4 py-2 text-sm font-semibold transition duration-fast',
                     catalogView === tab.id
-                      ? 'bg-background-subtle text-text-primary shadow-sm'
+                      ? 'bg-background-subtle text-text-primary shadow-sm ring-1 ring-border-soft/55'
                       : 'text-text-secondary hover:bg-background-subtle/65 hover:text-text-primary',
                   ].join(' ')}
                 >
                   {tab.label}
                 </button>
               ))}
+              </div>
             </div>
             <span className="text-sm text-text-secondary">{t('products.catalogHint')}</span>
           </div>

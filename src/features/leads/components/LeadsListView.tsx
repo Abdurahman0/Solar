@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react'
 import { FiPlus, FiSearch } from 'react-icons/fi'
 import { useList } from '../../../components/hooks'
 import { DataTable, type ColumnDef } from '../../../components/ui/tables'
+import { formatLocalizedDate } from '../../../i18n/date-format'
 import { services } from '../../../services'
 import type { Lead, LeadsListParams } from '../../../services/contracts'
 
@@ -66,7 +67,13 @@ export function LeadsListView({ onRowClick, onCreateNew }: LeadsListViewProps) {
 			header: 'Created',
 			accessorKey: 'created_at',
 			cell: lead =>
-				lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-',
+				formatLocalizedDate(lead.created_at, 'uz', {
+					locale: 'uz-UZ',
+					withYear: true,
+					withTime: false,
+					shortMonth: true,
+					fallback: '-',
+				}),
 		},
 	]
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import AppIcon from '../../../components/shared/icons/AppIcon';
@@ -12,33 +12,41 @@ import { useAuth } from '../../../auth';
 import type { Client } from '../../../services/contracts';
 
 function ClientsPage() {
-  const { i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
-  const isRu = i18n.language === 'ru';
   const { hasPermission } = useAuth();
   const canManageClients = hasPermission('can_manage_clients');
 
-  const tx = isRu
-    ? {
-        eyebrow: 'Клиентская воронка',
-        title: 'Клиенты',
-        subtitle: 'Ведите клиентов, отслеживайте статусы и работайте с карточками в едином пространстве.',
-        newClient: 'Новый клиент',
-        visible: 'видно',
-        detailOpen: 'Профиль открыт',
-        errorTitle: 'Клиенты недоступны',
-        errorDescription: 'Не удалось загрузить список клиентов.',
-      }
-    : {
-        eyebrow: 'Mijoz voronkasi',
-        title: 'Mijozlar',
-        subtitle: 'Mijozlarni boshqaring, holatlarni kuzating va kartochkalar bilan yagona oynada ishlang.',
-        newClient: 'Yangi mijoz',
-        visible: "ko'rinmoqda",
-        detailOpen: 'Profil ochiq',
-        errorTitle: 'Mijozlar mavjud emas',
-        errorDescription: 'Mijozlar ro`yxatini yuklab bo`lmadi.',
-      };
+  const tx = {
+    eyebrow: t('clients.page.eyebrow'),
+    title: t('clients.page.title'),
+    subtitle: t('clients.page.subtitle'),
+    newClient: t('clients.page.newClient'),
+    visible: t('clients.page.visible'),
+    detailOpen: t('clients.page.detailOpen'),
+    errorTitle: t('clients.page.errorTitle'),
+    errorDescription: t('clients.page.errorDescription'),
+  };
+  const importTx = {
+    importClients: t('clients.importExport.importClients'),
+    exportClients: t('clients.importExport.exportClients'),
+    importTitle: t('clients.importExport.importTitle'),
+    importSubtitle: t('clients.importExport.importSubtitle'),
+    uploadFile: t('clients.importExport.uploadFile'),
+    downloadTemplate: t('clients.importExport.downloadTemplate'),
+    importPlaceholder: t('clients.importExport.importPlaceholder'),
+    startImport: t('clients.importExport.startImport'),
+    importing: t('clients.importExport.importing'),
+    close: t('clients.importExport.close'),
+    exportInProgress: t('clients.importExport.exportInProgress'),
+    importFileReadError: t('clients.importExport.importFileReadError'),
+    invalidImportJson: t('clients.importExport.invalidImportJson'),
+    importNoValidRows: t('clients.importExport.importNoValidRows'),
+    exportFailed: t('clients.importExport.exportFailed'),
+    importFailed: t('clients.importExport.importFailed'),
+    exportSuccess: t('clients.importExport.exportSuccess'),
+    importResult: t('clients.importExport.importResult'),
+  };
 
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -48,6 +56,12 @@ function ClientsPage() {
   const [listRefreshKey, setListRefreshKey] = useState(0);
   const [stats, setStats] = useState({ visible: 0, total: 0, loading: true });
   const [hasError, setHasError] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importPayload, setImportPayload] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setSelectedClientId(null);
@@ -76,6 +90,162 @@ function ClientsPage() {
 
   function handleDeleteFromList(client: Client) {
     setClientToDelete(client);
+  }
+
+  function resolveTemplateMessage(template: string, values: Record<string, string | number>) {
+    return template.replace(/\{\{(.*?)\}\}/g, (_, key: string) => {
+      const trimmedKey = key.trim();
+      return String(values[trimmedKey] ?? '');
+    });
+  }
+
+  function normalizeImportRecord(input: unknown): Record<string, unknown> | null {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      return null;
+    }
+
+    const source = input as Record<string, unknown>;
+    const fullName =
+      typeof source.full_name === 'string'
+        ? source.full_name.trim()
+        : typeof source.fullName === 'string'
+          ? source.fullName.trim()
+          : typeof source.name === 'string'
+            ? source.name.trim()
+            : '';
+
+    if (!fullName) {
+      return null;
+    }
+
+    const normalized: Record<string, unknown> = {
+      ...source,
+      full_name: fullName,
+    };
+
+    delete normalized.fullName;
+    delete normalized.name;
+
+    return normalized;
+  }
+
+  async function handleImportFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      setImportPayload(content);
+    } catch {
+      setActionMessage({ type: 'error', text: importTx.importFileReadError });
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  function handleDownloadImportTemplate() {
+    const sample = [
+      {
+        full_name: 'Ali Valiyev',
+        phone: '+998901234567',
+        region: 'Toshkent',
+        address: 'Yunusobod tumani',
+        source_platform: 'manual',
+        status: 'new',
+      },
+    ];
+    const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'clients-import-template.json';
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleExportClients() {
+    setIsExporting(true);
+    setActionMessage(null);
+
+    try {
+      const items = await services.clients.exportClients();
+      const serialized = JSON.stringify(items, null, 2);
+      const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      anchor.href = url;
+      anchor.download = `clients-export-${date}.json`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+
+      setActionMessage({
+        type: 'success',
+        text: resolveTemplateMessage(importTx.exportSuccess, { count: items.length }),
+      });
+    } catch {
+      setActionMessage({ type: 'error', text: importTx.exportFailed });
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function handleImportClients() {
+    setIsImporting(true);
+    setActionMessage(null);
+
+    try {
+      const parsed = JSON.parse(importPayload) as unknown;
+      if (!Array.isArray(parsed)) {
+        setActionMessage({ type: 'error', text: importTx.invalidImportJson });
+        return;
+      }
+
+      const records = parsed
+        .map(normalizeImportRecord)
+        .filter((item): item is Record<string, unknown> => Boolean(item));
+
+      if (!records.length) {
+        setActionMessage({ type: 'error', text: importTx.importNoValidRows });
+        return;
+      }
+
+      let success = 0;
+      let failed = 0;
+
+      for (const record of records) {
+        try {
+          await services.clients.bulkImportClient(record as any);
+          success += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+
+      if (success > 0) {
+        setListRefreshKey((current) => current + 1);
+      }
+
+      setActionMessage({
+        type: failed > 0 ? 'error' : 'success',
+        text: resolveTemplateMessage(importTx.importResult, { success, failed }),
+      });
+
+      if (success > 0) {
+        setIsImportOpen(false);
+        setImportPayload('');
+      }
+    } catch {
+      setActionMessage({ type: 'error', text: importTx.importFailed });
+    } finally {
+      setIsImporting(false);
+    }
   }
 
   async function handleConfirmDelete() {
@@ -133,6 +303,19 @@ function ClientsPage() {
               {tx.newClient}
             </button>
           ) : null}
+          {canManageClients ? (
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-surface-card px-3.5 text-sm font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/70 transition duration-fast hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65"
+              onClick={() => {
+                void handleExportClients();
+              }}
+              disabled={isExporting}
+            >
+              <AppIcon name="download" className="h-4 w-4" aria-hidden="true" />
+              {isExporting ? importTx.exportInProgress : importTx.exportClients}
+            </button>
+          ) : null}
           <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-success-bg px-3 text-[12px] font-semibold text-success">
             <AppIcon name="clients" className="h-3.5 w-3.5" aria-hidden="true" />
             {stats.visible} {tx.visible}
@@ -159,6 +342,20 @@ function ClientsPage() {
   return (
     <>
       <PageLayout header={header}>
+        {actionMessage ? (
+          <PageSection>
+            <div
+              className={`rounded-xl px-4 py-3 text-sm font-medium ring-1 ${
+                actionMessage.type === 'success'
+                  ? 'bg-success-bg text-success ring-success/30'
+                  : 'bg-danger-bg text-danger ring-danger/30'
+              }`}
+            >
+              {actionMessage.text}
+            </div>
+          </PageSection>
+        ) : null}
+
         <PageSection>
           <ClientsListView
             key={listRefreshKey}
@@ -239,3 +436,4 @@ function ClientsPage() {
 }
 
 export default ClientsPage;
+

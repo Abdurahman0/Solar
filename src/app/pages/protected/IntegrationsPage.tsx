@@ -374,42 +374,44 @@ function IntegrationsPage() {
             onChange={setConfigSearch}
             placeholder={t('integrations.configSearchPlaceholder')}
           />
-          <label className="grid min-w-[min(160px,100%)] flex-[1_1_160px] gap-1.5 min-[640px]:flex-[0_1_170px]">
-            <span className={labelClassName}>{t('integrations.filters.provider')}</span>
-            <FilterSelect
-              value={providerFilter}
-              options={providerOptions}
-              onChange={(value) => setProviderFilter(value as ProviderFilter)}
-              disabled={isLoading}
-            />
-          </label>
-          <label className="grid min-w-[min(150px,100%)] flex-[1_1_150px] gap-1.5 min-[640px]:flex-[0_1_160px]">
-            <span className={labelClassName}>{t('integrations.filters.status')}</span>
-            <FilterSelect
-              value={activeFilter}
-              options={activeOptions}
-              onChange={(value) => setActiveFilter(value as ActiveFilter)}
-              disabled={isLoading}
-            />
-          </label>
-          <label className="grid min-w-[min(150px,100%)] flex-[1_1_150px] gap-1.5 min-[640px]:flex-[0_1_160px]">
-            <span className={labelClassName}>{t('integrations.filters.visibility')}</span>
-            <FilterSelect
-              value={secretFilter}
-              options={secretOptions}
-              onChange={(value) => setSecretFilter(value as SecretFilter)}
-              disabled={isLoading}
-            />
-          </label>
-          <label className="grid min-w-[min(220px,100%)] flex-[1_1_220px] gap-1.5 min-[640px]:flex-[0_1_240px]">
-            <span className={labelClassName}>{t('integrations.filters.ordering')}</span>
-            <FilterSelect
-              value={ordering}
-              options={orderingOptions}
-              onChange={(value) => setOrdering(value as ConfigOrdering)}
-              disabled={isLoading}
-            />
-          </label>
+          <div className="flex min-w-0 flex-1 flex-wrap items-end gap-4">
+            <label className="grid min-w-[min(160px,100%)] flex-[1_1_160px] gap-1.5 min-[640px]:flex-[0_1_170px]">
+              <span className={labelClassName}>{t('integrations.filters.provider')}</span>
+              <FilterSelect
+                value={providerFilter}
+                options={providerOptions}
+                onChange={(value) => setProviderFilter(value as ProviderFilter)}
+                disabled={isLoading}
+              />
+            </label>
+            <label className="grid min-w-[min(150px,100%)] flex-[1_1_150px] gap-1.5 min-[640px]:flex-[0_1_160px]">
+              <span className={labelClassName}>{t('integrations.filters.status')}</span>
+              <FilterSelect
+                value={activeFilter}
+                options={activeOptions}
+                onChange={(value) => setActiveFilter(value as ActiveFilter)}
+                disabled={isLoading}
+              />
+            </label>
+            <label className="grid min-w-[min(150px,100%)] flex-[1_1_150px] gap-1.5 min-[640px]:flex-[0_1_160px]">
+              <span className={labelClassName}>{t('integrations.filters.visibility')}</span>
+              <FilterSelect
+                value={secretFilter}
+                options={secretOptions}
+                onChange={(value) => setSecretFilter(value as SecretFilter)}
+                disabled={isLoading}
+              />
+            </label>
+            <label className="grid min-w-[min(220px,100%)] flex-[1_1_220px] gap-1.5 min-[640px]:flex-[0_1_240px]">
+              <span className={labelClassName}>{t('integrations.filters.ordering')}</span>
+              <FilterSelect
+                value={ordering}
+                options={orderingOptions}
+                onChange={(value) => setOrdering(value as ConfigOrdering)}
+                disabled={isLoading}
+              />
+            </label>
+          </div>
         </FilterBar>
 
         <PageCard>

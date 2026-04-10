@@ -322,6 +322,38 @@
         "week": "По неделям",
         "month": "По месяцам"
       }
+    },
+    "publicApi": {
+      "title": "Публичные API",
+      "subtitle": "Проверка данных компании и калькулятора субсидии.",
+      "companyTitle": "Информация о компании",
+      "companyDescription": "Публичный endpoint с реквизитами, платформой и прайс-матрицей.",
+      "loadCompany": "Загрузить данные компании",
+      "loadingCompany": "Загрузка...",
+      "companyError": "Не удалось получить информацию о компании.",
+      "companyEmpty": "Нажмите кнопку, чтобы загрузить данные компании.",
+      "subsidyTitle": "Калькулятор субсидии",
+      "subsidyDescription": "Рассчитать итоговую цену по типу панели, инвертора и мощности.",
+      "panelType": "Тип панели",
+      "inverterType": "Тип инвертора",
+      "requestedPower": "Запрошенная мощность (кВт)",
+      "auditPower": "Аудитная мощность (кВт)",
+      "calculate": "Рассчитать",
+      "calculating": "Расчет...",
+      "subsidyError": "Не удалось рассчитать субсидию.",
+      "subsidyEmpty": "Введите параметры и нажмите «Рассчитать».",
+      "basePrice": "Базовая цена",
+      "subsidyAmount": "Сумма субсидии",
+      "customerAmount": "Сумма для клиента",
+      "referencePower": "Опорная мощность субсидии",
+      "panelTypes": {
+        "jinkoJa": "Jinko / JA Solar",
+        "longiHiMoX10": "Longi HI MO X10"
+      },
+      "inverterTypes": {
+        "deye": "Deye",
+        "solax": "Solax"
+      }
     }
   },
   "leads": {
@@ -1953,6 +1985,99 @@
       "description": "Это действие нельзя отменить.",
       "deleting": "Удаление...",
       "confirm": "Удалить запрос"
+    }
+  },
+  "contractsPage": {
+    "eyebrow": "Воронка договоров",
+    "title": "Договоры",
+    "subtitle": "Управляйте статусами договоров, панелями и доставкой в одном окне.",
+    "newContract": "Новый договор",
+    "visible": "видно",
+    "detailOpen": "Профиль открыт",
+    "searchPlaceholder": "Поиск по договору, клиенту или телефону...",
+    "statusLabel": "Статус",
+    "panelLabel": "Панель",
+    "inverterLabel": "Инвертор",
+    "powerLabel": "Мощность (кВт)",
+    "allStatuses": "Все статусы",
+    "allPanels": "Все панели",
+    "allInverters": "Все инверторы",
+    "listTitle": "Каталог договоров",
+    "listHint": "Нажмите на строку для просмотра профиля.",
+    "errorTitle": "Договоры недоступны",
+    "errorDescription": "Не удалось загрузить список договоров.",
+    "columns": {
+      "title": "Договор",
+      "panel": "Панель",
+      "inverter": "Инвертор",
+      "power": "Мощность",
+      "status": "Статус",
+      "updated": "Обновлено",
+      "actions": "Действия"
+    },
+    "statuses": {
+      "draft": "Черновик",
+      "audit_pending": "Аудит ожидается",
+      "audit_paid": "Аудит оплачен",
+      "moderation": "Модерация",
+      "contract_ready": "Договор готов",
+      "payment_pending": "Ожидает оплату",
+      "paid": "Оплачен",
+      "delivered": "Доставлен",
+      "sent": "Отправлен",
+      "signed": "Подписан",
+      "canceled": "Отменен"
+    },
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "pricing": {
+      "button": "Матрица цен",
+      "title": "Таблица цен",
+      "loadingTitle": "Загрузка...",
+      "loadingDescription": "Получаем данные матрицы.",
+      "emptyTitle": "Матрица пуста",
+      "emptyDescription": "Нет данных для отображения.",
+      "subsidy": "Субсидия",
+      "auditPowers": "Поддерживаемый аудит (кВт)",
+      "configurations": "конфигураций",
+      "power": "Мощность",
+      "view": "Открыть",
+      "basePrice": "Базовая цена",
+      "customerPrice": "Цена для клиента",
+      "audit": "Аудит",
+      "currency": "сум"
+    }
+  },
+  "clients": {
+    "importExport": {
+      "importClients": "Импорт",
+      "exportClients": "Экспорт",
+      "importTitle": "Импорт клиентов",
+      "importSubtitle": "Загрузите JSON-файл или вставьте JSON-массив клиентов.",
+      "uploadFile": "Загрузить файл",
+      "downloadTemplate": "Скачать шаблон",
+      "importPlaceholder": "[{\"full_name\":\"Иван Петров\",\"phone\":\"+998901234567\",\"region\":\"Toshkent\"}]",
+      "startImport": "Импортировать",
+      "importing": "Импорт...",
+      "close": "Закрыть",
+      "exportInProgress": "Экспорт...",
+      "importFileReadError": "Не удалось прочитать файл импорта.",
+      "invalidImportJson": "Некорректный JSON. Ожидается массив объектов.",
+      "importNoValidRows": "В данных нет валидных записей (нужно поле full_name).",
+      "exportFailed": "Не удалось экспортировать клиентов.",
+      "importFailed": "Не удалось импортировать клиентов.",
+      "exportSuccess": "Экспорт завершен: {{count}} записей.",
+      "importResult": "Импорт завершен. Успешно: {{success}}, с ошибкой: {{failed}}."
+    },
+    "page": {
+      "eyebrow": "Клиентская воронка",
+      "title": "Клиенты",
+      "subtitle": "Ведите клиентов, отслеживайте статусы и работайте с карточками в едином пространстве.",
+      "newClient": "Новый клиент",
+      "visible": "видно",
+      "detailOpen": "Профиль открыт",
+      "errorTitle": "Клиенты недоступны",
+      "errorDescription": "Не удалось загрузить список клиентов."
     }
   }
 }

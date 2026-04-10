@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import {
@@ -11,6 +11,7 @@ import {
 	type DataTableColumn,
 } from '../../../components/shared/data'
 import AppIcon from '../../../components/shared/icons/AppIcon'
+import { formatLocalizedDate } from '../../../i18n/date-format'
 import {
 	EmptyState,
 	PageHeader,
@@ -23,7 +24,11 @@ import { ContractsDetailPanel } from '../../../features/contracts/components/Con
 import { ContractsFormPanel } from '../../../features/contracts/components/ContractsFormPanel'
 import { services } from '../../../services'
 import { useAuth } from '../../../auth'
-import type { Contract, ContractsListParams } from '../../../services/contracts'
+import type {
+	Contract,
+	ContractsListParams,
+	PricingMatrixData,
+} from '../../../services/contracts'
 
 const labelClassName =
 	'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'
@@ -52,102 +57,88 @@ function statusTone(
 	return 'warning'
 }
 
+function formatPricingAmount(
+	value: string | number | undefined,
+	locale: string,
+	currencyLabel: string,
+): string {
+	const parsed = typeof value === 'number' ? value : Number(value)
+	if (!Number.isFinite(parsed)) {
+		return '-'
+	}
+	return `${new Intl.NumberFormat(locale, {
+		maximumFractionDigits: 0,
+	}).format(parsed)} ${currencyLabel}`
+}
+
 function ContractsPage() {
-	const { i18n } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const isRu = i18n.language === 'ru'
+	const locale = isRu ? 'ru-RU' : 'uz-UZ'
 	const { hasPermission } = useAuth()
 	const canManageContracts = hasPermission('can_manage_contracts')
 
-	const tx = isRu
-		? {
-				eyebrow: 'Воронка договоров',
-				title: 'Договоры',
-				subtitle: 'Управляйте статусами, панелями и доставкой в одном окне.',
-				newContract: 'Новый договор',
-				visible: 'видно',
-				detailOpen: 'Профиль открыт',
-				searchPlaceholder: 'Поиск по договору, клиенту или телефону...',
-				statusLabel: 'Статус',
-				panelLabel: 'Панель',
-				inverterLabel: 'Инвертор',
-				powerLabel: 'Мощность (кВт)',
-				allStatuses: 'Все статусы',
-				allPanels: 'Все панели',
-				allInverters: 'Все инверторы',
-				listTitle: 'Каталог договоров',
-				listHint: 'Нажмите на строку для просмотра профиля.',
-				errorTitle: 'Договоры недоступны',
-				errorDescription: 'Не удалось загрузить список договоров.',
-				columns: {
-					title: 'Договор',
-					panel: 'Панель',
-					inverter: 'Инвертор',
-					power: 'Мощность',
-					status: 'Статус',
-					updated: 'Обновлено',
-					actions: 'Действия',
-				},
-				statuses: {
-					draft: 'Черновик',
-					audit_pending: 'Аудит ожидается',
-					audit_paid: 'Аудит оплачен',
-					moderation: 'Модерация',
-					contract_ready: 'Договор готов',
-					payment_pending: 'Ожидает оплату',
-					paid: 'Оплачен',
-					delivered: 'Доставлен',
-					sent: 'Отправлен',
-					signed: 'Подписан',
-					canceled: 'Отменен',
-				},
-				edit: 'Редактировать',
-				delete: 'Удалить',
-			}
-		: {
-				eyebrow: 'Shartnoma voronkasi',
-				title: 'Shartnomalar',
-				subtitle:
-					'Shartnomalar holatini, panel va yetkazishni bitta oynada boshqaring.',
-				newContract: 'Yangi shartnoma',
-				visible: "ko`rinmoqda",
-				detailOpen: 'Profil ochiq',
-				searchPlaceholder: 'Shartnoma, mijoz yoki telefon bo`yicha qidiring...',
-				statusLabel: 'Holat',
-				panelLabel: 'Panel',
-				inverterLabel: 'Invertor',
-				powerLabel: 'Quvvat (kW)',
-				allStatuses: 'Barcha holatlar',
-				allPanels: 'Barcha panellar',
-				allInverters: 'Barcha invertorlar',
-				listTitle: 'Shartnomalar katalogi',
-				listHint: "Profilni ko`rish uchun satrni bosing.",
-				errorTitle: 'Shartnomalar mavjud emas',
-				errorDescription: "Shartnomalar ro`yxatini yuklab bo`lmadi.",
-				columns: {
-					title: 'Shartnoma',
-					panel: 'Panel',
-					inverter: 'Invertor',
-					power: 'Quvvat',
-					status: 'Holat',
-					updated: 'Yangilangan',
-					actions: 'Amallar',
-				},
-				statuses: {
-					draft: 'Qoralama',
-					audit_pending: 'Audit kutilmoqda',
-					audit_paid: 'Audit to`langan',
-					moderation: 'Moderatsiya',
-					contract_ready: 'Shartnoma tayyor',
-					payment_pending: 'To`lov kutilmoqda',
-					paid: 'To`langan',
-					delivered: 'Yetkazilgan',
-					sent: 'Yuborilgan',
-					signed: 'Imzolangan',
-					canceled: 'Bekor qilingan',
-				},
-				edit: 'Tahrirlash',
-				delete: "O`chirish",
-			}
+	const tx = {
+		eyebrow: t('contractsPage.eyebrow'),
+		title: t('contractsPage.title'),
+		subtitle: t('contractsPage.subtitle'),
+		newContract: t('contractsPage.newContract'),
+		visible: t('contractsPage.visible'),
+		detailOpen: t('contractsPage.detailOpen'),
+		searchPlaceholder: t('contractsPage.searchPlaceholder'),
+		statusLabel: t('contractsPage.statusLabel'),
+		panelLabel: t('contractsPage.panelLabel'),
+		inverterLabel: t('contractsPage.inverterLabel'),
+		powerLabel: t('contractsPage.powerLabel'),
+		allStatuses: t('contractsPage.allStatuses'),
+		allPanels: t('contractsPage.allPanels'),
+		allInverters: t('contractsPage.allInverters'),
+		listTitle: t('contractsPage.listTitle'),
+		listHint: t('contractsPage.listHint'),
+		errorTitle: t('contractsPage.errorTitle'),
+		errorDescription: t('contractsPage.errorDescription'),
+		columns: {
+			title: t('contractsPage.columns.title'),
+			panel: t('contractsPage.columns.panel'),
+			inverter: t('contractsPage.columns.inverter'),
+			power: t('contractsPage.columns.power'),
+			status: t('contractsPage.columns.status'),
+			updated: t('contractsPage.columns.updated'),
+			actions: t('contractsPage.columns.actions'),
+		},
+		statuses: {
+			draft: t('contractsPage.statuses.draft'),
+			audit_pending: t('contractsPage.statuses.audit_pending'),
+			audit_paid: t('contractsPage.statuses.audit_paid'),
+			moderation: t('contractsPage.statuses.moderation'),
+			contract_ready: t('contractsPage.statuses.contract_ready'),
+			payment_pending: t('contractsPage.statuses.payment_pending'),
+			paid: t('contractsPage.statuses.paid'),
+			delivered: t('contractsPage.statuses.delivered'),
+			sent: t('contractsPage.statuses.sent'),
+			signed: t('contractsPage.statuses.signed'),
+			canceled: t('contractsPage.statuses.canceled'),
+		},
+		edit: t('contractsPage.edit'),
+		delete: t('contractsPage.delete'),
+		pricing: {
+			button: t('contractsPage.pricing.button'),
+			title: t('contractsPage.pricing.title'),
+			loadingTitle: t('contractsPage.pricing.loadingTitle'),
+			loadingDescription: t('contractsPage.pricing.loadingDescription'),
+			emptyTitle: t('contractsPage.pricing.emptyTitle'),
+			emptyDescription: t('contractsPage.pricing.emptyDescription'),
+			subsidy: t('contractsPage.pricing.subsidy'),
+			auditPowers: t('contractsPage.pricing.auditPowers'),
+			configurations: t('contractsPage.pricing.configurations'),
+			power: t('contractsPage.pricing.power'),
+			view: t('contractsPage.pricing.view'),
+			basePrice: t('contractsPage.pricing.basePrice'),
+			customerPrice: t('contractsPage.pricing.customerPrice'),
+			audit: t('contractsPage.pricing.audit'),
+			currency: t('contractsPage.pricing.currency'),
+		},
+	}
 
 	const [searchQuery, setSearchQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -169,7 +160,9 @@ function ContractsPage() {
 	const [detailRefreshToken, setDetailRefreshToken] = useState(0)
 	const [isPricingOpen, setIsPricingOpen] = useState(false)
 	const [isPricingLoading, setIsPricingLoading] = useState(false)
-	const [pricingRows, setPricingRows] = useState<Contract[]>([])
+	const [pricingMatrix, setPricingMatrix] = useState<PricingMatrixData | null>(
+		null,
+	)
 
 	const fetcher = (params?: ContractsListParams) =>
 		services.contracts.listContracts(params)
@@ -263,11 +256,13 @@ function ContractsPage() {
 				label: tx.columns.updated,
 				render: contract => (
 					<span className={tablePrimaryTextClassName}>
-						{contract.updated_at
-							? new Date(contract.updated_at).toLocaleDateString(
-									isRu ? 'ru-RU' : 'uz-UZ',
-								)
-							: '-'}
+						{formatLocalizedDate(contract.updated_at, i18n.language, {
+							locale,
+							withYear: true,
+							withTime: false,
+							shortMonth: true,
+							fallback: '-',
+						})}
 					</span>
 				),
 			},
@@ -371,7 +366,7 @@ function ContractsPage() {
 		setIsPricingLoading(true)
 		try {
 			const result = await services.contracts.getPricingMatrix()
-			setPricingRows(result)
+			setPricingMatrix(result)
 		} finally {
 			setIsPricingLoading(false)
 		}
@@ -407,7 +402,7 @@ function ContractsPage() {
 											}}
 										>
 											<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
-											{isRu ? 'Pricing matrix' : 'Pricing matrix'}
+											{tx.pricing.button}
 										</button>
 										<button
 											type='button'
@@ -557,10 +552,10 @@ function ContractsPage() {
 					role='presentation'
 					onClick={() => setSelectedContractId(null)}
 				>
-					<div
-						className='h-full w-full max-w-[560px] overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
-						onClick={event => event.stopPropagation()}
-					>
+						<div
+							className='h-full w-full max-w-[760px] overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
+							onClick={event => event.stopPropagation()}
+						>
 						<ContractsDetailPanel
 							contractId={selectedContractId}
 							refreshToken={detailRefreshToken}
@@ -590,7 +585,7 @@ function ContractsPage() {
 					onClick={() => setIsFormOpen(false)}
 				>
 					<div
-						className='h-full w-full max-w-[640px] overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
+						className='h-full w-full max-w-[640px] overflow-x-hidden overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
 						onClick={event => event.stopPropagation()}
 					>
 						<ContractsFormPanel
@@ -641,10 +636,10 @@ function ContractsPage() {
 								<div className='flex items-start justify-between gap-3'>
 									<div>
 										<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>
-											{isRu ? 'Pricing matrix' : 'Pricing matrix'}
+											{tx.pricing.button}
 										</p>
 										<h2 className='mt-1 font-display text-[1.35rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-text-primary'>
-											{isRu ? 'Narxlar jadvali' : 'Narxlar jadvali'}
+											{tx.pricing.title}
 										</h2>
 									</div>
 									<button
@@ -659,30 +654,136 @@ function ContractsPage() {
 
 							{isPricingLoading ? (
 								<EmptyState
-									title={isRu ? 'Загрузка...' : 'Yuklanmoqda...'}
-									description={isRu ? 'Получаем данные матрицы.' : "Matritsa ma'lumotlari olinmoqda."}
+									title={tx.pricing.loadingTitle}
+									description={tx.pricing.loadingDescription}
 								/>
-							) : pricingRows.length === 0 ? (
+							) : !pricingMatrix || pricingMatrix.panels.length === 0 ? (
 								<EmptyState
-									title={isRu ? 'Матрица пуста' : 'Matritsa bo`sh'}
-									description={isRu ? 'Нет данных для отображения.' : "Ko`rsatish uchun ma'lumot yo`q."}
+									title={tx.pricing.emptyTitle}
+									description={tx.pricing.emptyDescription}
 								/>
 							) : (
-								<div className='grid gap-2'>
-									{pricingRows.map(row => (
-										<div
-											key={row.id}
-											className='rounded-lg bg-surface-card p-3 shadow-sm ring-1 ring-border-soft/35'
-										>
-											<p className='m-0 text-sm font-semibold text-text-primary'>
-												{row.title || '-'}
-											</p>
-											<p className='mt-1 text-xs text-text-secondary'>
-												{row.client_name || '-'} • {String(row.total_amount ?? '-')}
-											</p>
+									<div className='grid gap-3'>
+										<div className='grid gap-2 sm:grid-cols-2'>
+											<div className='rounded-xl bg-gradient-to-br from-primary/12 to-primary/4 p-3 ring-1 ring-primary/20'>
+												<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted'>
+													{tx.pricing.subsidy}
+												</p>
+												<p className='mt-1 text-lg font-bold text-text-primary'>
+													{pricingMatrix.subsidy_percent}%
+												</p>
+											</div>
+											<div className='rounded-xl bg-surface-card p-3 ring-1 ring-border-soft/40'>
+												<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted'>
+													{tx.pricing.auditPowers}
+												</p>
+												<p className='mt-1 text-sm font-semibold text-text-primary'>
+													{pricingMatrix.supported_audit_powers.join(' • ') || '-'}
+												</p>
+											</div>
 										</div>
-									))}
-								</div>
+
+										<div className='grid gap-2'>
+											{pricingMatrix.panels.map((panel, panelIndex) => (
+												<details
+													key={panel.panel_type}
+													open={panelIndex === 0}
+													className='group overflow-hidden rounded-xl bg-surface-card shadow-sm ring-1 ring-border-soft/40'
+												>
+													<summary className='flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 transition duration-fast hover:bg-surface-subtle/65'>
+														<div className='min-w-0'>
+															<p className='m-0 truncate text-sm font-semibold text-text-primary'>
+																{panel.label || panel.panel_type}
+															</p>
+															<p className='m-0 mt-0.5 text-xs text-text-secondary'>
+																{panel.rows.length} {tx.pricing.configurations}
+															</p>
+														</div>
+														<div className='inline-flex items-center gap-1.5'>
+															<span className='inline-flex h-7 min-w-7 items-center justify-center rounded-pill bg-surface-subtle px-2 text-[11px] font-semibold text-text-secondary'>
+																{panel.rows.length}
+															</span>
+															<AppIcon
+																name='chevron-down'
+																className='h-4 w-4 text-text-muted transition duration-fast group-open:rotate-180'
+																aria-hidden='true'
+															/>
+														</div>
+													</summary>
+
+													<div className='grid gap-2 border-t border-border-soft/40 p-3'>
+														{panel.rows.map((row, rowIndex) => (
+															<details
+																key={`${panel.panel_type}-${row.power_kw}`}
+																open={panelIndex === 0 && rowIndex === 0}
+																className='group/row overflow-hidden rounded-lg bg-surface-subtle/55 ring-1 ring-border-soft/35'
+															>
+																<summary className='flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 transition duration-fast hover:bg-surface-subtle/80'>
+																	<p className='m-0 text-sm font-semibold text-text-primary'>
+																		{tx.pricing.power}: {row.power_kw} kW
+																	</p>
+																	<span className='inline-flex items-center gap-1.5 text-[11px] font-semibold text-text-muted'>
+																		{tx.pricing.view}
+																		<AppIcon
+																			name='chevron-down'
+																			className='h-3.5 w-3.5 transition duration-fast group-open/row:rotate-180'
+																			aria-hidden='true'
+																		/>
+																	</span>
+																</summary>
+
+																<div className='grid gap-2 border-t border-border-soft/35 p-3'>
+																	<div className='grid gap-2 sm:grid-cols-2'>
+																		<div className='rounded-md bg-surface-card p-2.5 ring-1 ring-border-soft/35'>
+																			<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted'>
+																				{tx.pricing.basePrice}
+																			</p>
+																			<p className='m-0 mt-1 text-sm font-semibold text-text-primary'>
+																				DEYE: {formatPricingAmount(row.base_prices.deye, locale, tx.pricing.currency)}
+																			</p>
+																			<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary'>
+																				SOLAX: {formatPricingAmount(row.base_prices.solax, locale, tx.pricing.currency)}
+																			</p>
+																		</div>
+																		<div className='rounded-md bg-surface-card p-2.5 ring-1 ring-border-soft/35'>
+																			<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted'>
+																				{tx.pricing.customerPrice}
+																			</p>
+																			<p className='m-0 mt-1 text-sm font-semibold text-text-primary'>
+																				DEYE: {formatPricingAmount(row.default_customer_prices.deye, locale, tx.pricing.currency)}
+																			</p>
+																			<p className='m-0 mt-0.5 text-sm font-semibold text-text-primary'>
+																				SOLAX: {formatPricingAmount(row.default_customer_prices.solax, locale, tx.pricing.currency)}
+																			</p>
+																		</div>
+																	</div>
+
+																	<div className='grid gap-1.5'>
+																		{pricingMatrix.supported_audit_powers.map(power => {
+																			const auditPrices = row.audit_customer_prices[String(power)]
+																			if (!auditPrices) {
+																				return null
+																			}
+																			return (
+																				<div
+																					key={`${panel.panel_type}-${row.power_kw}-${power}`}
+																					className='rounded-md bg-surface-card px-2.5 py-1.5 text-xs text-text-secondary ring-1 ring-border-soft/35'
+																				>
+																					{tx.pricing.audit} {power} kW • DEYE:{' '}
+																					{formatPricingAmount(auditPrices.deye, locale, tx.pricing.currency)} • SOLAX:{' '}
+																					{formatPricingAmount(auditPrices.solax, locale, tx.pricing.currency)}
+																				</div>
+																			)
+																		})}
+																	</div>
+																</div>
+															</details>
+														))}
+													</div>
+												</details>
+											))}
+										</div>
+									</div>
 							)}
 						</div>
 					</div>
