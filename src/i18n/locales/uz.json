@@ -106,6 +106,10 @@
     "logs": {
       "title": "Jurnallar",
       "description": "Tizim hodisalari va audit jurnallari."
+    },
+    "audit-requests": {
+      "title": "Audit so'rovlari",
+      "description": "Energiya auditi so'rovlari va xulosa jarayoni."
     }
   },
   "navigation": {
@@ -132,7 +136,8 @@
       "chat": "Xabarlar",
       "notifications": "Ogohlantirishlar",
       "ai-settings": "Ish joyi",
-      "logs": "Audit"
+      "logs": "Audit",
+      "audit-requests": "Energiya auditi"
     }
   },
   "topbar": {
@@ -1861,6 +1866,93 @@
       "sectionDescription": "Bu ommaviy sahifa xato yo'nalishlarda foydalanuvchini yo'naltirish uchun ishlatiladi.",
       "emptyTitle": "404 interfeys hali tayyor emas",
       "emptyDescription": "Keyingi bosqichda foydalanuvchini qayta yo'naltirish imkoniyatlari qo'shiladi."
+    }
+  },
+  "auditRequests": {
+    "eyebrow": "Energiya auditi",
+    "title": "Audit so'rovlari",
+    "subtitle": "Audit so'rovlarini kuzating, xulosani boshqaring va holatlarni bir joyda yangilang.",
+    "newAuditRequest": "Yangi so'rov",
+    "visible": "ko'rinmoqda",
+    "detailOpen": "Profil ochiq",
+    "listTitle": "Audit so'rovlari navbati",
+    "listHint": "Profilni ochish uchun satrni bosing.",
+    "searchPlaceholder": "Mijoz, shartnoma yoki telefon bo'yicha qidiring...",
+    "emptyTitle": "Audit so'rovlari topilmadi",
+    "emptyDescription": "Qidiruv yoki filtr parametrlarini o'zgartiring.",
+    "errorTitle": "Audit so'rovlari mavjud emas",
+    "errorDescription": "Audit so'rovlari ro'yxatini yuklab bo'lmadi.",
+    "filters": {
+      "status": "Holat",
+      "client": "Mijoz",
+      "requestedPower": "Quvvat (kW)",
+      "ordering": "Saralash",
+      "allStatuses": "Barcha holatlar",
+      "allClients": "Barcha mijozlar",
+      "clientPlaceholder": "Mijoz UUID bo'yicha filtrlang"
+    },
+    "ordering": {
+      "updatedNewest": "Yangilangan (yangi)",
+      "updatedOldest": "Yangilangan (eski)",
+      "createdNewest": "Yaratilgan (yangi)",
+      "createdOldest": "Yaratilgan (eski)",
+      "powerHighLow": "Quvvat (yuqori-past)",
+      "powerLowHigh": "Quvvat (past-yuqori)"
+    },
+    "statuses": {
+      "new": "Yangi",
+      "moderation": "Moderatsiya",
+      "published": "E'lon qilingan",
+      "paid": "To'langan",
+      "conclusion_given": "Xulosa berilgan"
+    },
+    "columns": {
+      "request": "So'rov",
+      "requestedPower": "So'ralgan quvvat",
+      "contactPhone": "Aloqa telefoni",
+      "status": "Holat",
+      "updated": "Yangilangan",
+      "actions": "Amallar"
+    },
+    "fields": {
+      "client": "Mijoz",
+      "contract": "Shartnoma",
+      "requestedPower": "So'ralgan quvvat (kW)",
+      "status": "Holat",
+      "contactPhone": "Aloqa telefoni",
+      "siteAddress": "Obyekt manzili",
+      "notes": "Izoh",
+      "conclusion": "Xulosa",
+      "created": "Yaratilgan",
+      "updated": "Yangilangan"
+    },
+    "form": {
+      "eyebrow": "Audit so'rovi formasi",
+      "createTitle": "Yangi audit so'rovi",
+      "editTitle": "Audit so'rovini tahrirlash",
+      "close": "Formani yopish",
+      "requiredError": "Majburiy maydonlarni to'ldiring: mijoz, shartnoma va quvvat.",
+      "saveError": "Audit so'rovini saqlab bo'lmadi.",
+      "saving": "Saqlanmoqda...",
+      "createSubmit": "So'rov yaratish",
+      "editSubmit": "O'zgarishlarni saqlash",
+      "clientPlaceholder": "Mijoz UUID kiriting",
+      "contractPlaceholder": "Shartnoma UUID kiriting"
+    },
+    "detail": {
+      "eyebrow": "Audit so'rovi profili",
+      "close": "Tafsilot panelini yopish",
+      "loadingTitle": "Audit so'rovi yuklanmoqda",
+      "loadingDescription": "Audit so'rovi tafsilotlari olinmoqda.",
+      "errorTitle": "Audit so'rovi topilmadi",
+      "errorDescription": "Tanlangan audit so'rovi mavjud emas yoki o'chirilgan."
+    },
+    "deleteDialog": {
+      "eyebrow": "O'chirishni tasdiqlash",
+      "title": "\"{{client}}\" so'rovini o'chirasizmi?",
+      "description": "Bu amal ortga qaytarilmaydi.",
+      "deleting": "O'chirilmoqda...",
+      "confirm": "So'rovni o'chirish"
     }
   }
 }

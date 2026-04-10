@@ -130,7 +130,11 @@ export function mapAISettingDtoToModel(dto: AISettingDto): AISetting {
     updated_at: readString(dto.updated_at, nowIso) || readString(dto.updatedAt, nowIso),
     name: readString(dto.name) || 'AI Setting',
     system_prompt: readString(dto.system_prompt) || readString(dto.systemPrompt),
-    model_name: readString(dto.model_name) || readString(dto.modelName) || 'gpt-4.1-mini',
+    model_name:
+      readString(dto.model_name) ||
+      readString(dto.model) ||
+      readString(dto.modelName) ||
+      'gpt-4.1-mini',
     temperature: Number(clamp(readNumber(dto.temperature, 0.2), 0, 1).toFixed(2)),
     auto_order_enabled: readBoolean(dto.auto_order_enabled ?? dto.autoOrderEnabled, false),
     order_confidence_threshold: Number(
@@ -143,7 +147,12 @@ export function mapAISettingDtoToModel(dto: AISettingDto): AISetting {
     resume_after_operator_minutes: Math.max(
       1,
       Math.round(
-        readNumber(dto.resume_after_operator_minutes ?? dto.resumeAfterOperatorMinutes, 15),
+        readNumber(
+          dto.resume_after_operator_minutes ??
+            dto.follow_up_minutes ??
+            dto.resumeAfterOperatorMinutes,
+          15,
+        ),
       ),
     ),
     is_active: readBoolean(dto.is_active ?? dto.isActive, false),

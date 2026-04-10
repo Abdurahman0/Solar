@@ -25,7 +25,9 @@ import type { IntegrationsService } from '../core/contracts';
 const ACTIVE_PROVIDER_FETCH_SIZE = 500;
 
 function shouldEnforceSingleActivePerProvider(provider: IntegrationConfig['provider']): boolean {
-  return provider !== 'openai';
+  // New backend integrations API stores provider config as a single shared config object.
+  // Enforcing per-provider exclusivity at this layer is not applicable.
+  return false;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -168,12 +170,29 @@ async function patchConfigRaw(
   id: EntityId,
   input: IntegrationConfigPatchInput,
 ): Promise<IntegrationConfig | null> {
+  const key = String(id).includes(':') ? String(id).split(':').at(-1) ?? String(id) : String(id);
+  const payload: Record<string, unknown> = {};
+
+  if (input.value !== undefined) {
+    payload[key] = input.value;
+  } else if (input.is_active !== undefined && key === 'telegram_polling_enabled') {
+    payload[key] = input.is_active;
+  }
+
+  if (Object.keys(payload).length === 0) {
+    const current = await getConfigById(id);
+    return current;
+  }
+
   const { data } = await apiClient.patch<unknown>(
-    `/api/integrations/configs/${id}/`,
-    toConfigPayload(input),
+    '/api/integrations/configs/',
+    payload,
   );
 
-  return mapSingleConfig(data, id);
+  const patchedList = mapIntegrationConfigListDtoToItems(data);
+  return (
+    patchedList.find((config) => config.id === id || config.key === key) ?? null
+  );
 }
 
 async function ensureSingleActivePerProvider(
@@ -240,8 +259,12 @@ export async function listConfigs(
 }
 
 export async function getConfigById(id: EntityId): Promise<IntegrationConfig | null> {
-  const { data } = await apiClient.get<unknown>(`/api/integrations/configs/${id}/`);
-  return mapSingleConfig(data, id);
+  const { data } = await apiClient.get<unknown>('/api/integrations/configs/');
+  const items = mapIntegrationConfigListDtoToItems(data);
+  const idValue = String(id);
+  const key = idValue.includes(':') ? idValue.split(':').at(-1) ?? idValue : idValue;
+
+  return items.find((entry) => entry.id === idValue || entry.key === key) ?? null;
 }
 
 export async function createConfig(
@@ -340,6 +363,46 @@ export async function listEvents(
   return toPaginatedResult(items, page, pageSize, totalItemsHint);
 }
 
+export async function getInstagramBusinessProfile(): Promise<unknown> {
+  const { data } = await apiClient.get<unknown>(
+    '/api/integrations/instagram/business-profile/',
+  );
+  return data;
+}
+
+export async function getInstagramWebhook(): Promise<unknown> {
+  const { data } = await apiClient.get<unknown>(
+    '/api/integrations/instagram/webhook/',
+  );
+  return data;
+}
+
+export async function postInstagramWebhook(payload: string): Promise<boolean> {
+  const { data } = await apiClient.post<unknown>(
+    '/api/integrations/instagram/webhook/',
+    { payload },
+  );
+  const response = toRecord(data);
+  if (response && typeof response.data === 'boolean') {
+    return response.data;
+  }
+
+  return true;
+}
+
+export async function postTelegramInbound(payload: string): Promise<boolean> {
+  const { data } = await apiClient.post<unknown>(
+    '/api/integrations/telegram/inbound/',
+    { payload },
+  );
+  const response = toRecord(data);
+  if (response && typeof response.data === 'boolean') {
+    return response.data;
+  }
+
+  return true;
+}
+
 export async function getEventById(id: EntityId): Promise<IntegrationEvent | null> {
   const { data } = await apiClient.get<unknown>(`/api/integrations/events/${id}/`);
   return mapSingleEvent(data, id);
@@ -376,6 +439,22 @@ export const apiIntegrationsService: IntegrationsService = {
 
   async deleteIntegrationConfig(id) {
     return deleteConfig(id);
+  },
+
+  async getInstagramBusinessProfile() {
+    return getInstagramBusinessProfile();
+  },
+
+  async getInstagramWebhook() {
+    return getInstagramWebhook();
+  },
+
+  async postInstagramWebhook(payload) {
+    return postInstagramWebhook(payload);
+  },
+
+  async postTelegramInbound(payload) {
+    return postTelegramInbound(payload);
   },
 };
 

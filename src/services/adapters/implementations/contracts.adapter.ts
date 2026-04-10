@@ -130,6 +130,10 @@ export class ContractsAdapter
 		return response.blob()
 	}
 
+	async getDownloadFileInfo(id: string): Promise<Contract> {
+		return this.fileRequestor.get<Contract>(`/api/contracts/${id}/download-file/`)
+	}
+
 	async uploadFile(id: string, file: File): Promise<Contract> {
 		const formData = new FormData()
 		formData.append('file', file)
@@ -153,10 +157,25 @@ export class ContractsAdapter
 		return response.json() as Promise<Contract>
 	}
 
-	async recalculate(id: string): Promise<Contract> {
+	async recalculate(id: string, input?: UpdateContractInput): Promise<Contract> {
 		return this.fileRequestor.post<Contract>(
 			`/api/contracts/${id}/recalculate/`,
+			input ?? {},
 		)
+	}
+
+	async getPricingMatrix(): Promise<Contract[]> {
+		const data = await this.fileRequestor.get<unknown>('/api/contracts/pricing-matrix/')
+		if (Array.isArray(data)) {
+			return data as Contract[]
+		}
+
+		const payload = toRecord(data)
+		if (payload && Array.isArray(payload.results)) {
+			return payload.results as Contract[]
+		}
+
+		return data ? [data as Contract] : []
 	}
 
 	async bulkUpdateContracts(

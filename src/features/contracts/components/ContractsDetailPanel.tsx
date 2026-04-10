@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useDetail } from '../../../components/hooks'
@@ -10,9 +11,12 @@ import type { Contract } from '../../../services/contracts'
 
 export interface ContractsDetailPanelProps {
 	contractId: string
+	refreshToken?: number
+	isRecalculating?: boolean
 	onClose?: () => void
 	onEdit?: (contract: Contract) => void
 	onRequestDelete?: (contract: Contract) => void
+	onRecalculate?: (contract: Contract) => void
 }
 
 const labelClassName =
@@ -88,9 +92,12 @@ function formatDetailsText(details: Contract['details']): string {
 
 export function ContractsDetailPanel({
 	contractId,
+	refreshToken = 0,
+	isRecalculating = false,
 	onClose,
 	onEdit,
 	onRequestDelete,
+	onRecalculate,
 }: ContractsDetailPanelProps) {
 	const { i18n } = useTranslation()
 	const isRu = i18n.language === 'ru'
@@ -149,9 +156,15 @@ export function ContractsDetailPanel({
 				},
 			}
 
-	const [state] = useDetail(() => services.contracts.getContract(contractId), {
+	const [state, detailActions] = useDetail(() => services.contracts.getContract(contractId), {
 		autoFetch: true,
 	})
+
+	useEffect(() => {
+		if (refreshToken > 0) {
+			void detailActions.fetch()
+		}
+	}, [detailActions, refreshToken])
 
 	if (state.isLoading) {
 		return <LoadingState title={tx.loadingTitle} description={tx.loadingDescription} />
@@ -161,6 +174,7 @@ export function ContractsDetailPanel({
 	}
 
 	const contract = state.data
+	const recalculateLabel = isRu ? 'РџРµСЂРµСЃС‡РёС‚Р°С‚СЊ' : 'Qayta hisoblash'
 
 	return (
 		<div className='grid gap-3'>
@@ -299,6 +313,15 @@ export function ContractsDetailPanel({
 			</PageCard>
 
 			<div className='mt-1 flex flex-wrap items-center gap-2'>
+				<button
+					type='button'
+					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-info-bg px-4 text-sm font-semibold text-info shadow-sm ring-1 ring-info/25 transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30 disabled:cursor-not-allowed disabled:opacity-60'
+					onClick={() => onRecalculate?.(contract)}
+					disabled={isRecalculating}
+				>
+					<AppIcon name='refresh' className='h-4 w-4' />
+					{recalculateLabel}
+				</button>
 				<button
 					type='button'
 					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35'

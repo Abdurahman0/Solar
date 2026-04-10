@@ -165,6 +165,11 @@ function ContractsPage() {
 	const [isFormOpen, setIsFormOpen] = useState(false)
 	const [contractToDelete, setContractToDelete] = useState<Contract | null>(null)
 	const [isDeleting, setIsDeleting] = useState(false)
+	const [isRecalculating, setIsRecalculating] = useState(false)
+	const [detailRefreshToken, setDetailRefreshToken] = useState(0)
+	const [isPricingOpen, setIsPricingOpen] = useState(false)
+	const [isPricingLoading, setIsPricingLoading] = useState(false)
+	const [pricingRows, setPricingRows] = useState<Contract[]>([])
 
 	const fetcher = (params?: ContractsListParams) =>
 		services.contracts.listContracts(params)
@@ -328,6 +333,50 @@ function ContractsPage() {
 		}
 	}
 
+	async function handleRecalculate(contract: Contract) {
+		setIsRecalculating(true)
+		try {
+			await services.contracts.recalculate(contract.id, {
+				client: contract.client,
+				title: contract.title,
+				status: contract.status,
+				panel_type: contract.panel_type,
+				inverter_type: contract.inverter_type,
+				requested_power_kw: contract.requested_power_kw ?? null,
+				audit_power_kw: contract.audit_power_kw ?? null,
+				subsidy_percent: contract.subsidy_percent ?? null,
+				customer_phone: contract.customer_phone ?? '',
+				installation_address: contract.installation_address ?? '',
+				delivery_status: contract.delivery_status ?? '',
+				delivery_notes: contract.delivery_notes ?? '',
+				details:
+					typeof contract.details === 'string'
+						? contract.details
+						: JSON.stringify(contract.details ?? {}),
+				items: (contract.items ?? []).map(item => ({
+					product: item.product,
+					quantity: item.quantity,
+					unit_price: item.unit_price,
+				})),
+			})
+			setDetailRefreshToken(current => current + 1)
+			await actions.refresh()
+		} finally {
+			setIsRecalculating(false)
+		}
+	}
+
+	async function openPricingMatrix() {
+		setIsPricingOpen(true)
+		setIsPricingLoading(true)
+		try {
+			const result = await services.contracts.getPricingMatrix()
+			setPricingRows(result)
+		} finally {
+			setIsPricingLoading(false)
+		}
+	}
+
 	if (state.error) {
 		return (
 			<PageLayout
@@ -349,17 +398,29 @@ function ContractsPage() {
 						actions={
 							<div className='flex w-full flex-wrap items-center gap-2 min-[768px]:w-auto'>
 								{canManageContracts ? (
-									<button
-										type='button'
-										className='inline-flex min-h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35'
-										onClick={() => {
-											setEditingContract(null)
-											setIsFormOpen(true)
-										}}
-									>
-										<AppIcon name='plus' className='h-4 w-4' aria-hidden='true' />
-										{tx.newContract}
-									</button>
+									<>
+										<button
+											type='button'
+											className='inline-flex min-h-9 items-center gap-2 rounded-lg bg-surface-card px-3.5 text-sm font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25'
+											onClick={() => {
+												void openPricingMatrix()
+											}}
+										>
+											<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
+											{isRu ? 'Pricing matrix' : 'Pricing matrix'}
+										</button>
+										<button
+											type='button'
+											className='inline-flex min-h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35'
+											onClick={() => {
+												setEditingContract(null)
+												setIsFormOpen(true)
+											}}
+										>
+											<AppIcon name='plus' className='h-4 w-4' aria-hidden='true' />
+											{tx.newContract}
+										</button>
+									</>
 								) : null}
 								<span className='inline-flex min-h-8 items-center gap-2 rounded-pill bg-success-bg px-3 text-[12px] font-semibold text-success'>
 									<AppIcon name='contracts' className='h-3.5 w-3.5' aria-hidden='true' />
@@ -502,11 +563,16 @@ function ContractsPage() {
 					>
 						<ContractsDetailPanel
 							contractId={selectedContractId}
+							refreshToken={detailRefreshToken}
+							isRecalculating={isRecalculating}
 							onClose={() => setSelectedContractId(null)}
 							onEdit={contract => {
 								setSelectedContractId(null)
 								setEditingContract(contract)
 								setIsFormOpen(true)
+							}}
+							onRecalculate={contract => {
+								void handleRecalculate(contract)
 							}}
 							onRequestDelete={contract => {
 								setSelectedContractId(null)
@@ -537,6 +603,7 @@ function ContractsPage() {
 								setIsFormOpen(false)
 								setEditingContract(null)
 								setSelectedContractId(contract.id)
+								setDetailRefreshToken(current => current + 1)
 								await actions.refresh()
 							}}
 						/>
@@ -557,6 +624,69 @@ function ContractsPage() {
 						void handleConfirmDelete()
 					}}
 				/>
+			) : null}
+
+			{isPricingOpen ? (
+				<div
+					className='fixed inset-0 z-[160] flex justify-end bg-background-overlay/72 backdrop-blur-[3px]'
+					role='presentation'
+					onClick={() => setIsPricingOpen(false)}
+				>
+					<div
+						className='h-full w-full max-w-[560px] overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
+						onClick={event => event.stopPropagation()}
+					>
+						<div className='grid gap-3'>
+							<header className='rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40'>
+								<div className='flex items-start justify-between gap-3'>
+									<div>
+										<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>
+											{isRu ? 'Pricing matrix' : 'Pricing matrix'}
+										</p>
+										<h2 className='mt-1 font-display text-[1.35rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-text-primary'>
+											{isRu ? 'Narxlar jadvali' : 'Narxlar jadvali'}
+										</h2>
+									</div>
+									<button
+										type='button'
+										className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'
+										onClick={() => setIsPricingOpen(false)}
+									>
+										<AppIcon name='close' className='h-4.5 w-4.5' aria-hidden='true' />
+									</button>
+								</div>
+							</header>
+
+							{isPricingLoading ? (
+								<EmptyState
+									title={isRu ? 'Загрузка...' : 'Yuklanmoqda...'}
+									description={isRu ? 'Получаем данные матрицы.' : "Matritsa ma'lumotlari olinmoqda."}
+								/>
+							) : pricingRows.length === 0 ? (
+								<EmptyState
+									title={isRu ? 'Матрица пуста' : 'Matritsa bo`sh'}
+									description={isRu ? 'Нет данных для отображения.' : "Ko`rsatish uchun ma'lumot yo`q."}
+								/>
+							) : (
+								<div className='grid gap-2'>
+									{pricingRows.map(row => (
+										<div
+											key={row.id}
+											className='rounded-lg bg-surface-card p-3 shadow-sm ring-1 ring-border-soft/35'
+										>
+											<p className='m-0 text-sm font-semibold text-text-primary'>
+												{row.title || '-'}
+											</p>
+											<p className='mt-1 text-xs text-text-secondary'>
+												{row.client_name || '-'} • {String(row.total_amount ?? '-')}
+											</p>
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
 			) : null}
 		</>
 	)

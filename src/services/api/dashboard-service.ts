@@ -22,7 +22,12 @@ export const apiDashboardService: DashboardService = {
       },
     });
 
-    return mapDashboardOverviewDtoToModel(data);
+    const payload =
+      data && typeof data === 'object' && !Array.isArray(data)
+        ? ((data as Record<string, unknown>).data ?? data)
+        : data;
+
+    return mapDashboardOverviewDtoToModel(payload as DashboardOverviewDto);
   },
 };
 

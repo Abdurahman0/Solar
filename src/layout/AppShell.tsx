@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useOutlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getRouteByPathname } from '../config/routes';
 import AppSidebar from './AppSidebar';
@@ -11,7 +11,6 @@ function AppShell() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
   const location = useLocation();
-  const outlet = useOutlet();
 
   useEffect(() => {
     if (!isSidebarOpen) {
@@ -88,7 +87,7 @@ function AppShell() {
           <div
             className={['mx-auto w-full max-w-page min-w-0', isChatRoute ? 'h-full' : ''].join(' ')}
           >
-            <div key={`${location.pathname}:${refreshCounter}`}>{outlet}</div>
+            <Outlet key={`${location.pathname}:${refreshCounter}`} />
           </div>
           </div>
         </main>

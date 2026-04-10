@@ -42,8 +42,20 @@ function normalizeLogType(value: unknown): LogType {
 
 function normalizeStatus(value: unknown): string {
   const normalized = readString(value).toLowerCase();
-  if (normalized === 'ok' || normalized === 'warning' || normalized === 'error') {
-    return normalized;
+  if (
+    normalized === 'ok' ||
+    normalized === 'up' ||
+    normalized === 'healthy'
+  ) {
+    return 'ok';
+  }
+
+  if (normalized === 'warning' || normalized === 'degraded') {
+    return 'warning';
+  }
+
+  if (normalized === 'error' || normalized === 'down' || normalized === 'unhealthy') {
+    return 'error';
   }
 
   return normalized || 'warning';
@@ -98,10 +110,17 @@ function parseMetadata(
 }
 
 export function mapHealthDtoToModel(dto: HealthDto): SystemHealth {
+  const payload = toRecord(dto?.data) ?? dto;
+  const health =
+    readString(payload.health) ||
+    readString(payload.status) ||
+    readString(dto?.status);
+  const normalizedHealth = normalizeStatus(health);
+
   return {
-    status: normalizeStatus(dto.status),
-    database: normalizeStatus(dto.database),
-    redis: normalizeStatus(dto.redis),
+    status: normalizedHealth,
+    database: normalizeStatus(payload.database || health),
+    redis: normalizeStatus(payload.redis || health),
   };
 }
 

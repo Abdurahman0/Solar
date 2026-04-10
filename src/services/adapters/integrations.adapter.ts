@@ -21,6 +21,53 @@ const PLATFORMS: readonly IntegrationPlatform[] = [
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+type UnifiedConfigFieldType = 'string' | 'boolean' | 'number';
+
+const UNIFIED_CONFIG_FIELDS: Record<
+  string,
+  {
+    provider: IntegrationProvider;
+    isSecret: boolean;
+    type: UnifiedConfigFieldType;
+  }
+> = {
+  telegram_bot_token: {
+    provider: 'telegram',
+    isSecret: true,
+    type: 'string',
+  },
+  telegram_webhook_secret: {
+    provider: 'telegram',
+    isSecret: true,
+    type: 'string',
+  },
+  telegram_polling_enabled: {
+    provider: 'telegram',
+    isSecret: false,
+    type: 'boolean',
+  },
+  telegram_last_update_id: {
+    provider: 'telegram',
+    isSecret: false,
+    type: 'number',
+  },
+  instagram_verify_token: {
+    provider: 'instagram',
+    isSecret: true,
+    type: 'string',
+  },
+  instagram_business_id: {
+    provider: 'instagram',
+    isSecret: false,
+    type: 'string',
+  },
+  instagram_access_token: {
+    provider: 'instagram',
+    isSecret: true,
+    type: 'string',
+  },
+};
+
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
@@ -161,6 +208,47 @@ function normalizePayload(value: unknown): Record<string, unknown> | null {
   return { raw: String(value) };
 }
 
+function humanizeConfigKey(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function mapUnifiedConfigDtoToItems(dto: IntegrationConfigDto): IntegrationConfig[] {
+  const rootId = readString(dto.id) || 'integration-config';
+  const createdAt = readString(dto.created_at) || new Date().toISOString();
+  const updatedAt =
+    readString(dto.updated_at) || readString(dto.created_at) || new Date().toISOString();
+
+  return Object.entries(UNIFIED_CONFIG_FIELDS).map(([key, meta]) => {
+    const rawValue = dto[key];
+    const normalizedValue =
+      meta.type === 'boolean'
+        ? String(readBoolean(rawValue, false))
+        : meta.type === 'number'
+          ? String(readNumber(rawValue, 0))
+          : readString(rawValue);
+    const isActive =
+      meta.type === 'boolean'
+        ? readBoolean(rawValue, false)
+        : normalizedValue.trim().length > 0;
+
+    return {
+      id: `${rootId}:${key}`,
+      created_at: createdAt,
+      updated_at: updatedAt,
+      provider: meta.provider,
+      key,
+      label: humanizeConfigKey(key),
+      value: normalizedValue,
+      is_secret: meta.isSecret,
+      is_active: isActive,
+      updated_by: null,
+      updated_by_name: null,
+    };
+  });
+}
+
 function mapErrorMessage(value: unknown): string | null {
   const normalized = readString(value);
   return normalized || null;
@@ -222,6 +310,26 @@ export function mapIntegrationConfigListDtoToItems(value: unknown): IntegrationC
   const payload = toRecord(value);
   if (!payload) {
     return [];
+  }
+
+  // New integrations API shape: { status, data: { telegram_*, instagram_* ... } }
+  const nestedData = toRecord(payload.data);
+  if (nestedData) {
+    const hasUnifiedFields = Object.keys(UNIFIED_CONFIG_FIELDS).some(
+      (field) => field in nestedData,
+    );
+
+    if (hasUnifiedFields) {
+      return mapUnifiedConfigDtoToItems(nestedData);
+    }
+  }
+
+  // Also support direct object payload returned without wrapper.
+  const hasUnifiedFieldsOnRoot = Object.keys(UNIFIED_CONFIG_FIELDS).some(
+    (field) => field in payload,
+  );
+  if (hasUnifiedFieldsOnRoot) {
+    return mapUnifiedConfigDtoToItems(payload);
   }
 
   const items = Array.isArray(payload.results)

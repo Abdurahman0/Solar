@@ -3,6 +3,7 @@
  */
 
 import { BaseCrudAdapter } from './base-crud.adapter'
+import { ApiRequestor } from './api-requestor'
 import type {
 	Client,
 	ClientsListParams,
@@ -21,11 +22,14 @@ export class ClientsAdapter
 	>
 	implements IClientsService
 {
+	private extraRequestor: ApiRequestor
+
 	constructor(baseUrl: string) {
 		super({
 			endpoint: '/api/clients/',
 			baseUrl,
 		})
+		this.extraRequestor = new ApiRequestor(baseUrl)
 	}
 
 	async listClients(
@@ -42,12 +46,25 @@ export class ClientsAdapter
 		return this.create(input)
 	}
 
+	async bulkImportClient(input: CreateClientInput): Promise<Client> {
+		return this.extraRequestor.post<Client>('/api/clients/bulk-import/', input)
+	}
+
 	async updateClient(id: string, input: UpdateClientInput): Promise<Client> {
 		return this.update(id, input)
 	}
 
 	async deleteClient(id: string): Promise<void> {
 		return this.delete(id)
+	}
+
+	async exportClients(): Promise<Client[]> {
+		const response = await this.extraRequestor.get<unknown>('/api/clients/export/')
+		if (Array.isArray(response)) {
+			return response as Client[]
+		}
+
+		return response ? [response as Client] : []
 	}
 
 	async bulkUpdateClients(

@@ -93,6 +93,34 @@ export async function getHealth(): Promise<SystemHealth> {
   return mapHealthDtoToModel(payload);
 }
 
+export async function getPublicCompanyInfo(): Promise<unknown> {
+  const { data } = await apiClient.get<unknown>('/api/common/public/company-info/');
+  const payload = toRecord(data);
+  if (!payload) {
+    return null;
+  }
+
+  return payload.data ?? payload;
+}
+
+export async function calculateSubsidy(input: {
+  panel_type: string;
+  inverter_type: string;
+  requested_power_kw: number;
+  audit_power_kw: number;
+}): Promise<unknown> {
+  const { data } = await apiClient.post<unknown>(
+    '/api/common/public/subsidy-calculator/',
+    input,
+  );
+  const payload = toRecord(data);
+  if (!payload) {
+    return null;
+  }
+
+  return payload.data ?? payload;
+}
+
 export async function getLogs(
   params?: LogListParams,
 ): Promise<PaginatedResult<AppLog>> {

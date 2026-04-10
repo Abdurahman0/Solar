@@ -122,9 +122,18 @@ function UsersPage() {
           return;
         }
 
+        const resultWithOptionalResults = result as unknown as {
+          results?: ManagedUser[];
+        };
+        const usersList = Array.isArray(result.items)
+          ? result.items
+          : Array.isArray(resultWithOptionalResults.results)
+            ? resultWithOptionalResults.results
+            : [];
+
         const pageSize = result.page_size ?? PAGE_SIZE;
         const totalItems =
-          result.total ?? result.count ?? result.items.length;
+          result.total ?? result.count ?? usersList.length;
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
         if (currentPage > totalPages) {
@@ -132,7 +141,7 @@ function UsersPage() {
           return;
         }
 
-        setUsers(result.items);
+        setUsers(usersList);
         setPaginationMeta({
           page: result.page ?? currentPage,
           pageSize,

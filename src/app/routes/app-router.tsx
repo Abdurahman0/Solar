@@ -22,6 +22,7 @@ import AiSettingsPage from '../pages/protected/AiSettingsPage'
 import ChatsPage from '../pages/protected/ChatsPage'
 import ClientsPage from '../pages/protected/ClientsPage'
 import ContractsPage from '../pages/protected/ContractsPage'
+import AuditRequestsPage from '../pages/protected/AuditRequestsPage'
 import DashboardPage from '../pages/protected/DashboardPage'
 import IntegrationsPage from '../pages/protected/IntegrationsPage'
 import LeadsPage from '../pages/protected/LeadsPage'
@@ -40,6 +41,7 @@ const pageRegistry: Record<RoutedPageId, ComponentType> = {
 	chats: ChatsPage,
 	clients: ClientsPage,
 	contracts: ContractsPage,
+	'audit-requests': AuditRequestsPage,
 	dashboard: DashboardPage,
 	integrations: IntegrationsPage,
 	leads: LeadsPage,

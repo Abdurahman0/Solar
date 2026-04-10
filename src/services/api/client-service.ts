@@ -97,6 +97,14 @@ export const apiClientService = {
 		return data
 	},
 
+	async bulkImportClient(input: CreateClientInput): Promise<Client> {
+		const { data } = await apiClient.post<Client>(
+			'/api/clients/bulk-import/',
+			normalizePayload(input),
+		)
+		return data
+	},
+
 	async updateClient(id: string, input: UpdateClientInput): Promise<Client> {
 		const { data } = await apiClient.put<Client>(`/api/clients/${id}/`, normalizePayload(input))
 		return data
@@ -109,5 +117,14 @@ export const apiClientService = {
 
 	async deleteClient(id: string): Promise<void> {
 		await apiClient.delete(`/api/clients/${id}/`)
+	},
+
+	async exportClients(): Promise<Client[]> {
+		const { data } = await apiClient.get<unknown>('/api/clients/export/')
+		if (Array.isArray(data)) {
+			return data as Client[]
+		}
+
+		return data ? [data as Client] : []
 	},
 }

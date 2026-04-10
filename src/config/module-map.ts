@@ -172,12 +172,43 @@ export const moduleMap: AppModule[] = [
     notes: 'Contract management with file upload and recalculation.',
   },
   {
+    id: 'audit-requests',
+    label: 'Audit Requests',
+    description: 'Energy audit request queue and conclusion workflow.',
+    category: 'operational',
+    priority: 'high',
+    priorityOrder: 7,
+    allowedRoles: ['developer', 'admin', 'operator'],
+    accessStrategy: 'permission-based',
+    pages: [
+      {
+        id: 'audit-requests-list',
+        label: 'Audit Requests',
+        kind: 'list',
+        path: '/audit-requests',
+      },
+      {
+        id: 'audit-requests-detail',
+        label: 'Audit Request Detail',
+        kind: 'detail',
+        path: '/audit-requests/:id',
+      },
+      {
+        id: 'audit-requests-create',
+        label: 'Create Audit Request',
+        kind: 'create',
+        path: '/audit-requests/new',
+      },
+    ],
+    notes: 'Audit request lifecycle from intake to paid conclusion.',
+  },
+  {
     id: 'notifications',
     label: 'Notifications',
     description: 'System notifications and alerts.',
     category: 'operational',
     priority: 'medium',
-    priorityOrder: 7,
+    priorityOrder: 8,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -196,7 +227,7 @@ export const moduleMap: AppModule[] = [
     description: 'Third-party integrations and API setup.',
     category: 'system',
     priority: 'low',
-    priorityOrder: 8,
+    priorityOrder: 9,
     allowedRoles: ['developer'],
     accessStrategy: 'static-role-based',
     pages: [
@@ -215,7 +246,7 @@ export const moduleMap: AppModule[] = [
     description: 'AI agent configuration and behavior.',
     category: 'intelligence',
     priority: 'low',
-    priorityOrder: 9,
+    priorityOrder: 10,
     allowedRoles: ['developer'],
     accessStrategy: 'static-role-based',
     pages: [
@@ -234,7 +265,7 @@ export const moduleMap: AppModule[] = [
     description: 'System and API audit logs.',
     category: 'system',
     priority: 'low',
-    priorityOrder: 10,
+    priorityOrder: 11,
     allowedRoles: ['developer'],
     accessStrategy: 'static-role-based',
     pages: [
@@ -253,7 +284,7 @@ export const moduleMap: AppModule[] = [
     description: 'User account and access management.',
     category: 'system',
     priority: 'low',
-    priorityOrder: 11,
+    priorityOrder: 12,
     allowedRoles: ['developer', 'admin'],
     accessStrategy: 'permission-based',
     pages: [

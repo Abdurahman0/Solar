@@ -113,14 +113,22 @@ async function refreshAccessToken(): Promise<AuthTokens | null> {
     { _skipAuthRefresh: true },
   );
 
-  if (typeof data.access !== 'string' || data.access.length === 0) {
+  const responseData =
+    data && typeof data === 'object' && 'data' in data
+      ? (data as { data?: Partial<AuthTokens> }).data ?? data
+      : data;
+
+  if (
+    typeof responseData?.access !== 'string' ||
+    responseData.access.length === 0
+  ) {
     return null;
   }
 
   const nextTokens: AuthTokens = {
-    access: data.access,
-    refresh: typeof data.refresh === 'string' && data.refresh.length > 0
-      ? data.refresh
+    access: responseData.access,
+    refresh: typeof responseData.refresh === 'string' && responseData.refresh.length > 0
+      ? responseData.refresh
       : refresh,
   };
 

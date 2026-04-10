@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
 	DataTable,
@@ -241,15 +241,16 @@ function LeadsPage() {
 	const [isDeleting, setIsDeleting] = useState(false)
 
 	const location = useLocation()
+	const navigate = useNavigate()
 
 	useEffect(() => {
 		const state = location.state as { selectedLeadId?: string } | null
 		if (state?.selectedLeadId && isUuidLike(state.selectedLeadId)) {
 			setSelectedLeadId(state.selectedLeadId)
-			// Consume the state so it doesn't trigger on refresh
-			window.history.replaceState(null, '')
+			// Consume route state via React Router to preserve internal history metadata.
+			navigate(location.pathname, { replace: true, state: null })
 		}
-	}, [location])
+	}, [location, navigate])
 
 	useEffect(() => {
 		const timeoutId = window.setTimeout(() => {
@@ -290,7 +291,17 @@ function LeadsPage() {
 			const operatorsById = new Map<string, string>()
 
 			if (usersResult[0].status === 'fulfilled') {
-				usersResult[0].value.items.forEach(operator => {
+				const usersPayload = usersResult[0].value as {
+					items?: Array<{ id: string; full_name?: string | null }>
+					results?: Array<{ id: string; full_name?: string | null }>
+				}
+				const users = Array.isArray(usersPayload.items)
+					? usersPayload.items
+					: Array.isArray(usersPayload.results)
+						? usersPayload.results
+						: []
+
+				users.forEach(operator => {
 					if (operator.full_name) {
 						operatorsById.set(operator.id, operator.full_name)
 					}

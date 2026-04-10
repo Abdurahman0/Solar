@@ -288,7 +288,7 @@ function IntegrationsPage() {
         key: 'active',
         label: t('integrations.configColumns.active'),
         render: (config) =>
-          canManageIntegrations ? (
+          canManageIntegrations && config.key === 'telegram_polling_enabled' ? (
             <Switch
               checked={config.is_active}
               onChange={(nextValue) => {

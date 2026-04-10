@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import AppIcon from '../../../components/shared/icons/AppIcon';
@@ -98,6 +98,24 @@ function ClientsPage() {
     }
   }
 
+  const handleStatsChange = useCallback((next: { visible: number; total: number; loading: boolean }) => {
+    setStats((current) => {
+      if (
+        current.visible === next.visible &&
+        current.total === next.total &&
+        current.loading === next.loading
+      ) {
+        return current;
+      }
+
+      return next;
+    });
+
+    if (!next.loading) {
+      setHasError(false);
+    }
+  }, []);
+
   const header = (
     <PageHeader
       eyebrow={tx.eyebrow}
@@ -149,12 +167,7 @@ function ClientsPage() {
             onDeleteClient={handleDeleteFromList}
             selectedClientId={selectedClientId}
             canManageClients={canManageClients}
-            onStatsChange={(next) => {
-              setStats(next);
-              if (!next.loading) {
-                setHasError(false);
-              }
-            }}
+            onStatsChange={handleStatsChange}
           />
         </PageSection>
       </PageLayout>

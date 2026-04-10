@@ -62,6 +62,11 @@ export const services = {
 		...coreServices.logs,
 		getHealth: logsApi.getHealth.bind(logsApi),
 	} as any,
+	common: {
+		getHealth: logsApi.getHealth.bind(logsApi),
+		getPublicCompanyInfo: logsApi.getPublicCompanyInfo.bind(logsApi),
+		calculateSubsidy: logsApi.calculateSubsidy.bind(logsApi),
+	} as any,
 	leads: {
 		listLeads: leadApi.listLeads.bind(leadApi),
 		getLead: leadApi.getLeadById.bind(leadApi),
@@ -75,9 +80,11 @@ export const services = {
 		listClients: clientApi.listClients.bind(clientApi),
 		getClient: clientApi.getClient.bind(clientApi),
 		createClient: clientApi.createClient.bind(clientApi),
+		bulkImportClient: clientApi.bulkImportClient.bind(clientApi),
 		updateClient: clientApi.updateClient.bind(clientApi),
 		patchClient: clientApi.patchClient.bind(clientApi),
 		deleteClient: clientApi.deleteClient.bind(clientApi),
+		exportClients: clientApi.exportClients.bind(clientApi),
 	} as any,
 	products: {
 		...coreServices.products,

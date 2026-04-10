@@ -79,19 +79,13 @@ function toMutationPayload(
     payload.system_prompt = input.system_prompt;
   }
   if (input.model_name !== undefined) {
-    payload.model_name = input.model_name;
+    payload.model = input.model_name;
   }
   if (input.temperature !== undefined) {
     payload.temperature = Number(input.temperature);
   }
-  if (input.auto_order_enabled !== undefined) {
-    payload.auto_order_enabled = input.auto_order_enabled;
-  }
-  if (input.order_confidence_threshold !== undefined) {
-    payload.order_confidence_threshold = Number(input.order_confidence_threshold);
-  }
   if (input.resume_after_operator_minutes !== undefined) {
-    payload.resume_after_operator_minutes = Math.round(
+    payload.follow_up_minutes = Math.round(
       Number(input.resume_after_operator_minutes),
     );
   }

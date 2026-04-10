@@ -20,11 +20,11 @@ import {
 import { usePersistentState } from '../../../lib/persistent-state';
 import { services } from '../../../services';
 import type {
-  AppLog,
   PaginationMeta,
   SelectOption,
   SystemHealth,
 } from '../../../types/domain';
+import type { AILog, ApiLog } from '../../../services/contracts';
 
 type LogTypeFilter = 'api' | 'ai';
 type LogOrdering = '-created_at' | 'created_at';
@@ -83,35 +83,25 @@ function getHealthLabel(status: string): string {
   return 'DEGRADED';
 }
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function mapApiLogToRow(log: AppLog): RowLog {
-  const metadata = toRecord(log.metadata);
+function mapApiLogToRow(log: ApiLog): RowLog {
   return {
     id: log.id,
     type: 'api',
-    title: String(metadata?.method ?? 'GET') + ' ' + String(metadata?.endpoint ?? metadata?.path ?? '-'),
-    secondary: String(metadata?.error ?? metadata?.status_code ?? '-'),
-    level: String(metadata?.level ?? log.type ?? '-'),
-    createdAt: log.created_at,
+    title: `${log.method || 'GET'} ${log.endpoint || '-'}`,
+    secondary: String(log.error ?? log.status_code ?? '-'),
+    level: String(log.level ?? '-'),
+    createdAt: log.created_at ?? '',
   };
 }
 
-function mapAILogToRow(log: AppLog): RowLog {
-  const metadata = toRecord(log.metadata);
+function mapAILogToRow(log: AILog): RowLog {
   return {
     id: log.id,
     type: 'ai',
-    title: `${String(metadata?.action ?? '-')}${metadata?.model ? ` (${String(metadata.model)})` : ''}`,
-    secondary: String(metadata?.error ?? metadata?.response ?? '-'),
-    level: String(metadata?.level ?? log.type ?? '-'),
-    createdAt: log.created_at,
+    title: `${String(log.action ?? '-')}${log.model ? ` (${String(log.model)})` : ''}`,
+    secondary: String(log.error ?? log.response ?? '-'),
+    level: String(log.level ?? '-'),
+    createdAt: log.created_at ?? '',
   };
 }
 
@@ -202,8 +192,8 @@ function LogsPage() {
 
         setLogs(
           typeFilter === 'api'
-            ? (result.items as AppLog[]).map(mapApiLogToRow)
-            : (result.items as AppLog[]).map(mapAILogToRow),
+            ? (result.items as ApiLog[]).map(mapApiLogToRow)
+            : (result.items as AILog[]).map(mapAILogToRow),
         );
         setPaginationMeta({
           page: result.page ?? currentPage,

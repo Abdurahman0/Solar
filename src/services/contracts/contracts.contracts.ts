@@ -133,10 +133,12 @@ export interface IContractsService {
 
 	// File operations
 	downloadFile(id: string): Promise<Blob>
+	getDownloadFileInfo(id: string): Promise<Contract>
 	uploadFile(id: string, file: File): Promise<Contract>
 
 	// Business operations
-	recalculate(id: string): Promise<Contract>
+	recalculate(id: string, input?: UpdateContractInput): Promise<Contract>
+	getPricingMatrix(): Promise<Contract[]>
 
 	// Bulk operations
 	bulkUpdateContracts(

@@ -67,9 +67,11 @@ export interface IClientsService {
 
 	// Write operations
 	createClient(input: CreateClientInput): Promise<Client>
+	bulkImportClient(input: CreateClientInput): Promise<Client>
 	updateClient(id: string, input: UpdateClientInput): Promise<Client>
 	patchClient?(id: string, input: UpdateClientInput): Promise<Client>
 	deleteClient(id: string): Promise<void>
+	exportClients(): Promise<Client[]>
 
 	// Bulk operations
 	bulkUpdateClients(ids: string[], input: UpdateClientInput): Promise<Client[]>
