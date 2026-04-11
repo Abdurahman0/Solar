@@ -108,7 +108,7 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
   const statusOptions = useMemo(
     () => [
       { label: isRu ? 'Новый' : 'Yangi', value: 'new' },
-      { label: isRu ? 'Связались' : 'Bog`lanildi', value: 'contacted' },
+      { label: isRu ? 'Связались' : "Bog'lanildi", value: 'contacted' },
       { label: isRu ? 'Квалифицирован' : 'Saralangan', value: 'qualified' },
       { label: isRu ? 'Нужен фоллоу-ап' : 'Qayta aloqa kerak', value: 'need_follow_up' },
       { label: isRu ? 'Подготовка предложения' : 'Taklif tayyorlanmoqda', value: 'proposal_preparing' },
@@ -116,7 +116,7 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
       { label: isRu ? 'Переговоры' : 'Muzokara', value: 'negotiation' },
       { label: isRu ? 'Ожидание решения' : 'Qaror kutilmoqda', value: 'waiting_for_decision' },
       { label: isRu ? 'Выигран' : 'Yutildi', value: 'won' },
-      { label: isRu ? 'Потерян' : 'Yo`qotildi', value: 'lost' },
+      { label: isRu ? 'Потерян' : "Yo'qotildi", value: 'lost' },
       { label: isRu ? 'Отложен' : 'Kechiktirildi', value: 'postponed' },
     ],
     [isRu],

@@ -12,6 +12,7 @@ import type {
 	PaginatedResponse,
 	UpdateUserInput,
 	UserPermission,
+	UserRoleCatalogItem,
 	UsersListParams,
 } from '../../contracts'
 
@@ -306,6 +307,77 @@ function normalizePermissionResponse(data: unknown): UserPermission[] {
 		.filter((entry): entry is UserPermission => entry !== null)
 }
 
+function normalizeCatalogPermissionsResponse(data: unknown): UserPermission[] {
+	const payload = toRecord(data)
+	if (!payload) {
+		return []
+	}
+
+	const listSource = Array.isArray(payload.data) ? payload.data : []
+	const mapped: Array<UserPermission | null> = listSource.map(entry => {
+			const record = toRecord(entry)
+			if (!record) {
+				return null
+			}
+
+			const key = toStringValue(record.key)
+			if (!key) {
+				return null
+			}
+
+			const label = toStringValue(record.label) || key
+			const description = toStringValue(record.description)
+			const module = toStringValue(record.module)
+			const normalizedDescription = description || module
+
+			return normalizedDescription
+				? {
+					id: key,
+					code: key,
+					name: label,
+					description: normalizedDescription,
+				}
+				: {
+					id: key,
+					code: key,
+					name: label,
+				}
+		})
+
+	return mapped.filter((entry): entry is UserPermission => entry !== null)
+}
+
+function normalizeRolesCatalogResponse(data: unknown): UserRoleCatalogItem[] {
+	const payload = toRecord(data)
+	if (!payload) {
+		return []
+	}
+
+	const listSource = Array.isArray(payload.data) ? payload.data : []
+	const mapped = listSource
+		.map(entry => {
+			const record = toRecord(entry)
+			if (!record) {
+				return null
+			}
+
+			const role = toUserRole(record.key)
+			const label = toStringValue(record.label) || role
+			const defaultPermissions = normalizePermissionCodes(
+				record.default_permissions,
+			)
+
+			return {
+				key: role,
+				label,
+				default_permissions: defaultPermissions,
+			}
+		})
+		.filter((entry): entry is UserRoleCatalogItem => entry !== null)
+
+	return mapped
+}
+
 export class UsersAdapter
 	extends BaseCrudAdapter<
 		ManagedUser,
@@ -379,10 +451,45 @@ export class UsersAdapter
 
 	// Permission operations
 	async listPermissions(): Promise<UserPermission[]> {
-		const data = await this.permissionRequestor.get<unknown>(
+		const authCatalogEndpoints = [
+			'/api/auth/permissions/catalog/',
+			'/api/auth/permissions/',
+		]
+
+		for (const endpoint of authCatalogEndpoints) {
+			try {
+				const data = await this.permissionRequestor.get<unknown>(endpoint)
+				const normalized = normalizeCatalogPermissionsResponse(data)
+				if (normalized.length > 0) {
+					return normalized
+				}
+			} catch {
+				// Fallback to legacy endpoints.
+			}
+		}
+
+		const legacyPermissions = await this.permissionRequestor.get<unknown>(
 			'/api/users/permissions/',
 		)
-		return normalizePermissionResponse(data)
+		return normalizePermissionResponse(legacyPermissions)
+	}
+
+	async listRolesCatalog(): Promise<UserRoleCatalogItem[]> {
+		const endpoints = ['/api/auth/roles/catalog/', '/api/auth/roles/']
+
+		for (const endpoint of endpoints) {
+			try {
+				const data = await this.permissionRequestor.get<unknown>(endpoint)
+				const normalized = normalizeRolesCatalogResponse(data)
+				if (normalized.length > 0) {
+					return normalized
+				}
+			} catch {
+				// Try next endpoint.
+			}
+		}
+
+		return []
 	}
 
 	async listUserPermissions(userId: string): Promise<UserPermission[]> {

@@ -291,7 +291,7 @@ function ChatUserProfilePanel({
 						<>
 							<section className='rounded-xl bg-surface-card p-4 ring-1 ring-border-soft/45'>
 								<div className='flex items-start gap-3'>
-									<span className='inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-blue-700 text-[15px] font-bold text-white'>
+									<span className='inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-[15px] font-bold text-white'>
 										{getInitial(profileData.name)}
 									</span>
 									<div className='min-w-0'>
@@ -303,7 +303,7 @@ function ChatUserProfilePanel({
 												{profileData.phone}
 											</p>
 										) : null}
-										<span className='mt-2 inline-flex min-h-6 items-center rounded-pill bg-info-bg px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-info'>
+										<span className='mt-2 inline-flex min-h-6 items-center rounded-pill bg-success-bg px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-success'>
 											{profileData.channelLabel}
 										</span>
 									</div>

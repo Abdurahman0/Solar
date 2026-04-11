@@ -19,6 +19,12 @@ export interface UserPermission extends BaseEntity {
 	description?: string
 }
 
+export interface UserRoleCatalogItem {
+	key: UserRole
+	label: string
+	default_permissions: PermissionCode[]
+}
+
 export interface ManagedUser extends BaseEntity {
 	email: string
 	full_name: string
@@ -68,6 +74,7 @@ export interface IUsersService {
 
 	// Permission operations
 	listPermissions(): Promise<UserPermission[]>
+	listRolesCatalog(): Promise<UserRoleCatalogItem[]>
 	listUserPermissions(userId: string): Promise<UserPermission[]>
 	grantPermission(userId: string, permissionCode: PermissionCode): Promise<void>
 	revokePermission(

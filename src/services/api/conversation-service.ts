@@ -41,6 +41,16 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function unwrapResponseData(value: unknown): Record<string, unknown> | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const nestedData = asRecord(record.data);
+  return nestedData ?? record;
+}
+
 function toPaginatedResult<T>(
   allItems: T[],
   params: { page?: number; pageSize?: number } | undefined,
@@ -151,6 +161,58 @@ export const apiConversationService: ConversationService = {
   },
 
   async sendMessage(sessionId, payload: SendMessageInput) {
+    try {
+      const { data } = await apiClient.post<unknown>(
+        `/api/chat/sessions/${sessionId}/send-message/`,
+        {
+          content: payload.content,
+        },
+      );
+
+      const sessionRecord = unwrapResponseData(data);
+      if (sessionRecord) {
+        const messages = Array.isArray(sessionRecord.messages)
+          ? sessionRecord.messages
+          : [];
+        const lastMessageCandidate =
+          messages.length > 0 ? asRecord(messages[messages.length - 1]) : null;
+        const directLastMessage = asRecord(sessionRecord.last_message);
+        const candidateMessage = lastMessageCandidate ?? directLastMessage;
+
+        if (candidateMessage) {
+          return mapChatMessageDtoToModel(candidateMessage, sessionId);
+        }
+      }
+    } catch {
+      // Try alternate operator endpoint, then legacy fallback.
+    }
+
+    try {
+      const { data } = await apiClient.post<unknown>(
+        `/api/chat/sessions/${sessionId}/operator-message/`,
+        {
+          content: payload.content,
+        },
+      );
+
+      const sessionRecord = unwrapResponseData(data);
+      if (sessionRecord) {
+        const messages = Array.isArray(sessionRecord.messages)
+          ? sessionRecord.messages
+          : [];
+        const lastMessageCandidate =
+          messages.length > 0 ? asRecord(messages[messages.length - 1]) : null;
+        const directLastMessage = asRecord(sessionRecord.last_message);
+        const candidateMessage = lastMessageCandidate ?? directLastMessage;
+
+        if (candidateMessage) {
+          return mapChatMessageDtoToModel(candidateMessage, sessionId);
+        }
+      }
+    } catch {
+      // Fall back to legacy endpoint for compatibility with older backends.
+    }
+
     const payloadMetadata = asRecord(payload.metadata);
     const explicitPlatform = payloadMetadata?.platform;
     const explicitPlatformUserId = payloadMetadata?.platform_user_id;
@@ -184,34 +246,41 @@ export const apiConversationService: ConversationService = {
     const outgoingRecord = asRecord(wrappedData?.outgoing);
     const incomingRecord = asRecord(wrappedData?.incoming);
     const fallbackRecord = asRecord(data);
-    const messageRecord =
-      outgoingRecord ??
-      incomingRecord ??
-      fallbackRecord;
+    const messageRecord = outgoingRecord ?? incomingRecord ?? fallbackRecord;
 
     return mapChatMessageDtoToModel(messageRecord ?? {}, sessionId);
   },
 
   async markSessionRead(sessionId) {
-    const { data } = await apiClient.post<ConversationDto>(
-      `/api/chat/sessions/${sessionId}/mark_read/`,
+    const { data } = await apiClient.post<unknown>(
+      `/api/chat/sessions/${sessionId}/mark-read/`,
+      {},
     );
-    return mapConversationDtoToModel(data);
+    return mapConversationDtoToModel(unwrapResponseData(data) ?? {});
   },
 
   async pauseSessionAI(sessionId, pausedUntilIso) {
-    const { data } = await apiClient.post<ConversationDto>(
-      `/api/chat/sessions/${sessionId}/pause_ai/`,
-      pausedUntilIso ? { ai_paused_until: pausedUntilIso } : {},
+    const { data } = await apiClient.post<unknown>(
+      `/api/chat/sessions/${sessionId}/pause-ai/`,
+      pausedUntilIso ? { paused_until: pausedUntilIso } : {},
     );
-    return mapConversationDtoToModel(data);
+    return mapConversationDtoToModel(unwrapResponseData(data) ?? {});
   },
 
   async resumeSessionAI(sessionId) {
-    const { data } = await apiClient.post<ConversationDto>(
-      `/api/chat/sessions/${sessionId}/resume_ai/`,
+    const { data } = await apiClient.post<unknown>(
+      `/api/chat/sessions/${sessionId}/resume-ai/`,
+      {},
     );
-    return mapConversationDtoToModel(data);
+    return mapConversationDtoToModel(unwrapResponseData(data) ?? {});
+  },
+
+  async requestOperator(sessionId) {
+    const { data } = await apiClient.post<unknown>(
+      `/api/chat/sessions/${sessionId}/request-operator/`,
+      {},
+    );
+    return mapConversationDtoToModel(unwrapResponseData(data) ?? {});
   },
 };
 

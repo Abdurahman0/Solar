@@ -135,7 +135,7 @@ export function ClientsListView({
 				},
 				statuses: {
 					new: 'Yangi',
-					contacted: 'Bog`lanildi',
+					contacted: "Bog'lanildi",
 					qualified: 'Saralangan',
 					need_follow_up: 'Qayta aloqa kerak',
 					proposal_preparing: 'Taklif tayyorlanmoqda',
@@ -143,7 +143,7 @@ export function ClientsListView({
 					negotiation: 'Muzokara',
 					waiting_for_decision: 'Qaror kutilmoqda',
 					won: 'Yutildi',
-					lost: 'Yo`qotildi',
+					lost: "Yo'qotildi",
 					postponed: 'Kechiktirildi',
 				},
 				empty: 'Mijozlar topilmadi',
@@ -253,13 +253,17 @@ export function ClientsListView({
 			{
 				key: 'status',
 				label: tx.columns.status,
-				render: client => (
-					<StatusBadge
-						status={client.status || 'new'}
-						label={client.status_label || client.status || 'new'}
-						tone={statusTone(client.status)}
-					/>
-				),
+				render: client => {
+					const statusKey = (client.status || 'new') as keyof typeof tx.statuses
+					const localizedLabel = tx.statuses[statusKey]
+					return (
+						<StatusBadge
+							status={client.status || 'new'}
+							label={localizedLabel || client.status_label || client.status || 'new'}
+							tone={statusTone(client.status)}
+						/>
+					)
+				},
 			},
 			...(canManageClients
 				? [

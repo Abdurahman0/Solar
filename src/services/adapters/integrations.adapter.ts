@@ -314,6 +314,13 @@ export function mapIntegrationConfigListDtoToItems(value: unknown): IntegrationC
 
   // New integrations API shape: { status, data: { telegram_*, instagram_* ... } }
   const nestedData = toRecord(payload.data);
+  if (Array.isArray(payload.data)) {
+    return payload.data
+      .map((item) => toRecord(item))
+      .filter((item): item is IntegrationConfigDto => item !== null)
+      .map((item) => mapIntegrationConfigDtoToModel(item));
+  }
+
   if (nestedData) {
     const hasUnifiedFields = Object.keys(UNIFIED_CONFIG_FIELDS).some(
       (field) => field in nestedData,

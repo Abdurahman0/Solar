@@ -59,8 +59,7 @@ function toBooleanReadFilter(value: ReadFilter): boolean | undefined {
 }
 
 function NotificationsPage() {
-  const { i18n } = useTranslation();
-  const isRu = i18n.language === 'ru';
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = usePersistentState('notifications:search', '');
@@ -81,6 +80,8 @@ function NotificationsPage() {
   const [hasError, setHasError] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [reloadCursor, setReloadCursor] = useState(0);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   useEffect(() => {
     const state = location.state as { notificationId?: EntityId } | null;
@@ -150,31 +151,31 @@ function NotificationsPage() {
 
   const channelOptions = useMemo<SelectOption[]>(
     () => [
-      { value: 'all', label: isRu ? 'Все каналы' : 'Barcha kanallar' },
+      { value: 'all', label: t('notifications.filters.allChannels') },
       { value: 'in_app', label: getNotificationChannelLabel('in_app', i18n.language) },
       { value: 'telegram', label: getNotificationChannelLabel('telegram', i18n.language) },
       { value: 'system', label: getNotificationChannelLabel('system', i18n.language) },
     ],
-    [i18n.language, isRu],
+    [i18n.language, t],
   );
 
   const readOptions = useMemo<SelectOption[]>(
     () => [
-      { value: 'all', label: isRu ? 'Все' : 'Barchasi' },
-      { value: 'read', label: isRu ? 'Прочитано' : "O'qilgan" },
-      { value: 'unread', label: isRu ? 'Не прочитано' : "O'qilmagan" },
+      { value: 'all', label: t('notifications.filters.all') },
+      { value: 'read', label: t('notifications.filters.read') },
+      { value: 'unread', label: t('notifications.filters.unread') },
     ],
-    [isRu],
+    [t],
   );
 
   const orderingOptions = useMemo<SelectOption[]>(
     () => [
-      { value: '-created_at', label: isRu ? 'Дата создания (новые)' : "Qo'shilgan sana (yangi)" },
-      { value: 'created_at', label: isRu ? 'Дата создания (старые)' : "Qo'shilgan sana (eski)" },
-      { value: '-updated_at', label: isRu ? 'Дата обновления (новые)' : 'Yangilangan sana (yangi)' },
-      { value: 'updated_at', label: isRu ? 'Дата обновления (старые)' : 'Yangilangan sana (eski)' },
+      { value: '-created_at', label: t('notifications.ordering.createdNewest') },
+      { value: 'created_at', label: t('notifications.ordering.createdOldest') },
+      { value: '-updated_at', label: t('notifications.ordering.updatedNewest') },
+      { value: 'updated_at', label: t('notifications.ordering.updatedOldest') },
     ],
-    [isRu],
+    [t],
   );
 
   function handleNotificationRead(updated: AppNotification) {
@@ -190,6 +191,46 @@ function NotificationsPage() {
     setReloadCursor((current) => current + 1);
   }
 
+  function handleNotificationDeleted(notificationId: EntityId) {
+    setNotifications((current) =>
+      current.filter((notification) => notification.id !== notificationId),
+    );
+    if (selectedNotificationId === notificationId) {
+      setSelectedNotificationId(null);
+    }
+    setReloadCursor((current) => current + 1);
+  }
+
+  async function handleMarkAllRead() {
+    setIsMarkingAllRead(true);
+    try {
+      await services.notifications.markAllAsRead();
+      setReloadCursor((current) => current + 1);
+      window.dispatchEvent(new CustomEvent('notifications:changed'));
+    } finally {
+      setIsMarkingAllRead(false);
+    }
+  }
+
+  async function handleDeleteAll() {
+    const confirmed = window.confirm(t('notifications.bulk.deleteAllConfirm'));
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeletingAll(true);
+    try {
+      await services.notifications.deleteAll();
+      setNotifications([]);
+      setSelectedNotificationId(null);
+      setCurrentPage(1);
+      setReloadCursor((current) => current + 1);
+      window.dispatchEvent(new CustomEvent('notifications:changed'));
+    } finally {
+      setIsDeletingAll(false);
+    }
+  }
+
   const activeFilterCount =
     Number(search.trim().length > 0) +
     Number(channelFilter !== 'all') +
@@ -199,14 +240,42 @@ function NotificationsPage() {
 
   const header = (
     <PageHeader
-      eyebrow={isRu ? 'Уведомления' : 'Bildirishnomalar'}
-      title={isRu ? 'Уведомления' : 'Bildirishnomalar'}
-      subtitle={isRu ? 'Следите за важными событиями и обновлениями' : 'Muhim voqealar va yangilanishlarni kuzating'}
+      eyebrow={t('notifications.eyebrow')}
+      title={t('notifications.title')}
+      subtitle={t('notifications.subtitle')}
       actions={
-        <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-primary/12 px-3 text-[12px] font-semibold text-text-accent">
-          <AppIcon name="notifications" className="h-3.5 w-3.5" aria-hidden="true" />
-          {paginationMeta.totalItems} {isRu ? 'шт.' : 'ta'}
-        </span>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 min-[768px]:w-auto">
+          <button
+            type="button"
+            className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-surface-subtle px-3 text-sm font-semibold text-text-primary ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => {
+              void handleMarkAllRead();
+            }}
+            disabled={isLoading || isMarkingAllRead || isDeletingAll || !hasNotifications}
+          >
+            <AppIcon name="mark-read-all" className="h-4 w-4" aria-hidden="true" />
+            {isMarkingAllRead
+              ? t('notifications.bulk.markingAllRead')
+              : t('notifications.bulk.markAllRead')}
+          </button>
+          <button
+            type="button"
+            className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-danger-bg px-3 text-sm font-semibold text-danger transition duration-fast hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => {
+              void handleDeleteAll();
+            }}
+            disabled={isLoading || isMarkingAllRead || isDeletingAll || !hasNotifications}
+          >
+            <AppIcon name="trash" className="h-4 w-4" aria-hidden="true" />
+            {isDeletingAll
+              ? t('notifications.bulk.deletingAll')
+              : t('notifications.bulk.deleteAll')}
+          </button>
+          <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-primary/12 px-3 text-[12px] font-semibold text-text-accent">
+            <AppIcon name="notifications" className="h-3.5 w-3.5" aria-hidden="true" />
+            {paginationMeta.totalItems} {t('notifications.countSuffix')}
+          </span>
+        </div>
       }
     />
   );
@@ -217,8 +286,8 @@ function NotificationsPage() {
         <PageSection>
           <PageCard>
             <LoadingState
-              title={isRu ? 'Загрузка...' : 'Yuklanmoqda...'}
-              description={isRu ? 'Загружается список уведомлений.' : "Bildirishnomalar ro'yxati yuklanmoqda."}
+              title={t('notifications.loadingTitle')}
+              description={t('notifications.loadingDescription')}
             />
           </PageCard>
         </PageSection>
@@ -232,8 +301,8 @@ function NotificationsPage() {
         <PageSection>
           <PageCard>
             <EmptyState
-              title={isRu ? 'Не удалось загрузить уведомления' : "Bildirishnomani yuklab bo'lmadi"}
-              description={isRu ? 'Обновите страницу и попробуйте снова.' : "Sahifani yangilab qayta urinib ko'ring."}
+              title={t('notifications.errorTitle')}
+              description={t('notifications.errorDescription')}
             />
           </PageCard>
         </PageSection>
@@ -250,12 +319,12 @@ function NotificationsPage() {
               {activeFilterCount > 0 ? (
                 <span className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-primary/12 px-3 text-sm font-semibold text-text-accent">
                   <AppIcon name="filter" className="h-4 w-4" aria-hidden="true" />
-                  {activeFilterCount} {isRu ? 'активных фильтра' : 'ta filter faol'}
+                  {activeFilterCount} {t('notifications.activeFilters')}
                 </span>
               ) : null}
               {selectedNotificationId ? (
                 <span className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-info-bg px-3 text-sm font-semibold text-info">
-                  {isRu ? 'Панель деталей открыта' : 'Tafsilot paneli ochiq'}
+                  {t('notifications.detailOpen')}
                 </span>
               ) : null}
             </div>
@@ -264,11 +333,11 @@ function NotificationsPage() {
           <SearchInput
             value={search}
             onChange={setSearch}
-            placeholder={isRu ? 'Поиск уведомления' : 'Bildirishnoma qidirish'}
+            placeholder={t('notifications.searchPlaceholder')}
           />
 
           <label className="grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_180px]">
-            <span className={labelClassName}>{isRu ? 'Канал' : 'Kanal'}</span>
+            <span className={labelClassName}>{t('notifications.filters.channel')}</span>
             <FilterSelect
               value={channelFilter}
               options={channelOptions}
@@ -278,7 +347,7 @@ function NotificationsPage() {
           </label>
 
           <label className="grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_180px]">
-            <span className={labelClassName}>{isRu ? 'Статус' : 'Holat'}</span>
+            <span className={labelClassName}>{t('notifications.filters.status')}</span>
             <FilterSelect
               value={readFilter}
               options={readOptions}
@@ -288,7 +357,7 @@ function NotificationsPage() {
           </label>
 
           <label className="grid min-w-[min(220px,100%)] flex-[1_1_220px] gap-1.5 min-[640px]:flex-[0_1_240px]">
-            <span className={labelClassName}>{isRu ? 'Сортировка' : 'Saralash'}</span>
+            <span className={labelClassName}>{t('notifications.filters.ordering')}</span>
             <FilterSelect
               value={ordering}
               options={orderingOptions}
@@ -302,10 +371,10 @@ function NotificationsPage() {
           <div className="grid gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <h2 className="m-0 text-[1rem] font-semibold text-text-primary">
-                {isRu ? 'Список уведомлений' : "Bildirishnomalar ro'yxati"}
+                {t('notifications.listTitle')}
               </h2>
               <span className="text-[12px] font-medium text-text-muted">
-                {isRu ? 'Непрочитанные выделяются отдельно' : "O'qilmaganlar alohida ajratib ko'rsatiladi"}
+                {t('notifications.listHint')}
               </span>
             </div>
 
@@ -337,6 +406,7 @@ function NotificationsPage() {
           notificationId={selectedNotificationId}
           onClose={() => setSelectedNotificationId(null)}
           onNotificationRead={handleNotificationRead}
+          onNotificationDeleted={handleNotificationDeleted}
         />
       ) : null}
     </PageLayout>
@@ -344,5 +414,4 @@ function NotificationsPage() {
 }
 
 export default NotificationsPage;
-
 

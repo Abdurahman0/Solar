@@ -58,49 +58,79 @@ function applySessionUpdate(
   return [nextSession, ...updated];
 }
 
-function sortSessionsByLastMessage(
-  sessions: Conversation[],
-  ordering: SessionOrdering,
+function mergeServerSessionsPreservingActivePosition(
+  current: Conversation[],
+  incoming: Conversation[],
+  activeSessionId: EntityId | null,
 ): Conversation[] {
-  const sorted = [...sessions];
+  if (!activeSessionId || current.length === 0 || incoming.length === 0) {
+    return incoming;
+  }
 
-  sorted.sort((left, right) => {
-    const leftTime =
-      ordering.includes('created')
-        ? new Date(left.created_at).getTime()
-        : left.last_message_at
-          ? new Date(left.last_message_at).getTime()
-          : 0;
-    const rightTime =
-      ordering.includes('created')
-        ? new Date(right.created_at).getTime()
-        : right.last_message_at
-          ? new Date(right.last_message_at).getTime()
-          : 0;
+  const currentIndex = current.findIndex((session) => session.id === activeSessionId);
+  const incomingIndex = incoming.findIndex((session) => session.id === activeSessionId);
+  if (currentIndex < 0 || incomingIndex < 0) {
+    return incoming;
+  }
 
-    return ordering.startsWith('-') ? rightTime - leftTime : leftTime - rightTime;
-  });
+  const activeSession = incoming[incomingIndex];
+  const withoutActive = incoming.filter((session) => session.id !== activeSessionId);
+  const insertIndex = Math.min(Math.max(currentIndex, 0), withoutActive.length);
 
-  return sorted;
+  return [
+    ...withoutActive.slice(0, insertIndex),
+    activeSession,
+    ...withoutActive.slice(insertIndex),
+  ];
+}
+
+function matchesSessionFilters(
+  session: Conversation,
+  channelFilter: ChannelFilter,
+  operatorFilter: OperatorFilter,
+): boolean {
+  const channelMatches =
+    channelFilter === ALL_CHANNEL_VALUE || session.channel === channelFilter;
+  const operatorMatches =
+    operatorFilter === 'all'
+      ? true
+      : operatorFilter === 'active'
+        ? Boolean(session.is_operator_active)
+        : !session.is_operator_active;
+
+  return channelMatches && operatorMatches;
+}
+
+function applyClientFilters(
+  items: Conversation[],
+  channelFilter: ChannelFilter,
+  operatorFilter: OperatorFilter,
+): Conversation[] {
+  return items.filter((session) =>
+    matchesSessionFilters(session, channelFilter, operatorFilter),
+  );
 }
 
 function ChatPage() {
-  const { i18n } = useTranslation();
-  const isRu = i18n.language === 'ru';
+  const { t } = useTranslation();
   const copy = useMemo(
     () => ({
-      orderingLatestMessage: isRu ? 'Последнее сообщение (новые)' : "Oxirgi xabar (yangi)",
-      orderingOldestMessage: isRu ? 'Последнее сообщение (старые)' : "Oxirgi xabar (eski)",
-      orderingNewestCreated: isRu ? 'Добавлено (новые)' : "Qo'shilgan (yangi)",
-      orderingOldestCreated: isRu ? 'Добавлено (старые)' : "Qo'shilgan (eski)",
-      sessionLoadError: isRu ? 'Не удалось загрузить данные чата.' : "Suhbat tafsilotlarini yuklab bo'lmadi.",
-      messagesLoadError: isRu ? 'Не удалось загрузить сообщения.' : "Xabarlarni yuklab bo'lmadi.",
-      messageSendError: isRu ? 'Сообщение не отправлено.' : 'Xabar yuborilmadi.',
-      sessionsTitle: isRu ? 'Чаты' : 'Suhbatlar',
-      countSuffix: isRu ? 'шт.' : 'ta',
-      closeSessionAria: isRu ? 'Закрыть чат' : 'Suhbatni yopish',
+      orderingLatestMessage: t('chatPage.ordering.latestMessage'),
+      orderingOldestMessage: t('chatPage.ordering.oldestMessage'),
+      orderingNewestCreated: t('chatPage.ordering.newestCreated'),
+      orderingOldestCreated: t('chatPage.ordering.oldestCreated'),
+      sessionLoadError: t('chatPage.errors.sessionLoad'),
+      messagesLoadError: t('chatPage.errors.messagesLoad'),
+      messageSendError: t('chatPage.errors.messageSend'),
+      sessionsTitle: t('chatPage.title'),
+      countSuffix: t('chatPage.countSuffix'),
+      closeSessionAria: t('chatPage.closeSessionAria'),
+      aiPauseError: t('chatPage.errors.aiPause'),
+      aiResumeError: t('chatPage.errors.aiResume'),
+      sessionDeleteError: t('chatPage.errors.sessionDelete'),
+      sessionDeleteConfirm: t('chatPage.confirmations.deleteSession'),
     }),
-    [isRu],
+    [t],
   );
 
   const [search, setSearch] = usePersistentState('chat:search', '');
@@ -118,6 +148,8 @@ function ChatPage() {
   const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isDeletingSession, setIsDeletingSession] = useState(false);
+  const [isUpdatingAIState, setIsUpdatingAIState] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const sessionCacheRef = useRef<Record<string, Conversation>>({});
@@ -175,7 +207,18 @@ function ChatPage() {
           sessionCacheRef.current[session.id] = session;
         }
 
-        setSessions(result.items);
+        const filteredItems = applyClientFilters(
+          result.items,
+          channelFilter,
+          operatorFilter,
+        );
+        setSessions((current) =>
+          mergeServerSessionsPreservingActivePosition(
+            current,
+            filteredItems,
+            activeSessionIdRef.current,
+          ),
+        );
       } catch {
         if (requestId !== sessionsRequestRef.current) {
           return;
@@ -188,7 +231,7 @@ function ChatPage() {
         }
       }
     },
-    [sessionQuery],
+    [channelFilter, operatorFilter, sessionQuery],
   );
 
   const loadActiveSession = useCallback(
@@ -216,7 +259,11 @@ function ChatPage() {
         sessionCacheRef.current[session.id] = session;
         setActiveSession(session);
         setSessions((current) =>
-          applySessionUpdate(current, session),
+          applyClientFilters(
+            applySessionUpdate(current, session),
+            channelFilter,
+            operatorFilter,
+          ),
         );
       } catch {
         if (
@@ -233,7 +280,7 @@ function ChatPage() {
         }
       }
     },
-    [copy.sessionLoadError],
+    [channelFilter, copy.sessionLoadError, operatorFilter],
   );
 
   const markActiveSessionRead = useCallback(
@@ -257,8 +304,29 @@ function ChatPage() {
           session.id === sessionId ? { ...session, unread_count: 0 } : session,
         ),
       );
+
+      try {
+        const updatedSession = await services.chat.markSessionRead(sessionId);
+        if (!updatedSession || sessionId !== activeSessionIdRef.current) {
+          return;
+        }
+
+        sessionCacheRef.current[updatedSession.id] = updatedSession;
+        setActiveSession((current) =>
+          current && current.id === sessionId ? updatedSession : current,
+        );
+        setSessions((current) =>
+          applyClientFilters(
+            applySessionUpdate(current, updatedSession),
+            channelFilter,
+            operatorFilter,
+          ),
+        );
+      } catch {
+        // Preserve optimistic UI updates even if API sync fails.
+      }
     },
-    [],
+    [channelFilter, operatorFilter],
   );
 
   const loadMessages = useCallback(
@@ -285,6 +353,16 @@ function ChatPage() {
         }
 
         setMessages(result.items);
+
+        const hasUnreadIncoming = result.items.some(
+          (message: ChatMessage) =>
+            message.direction === 'incoming' &&
+            message.sender_type === 'customer' &&
+            !message.is_read,
+        );
+        if (hasUnreadIncoming) {
+          void markActiveSessionRead(sessionId);
+        }
       } catch {
         if (
           requestId !== messagesRequestRef.current ||
@@ -300,7 +378,7 @@ function ChatPage() {
         }
       }
     },
-    [copy.messagesLoadError],
+    [copy.messagesLoadError, markActiveSessionRead],
   );
 
   useEffect(() => {
@@ -393,7 +471,7 @@ function ChatPage() {
       );
 
       setSessions((current) =>
-        sortSessionsByLastMessage(
+        applyClientFilters(
           applySessionUpdate(current, {
             ...(current.find((session) => session.id === activeSessionId) ?? {
               id: activeSessionId,
@@ -416,7 +494,8 @@ function ChatPage() {
             last_message_at: createdMessage.created_at,
             updated_at: createdMessage.updated_at,
           }),
-          ordering,
+          channelFilter,
+          operatorFilter,
         ),
       );
       setActiveSession((current) =>
@@ -439,6 +518,88 @@ function ChatPage() {
       setActionError(copy.messageSendError);
     } finally {
       setIsSendingMessage(false);
+    }
+  }
+
+  async function handlePauseAI(session: Conversation, pausedUntilIso: string) {
+    setActionError(null);
+    setIsUpdatingAIState(true);
+
+    try {
+      const updated = await services.chat.pauseSessionAI(session.id, pausedUntilIso);
+      if (!updated) {
+        return;
+      }
+
+      sessionCacheRef.current[updated.id] = updated;
+      setActiveSession((current) =>
+        current && current.id === updated.id ? updated : current,
+      );
+      setSessions((current) =>
+        applyClientFilters(
+          applySessionUpdate(current, updated),
+          channelFilter,
+          operatorFilter,
+        ),
+      );
+    } catch {
+      setActionError(copy.aiPauseError);
+    } finally {
+      setIsUpdatingAIState(false);
+    }
+  }
+
+  async function handleResumeAI(session: Conversation) {
+    setActionError(null);
+    setIsUpdatingAIState(true);
+
+    try {
+      const updated = await services.chat.resumeSessionAI(session.id);
+      if (!updated) {
+        return;
+      }
+
+      sessionCacheRef.current[updated.id] = updated;
+      setActiveSession((current) =>
+        current && current.id === updated.id ? updated : current,
+      );
+      setSessions((current) =>
+        applyClientFilters(
+          applySessionUpdate(current, updated),
+          channelFilter,
+          operatorFilter,
+        ),
+      );
+    } catch {
+      setActionError(copy.aiResumeError);
+    } finally {
+      setIsUpdatingAIState(false);
+    }
+  }
+
+  async function handleDeleteSession(session: Conversation) {
+    const confirmed = window.confirm(copy.sessionDeleteConfirm);
+    if (!confirmed) {
+      return;
+    }
+
+    setActionError(null);
+    setIsDeletingSession(true);
+
+    try {
+      await services.chat.deleteSession(session.id);
+      delete sessionCacheRef.current[session.id];
+      setSessions((current) => current.filter((item) => item.id !== session.id));
+
+      if (activeSessionIdRef.current === session.id) {
+        setActiveSessionId(null);
+        setActiveSession(null);
+        setMessages([]);
+      }
+    } catch {
+      setActionError(copy.sessionDeleteError);
+    } finally {
+      setIsDeletingSession(false);
     }
   }
 
@@ -509,7 +670,12 @@ function ChatPage() {
               messages={messages}
               isLoading={isMessagesLoading || isSessionLoading}
               isSending={isSendingMessage}
+              isDeletingSession={isDeletingSession}
+              isUpdatingAIState={isUpdatingAIState}
               onSendMessage={handleSendMessage}
+              onRequestDeleteSession={handleDeleteSession}
+              onPauseAI={handlePauseAI}
+              onResumeAI={handleResumeAI}
             />
           </div>
         </section>
@@ -531,7 +697,12 @@ function ChatPage() {
               messages={messages}
               isLoading={isMessagesLoading || isSessionLoading}
               isSending={isSendingMessage}
+              isDeletingSession={isDeletingSession}
+              isUpdatingAIState={isUpdatingAIState}
               onSendMessage={handleSendMessage}
+              onRequestDeleteSession={handleDeleteSession}
+              onPauseAI={handlePauseAI}
+              onResumeAI={handleResumeAI}
             />
           </div>
         </div>

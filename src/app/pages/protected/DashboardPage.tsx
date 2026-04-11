@@ -437,12 +437,6 @@ function DashboardPage() {
 	const publicTx = {
 		title: t('dashboard.publicApi.title'),
 		subtitle: t('dashboard.publicApi.subtitle'),
-		companyTitle: t('dashboard.publicApi.companyTitle'),
-		companyDescription: t('dashboard.publicApi.companyDescription'),
-		loadCompany: t('dashboard.publicApi.loadCompany'),
-		loadingCompany: t('dashboard.publicApi.loadingCompany'),
-		companyError: t('dashboard.publicApi.companyError'),
-		companyEmpty: t('dashboard.publicApi.companyEmpty'),
 		subsidyTitle: t('dashboard.publicApi.subsidyTitle'),
 		subsidyDescription: t('dashboard.publicApi.subsidyDescription'),
 		panelType: t('dashboard.publicApi.panelType'),
@@ -469,9 +463,6 @@ function DashboardPage() {
 	const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false)
 	const [loading, setLoading] = useState(true)
 	const [hasError, setHasError] = useState(false)
-	const [companyInfo, setCompanyInfo] = useState<unknown>(null)
-	const [companyInfoLoading, setCompanyInfoLoading] = useState(false)
-	const [companyInfoError, setCompanyInfoError] = useState<string | null>(null)
 	const [subsidyInput, setSubsidyInput] = useState<SubsidyInputState>({
 		panel_type: 'jinko_ja',
 		inverter_type: 'deye',
@@ -843,21 +834,6 @@ function DashboardPage() {
 	}))
 	const parsedSubsidyResult = parseSubsidyResult(subsidyResult)
 
-	async function handleLoadCompanyInfo() {
-		setCompanyInfoLoading(true)
-		setCompanyInfoError(null)
-
-		try {
-			const payload = await services.common.getPublicCompanyInfo()
-			setCompanyInfo(payload)
-		} catch {
-			setCompanyInfoError(publicTx.companyError)
-			setCompanyInfo(null)
-		} finally {
-			setCompanyInfoLoading(false)
-		}
-	}
-
 	async function handleCalculateSubsidy(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		setSubsidyLoading(true)
@@ -1007,45 +983,7 @@ function DashboardPage() {
 					/>
 				</section>
 
-				<section className='grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
-					<article className='min-w-0 rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
-						<div className='flex flex-wrap items-center justify-between gap-2'>
-							<div>
-								<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
-									{publicTx.companyTitle}
-								</h2>
-								<p className='mt-1 text-sm text-text-secondary'>
-									{publicTx.companyDescription}
-								</p>
-							</div>
-							<button
-								type='button'
-								className='inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65 min-[560px]:w-auto'
-								onClick={() => {
-									void handleLoadCompanyInfo()
-								}}
-								disabled={companyInfoLoading}
-							>
-								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
-								{companyInfoLoading
-									? publicTx.loadingCompany
-									: publicTx.loadCompany}
-							</button>
-						</div>
-
-						<div className='mt-4 min-w-0 rounded-lg bg-surface-subtle/70 p-3 ring-1 ring-border-soft/35'>
-							{companyInfoError ? (
-								<p className='m-0 text-sm font-medium text-danger'>{companyInfoError}</p>
-							) : companyInfo ? (
-								<pre className='m-0 max-h-[280px] max-w-full overflow-auto whitespace-pre-wrap break-words text-[12px] leading-5 text-text-primary'>
-									{JSON.stringify(companyInfo, null, 2)}
-								</pre>
-							) : (
-								<p className='m-0 text-sm text-text-secondary'>{publicTx.companyEmpty}</p>
-							)}
-						</div>
-					</article>
-
+				<section className='grid gap-3'>
 					<article className='min-w-0 rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 							{publicTx.subsidyTitle}

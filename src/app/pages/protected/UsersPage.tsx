@@ -32,6 +32,8 @@ import type {
   CreateUserInput,
   ManagedUser,
   UpdateUserInput,
+  UserPermission,
+  UserRoleCatalogItem,
   UserRole,
 } from '../../../services/contracts';
 import type { PaginationMeta, SelectOption } from '../../../types/common';
@@ -75,6 +77,8 @@ function UsersPage() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [permissionCatalog, setPermissionCatalog] = useState<UserPermission[]>([]);
+  const [roleCatalog, setRoleCatalog] = useState<UserRoleCatalogItem[]>([]);
   const [paginationMeta, setPaginationMeta] = useState<PaginationMeta>(
     DEFAULT_PAGINATION_META,
   );
@@ -181,6 +185,35 @@ function UsersPage() {
       setSelectedUserId(null);
     }
   }, [users, selectedUserId]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadCatalogs() {
+      const [permissionsResult, rolesResult] = await Promise.allSettled([
+        services.users.listPermissions(),
+        services.users.listRolesCatalog(),
+      ]);
+
+      if (!isActive) {
+        return;
+      }
+
+      if (permissionsResult.status === 'fulfilled') {
+        setPermissionCatalog(permissionsResult.value);
+      }
+
+      if (rolesResult.status === 'fulfilled') {
+        setRoleCatalog(rolesResult.value);
+      }
+    }
+
+    void loadCatalogs();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   function openCreateForm() {
     if (!canManageUsers) {
@@ -296,13 +329,24 @@ function UsersPage() {
   }
 
   const roleOptions = useMemo<SelectOption[]>(
-    () => [
-      { value: 'all', label: t('users.filters.allRoles') },
-      { value: 'developer', label: getUserRoleLabel(t, 'developer') },
-      { value: 'admin', label: getUserRoleLabel(t, 'admin') },
-      { value: 'operator', label: getUserRoleLabel(t, 'operator') },
-    ],
-    [t],
+    () => {
+      const catalogOptions = roleCatalog.map((role) => ({
+        value: role.key,
+        label: role.label || getUserRoleLabel(t, role.key),
+      }));
+
+      if (catalogOptions.length > 0) {
+        return [{ value: 'all', label: t('users.filters.allRoles') }, ...catalogOptions];
+      }
+
+      return [
+        { value: 'all', label: t('users.filters.allRoles') },
+        { value: 'developer', label: getUserRoleLabel(t, 'developer') },
+        { value: 'admin', label: getUserRoleLabel(t, 'admin') },
+        { value: 'operator', label: getUserRoleLabel(t, 'operator') },
+      ];
+    },
+    [roleCatalog, t],
   );
 
   const activeOptions = useMemo<SelectOption[]>(
@@ -619,7 +663,8 @@ function UsersPage() {
         <UserFormPanel
           mode={formMode}
           user={editingUser}
-          permissions={[]}
+          permissions={permissionCatalog}
+          roleCatalog={roleCatalog}
           canManageDeveloperRole={canManageDeveloperRole}
           isSubmitting={isSaving}
           errorMessage={formErrorMessage}

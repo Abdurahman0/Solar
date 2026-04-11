@@ -26,6 +26,7 @@ interface NotificationDetailPanelProps {
 	notificationId: EntityId
 	onClose: () => void
 	onNotificationRead: (notification: AppNotification) => void
+	onNotificationDeleted: (notificationId: EntityId) => void
 }
 
 const labelClassName =
@@ -38,12 +39,13 @@ function NotificationDetailPanel({
 	notificationId,
 	onClose,
 	onNotificationRead,
+	onNotificationDeleted,
 }: NotificationDetailPanelProps) {
-	const { i18n } = useTranslation()
-	const isRu = i18n.language === 'ru'
+	const { t, i18n } = useTranslation()
 	const [notification, setNotification] = useState<AppNotification | null>(null)
 	const [isLoading, setIsLoading] = useState(true)
 	const [hasError, setHasError] = useState(false)
+	const [isDeleting, setIsDeleting] = useState(false)
 
 	const metadataEntries = notification
 		? getFormattedNotificationMetadata(notification.metadata, notification.user, i18n.language)
@@ -118,6 +120,27 @@ function NotificationDetailPanel({
 		}
 	}, [onClose])
 
+	async function handleDeleteNotification() {
+		if (!notification) {
+			return
+		}
+
+		const confirmed = window.confirm(t('notifications.bulk.deleteOneConfirm'))
+		if (!confirmed) {
+			return
+		}
+
+		setIsDeleting(true)
+		try {
+			await services.notifications.delete(notification.id)
+			onNotificationDeleted(notification.id)
+			window.dispatchEvent(new CustomEvent('notifications:changed'))
+			onClose()
+		} finally {
+			setIsDeleting(false)
+		}
+	}
+
 	return (
 		<div
 			className='fixed inset-0 z-40 flex justify-end bg-background-overlay/72 backdrop-blur-[3px]'
@@ -127,18 +150,18 @@ function NotificationDetailPanel({
 			<aside
 				className='h-full w-full overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:max-w-[560px] min-[641px]:p-5'
 				onClick={event => event.stopPropagation()}
-				aria-label={isRu ? 'Детали уведомления' : 'Bildirishnoma tafsilotlari'}
+				aria-label={t('notifications.detailPanelAria')}
 			>
 				<header className='mb-4 rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 					<div className='flex items-start justify-between gap-3'>
 						<div className='min-w-0'>
 							<p className='m-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>
-								{isRu ? 'Уведомление' : 'Bildirishnoma'}
+								{t('notifications.itemEyebrow')}
 							</p>
 							<h2 className='mt-1 font-display text-[1.35rem] font-extrabold leading-[1.08] tracking-[-0.03em] text-text-primary [overflow-wrap:anywhere]'>
 								{notification
 									? formatNotificationTitle(notification.title, i18n.language)
-									: isRu ? 'Детали уведомления' : 'Bildirishnoma tafsilotlari'}
+									: t('notifications.detailPanelTitle')}
 							</h2>
 						</div>
 
@@ -146,7 +169,7 @@ function NotificationDetailPanel({
 							type='button'
 							className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'
 							onClick={onClose}
-							aria-label={isRu ? 'Закрыть панель деталей' : 'Tafsilot panelini yopish'}
+							aria-label={t('notifications.detailPanelClose')}
 						>
 							<AppIcon
 								name='close'
@@ -177,15 +200,15 @@ function NotificationDetailPanel({
 				<div className='grid gap-3'>
 					{isLoading ? (
 						<LoadingState
-							title={isRu ? 'Загрузка...' : 'Yuklanmoqda...'}
-							description={isRu ? 'Загружаются детали уведомления.' : 'Bildirishnoma tafsilotlari olinmoqda.'}
+							title={t('notifications.loadingTitle')}
+							description={t('notifications.loadingDetailDescription')}
 						/>
 					) : null}
 
 					{!isLoading && (hasError || !notification) ? (
 						<EmptyState
-							title={isRu ? 'Уведомление не найдено' : 'Bildirishnoma topilmadi'}
-							description={isRu ? 'Не удалось загрузить выбранное уведомление.' : "Tanlangan bildirishnoma ma'lumotlarini yuklab bo'lmadi."}
+							title={t('notifications.detailErrorTitle')}
+							description={t('notifications.detailErrorDescription')}
 						/>
 					) : null}
 
@@ -195,10 +218,10 @@ function NotificationDetailPanel({
 								<div className='grid gap-4'>
 									<div className='grid gap-1'>
 										<h3 className='m-0 text-[1rem] font-semibold text-text-primary'>
-											{isRu ? 'Текст' : 'Matn'}
+											{t('notifications.detailMessageTitle')}
 										</h3>
 										<p className='m-0 text-sm text-text-secondary'>
-											{isRu ? 'Полный текст уведомления.' : "To'liq bildirishnoma xabari."}
+											{t('notifications.detailMessageDescription')}
 										</p>
 									</div>
 
@@ -213,24 +236,24 @@ function NotificationDetailPanel({
 							<PageCard>
 								<div className='grid gap-4'>
 									<h3 className='m-0 text-[1rem] font-semibold text-text-primary'>
-										{isRu ? 'Детали' : 'Tafsilotlar'}
+										{t('notifications.detailInfoTitle')}
 									</h3>
 
 									<div className='grid gap-2.5 sm:grid-cols-2'>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
-											<p className={labelClassName}>{isRu ? 'Канал' : 'Kanal'}</p>
+											<p className={labelClassName}>{t('notifications.filters.channel')}</p>
 											<p className={`mt-1 ${valueClassName}`}>
 												{getNotificationChannelLabel(notification.channel, i18n.language)}
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
-											<p className={labelClassName}>{isRu ? 'Статус' : 'Holat'}</p>
+											<p className={labelClassName}>{t('notifications.filters.status')}</p>
 											<p className={`mt-1 ${valueClassName}`}>
 												{getNotificationReadLabel(notification.is_read, i18n.language)}
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
-											<p className={labelClassName}>{isRu ? 'Создано' : "Qo'shilgan"}</p>
+											<p className={labelClassName}>{t('notifications.createdAt')}</p>
 											<p className={`mt-1 ${valueClassName}`}>
 												{formatNotificationDateTime(
 													notification.created_at,
@@ -240,7 +263,7 @@ function NotificationDetailPanel({
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
-											<p className={labelClassName}>{isRu ? 'Обновлено' : 'Yangilangan'}</p>
+											<p className={labelClassName}>{t('notifications.updatedAt')}</p>
 											<p className={`mt-1 ${valueClassName}`}>
 												{formatNotificationDateTime(
 													notification.updated_at,
@@ -250,7 +273,7 @@ function NotificationDetailPanel({
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
-											<p className={labelClassName}>{isRu ? 'Пользователь' : 'Foydalanuvchi'}</p>
+											<p className={labelClassName}>{t('notifications.user')}</p>
 											<p className={`mt-1 ${valueClassName}`}>
 												{getNotificationUserLabel(
 													notification.user,
@@ -262,7 +285,7 @@ function NotificationDetailPanel({
 
 										{metadataEntries.length > 0 ? (
 											<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
-												<p className={labelClassName}>{isRu ? 'Дополнительно' : "Qo'shimcha ma'lumot"}</p>
+												<p className={labelClassName}>{t('notifications.additionalInfo')}</p>
 												<ul className='mt-2 grid list-none gap-1.5 p-0'>
 													{metadataEntries.map(entry => (
 														<li
@@ -281,6 +304,24 @@ function NotificationDetailPanel({
 									</div>
 								</div>
 							</PageCard>
+
+							<PageCard>
+								<div className='flex flex-wrap items-center gap-2'>
+									<button
+										type='button'
+										className='inline-flex min-h-10 items-center gap-2 rounded-lg bg-danger-bg px-4 text-sm font-semibold text-danger transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/30 disabled:cursor-not-allowed disabled:opacity-60'
+										onClick={() => {
+											void handleDeleteNotification()
+										}}
+										disabled={isDeleting}
+									>
+										<AppIcon name='trash' className='h-4 w-4' aria-hidden='true' />
+										{isDeleting
+											? t('notifications.bulk.deletingOne')
+											: t('notifications.bulk.deleteOne')}
+									</button>
+								</div>
+							</PageCard>
 						</>
 					) : null}
 				</div>
@@ -290,5 +331,4 @@ function NotificationDetailPanel({
 }
 
 export default NotificationDetailPanel
-
 

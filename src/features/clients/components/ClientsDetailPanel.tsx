@@ -96,6 +96,34 @@ export function ClientsDetailPanel({
         delete: 'O`chirish',
       };
 
+  const statusLabels = isRu
+    ? {
+        new: 'Новый',
+        contacted: 'Связались',
+        qualified: 'Квалифицирован',
+        need_follow_up: 'Нужен фоллоу-ап',
+        proposal_preparing: 'Подготовка предложения',
+        proposal_sent: 'Предложение отправлено',
+        negotiation: 'Переговоры',
+        waiting_for_decision: 'Ожидание решения',
+        won: 'Выигран',
+        lost: 'Потерян',
+        postponed: 'Отложен',
+      }
+    : {
+        new: 'Yangi',
+        contacted: "Bog'lanildi",
+        qualified: 'Saralangan',
+        need_follow_up: 'Qayta aloqa kerak',
+        proposal_preparing: 'Taklif tayyorlanmoqda',
+        proposal_sent: 'Taklif yuborildi',
+        negotiation: 'Muzokara',
+        waiting_for_decision: 'Qaror kutilmoqda',
+        won: 'Yutildi',
+        lost: "Yo'qotildi",
+        postponed: 'Kechiktirildi',
+      };
+
   const [state] = useDetail(() => services.clients.getClient(clientId), { autoFetch: true });
 
   const getStatusTone = (status: string) => {
@@ -122,6 +150,9 @@ export function ClientsDetailPanel({
   }
 
   const client = state.data;
+  const statusKey = (client.status || 'new') as keyof typeof statusLabels;
+  const localizedStatusLabel =
+    statusLabels[statusKey] || client.status_label || client.status || 'new';
 
   return (
     <div className="grid gap-3">
@@ -150,7 +181,7 @@ export function ClientsDetailPanel({
           <StatusBadge
             tone={getStatusTone(client.status)}
             status={client.status || 'new'}
-            label={client.status_label || client.status || 'new'}
+            label={localizedStatusLabel}
           />
         </div>
       </header>

@@ -269,38 +269,71 @@ export const apiNotificationService: NotificationService = {
   },
 
   async markAllAsRead() {
-    let page = 1;
-    const pageSize = 100;
+    try {
+      await apiClient.post('/api/notifications/mark-all-read/', {});
+      return true;
+    } catch {
+      // Fallback for backends without bulk endpoint support.
+      let page = 1;
+      const pageSize = 100;
 
-    while (true) {
-      const result = await apiNotificationService.listNotifications({
-        page,
-        pageSize,
-        ordering: '-created_at',
-      });
+      while (true) {
+        const result = await apiNotificationService.listNotifications({
+          page,
+          pageSize,
+          ordering: '-created_at',
+        });
 
-      const unreadItems = result.items.filter((item) => !item.is_read);
-      if (unreadItems.length === 0 && page >= result.meta.totalPages) {
-        break;
+        const unreadItems = result.items.filter((item) => !item.is_read);
+        if (unreadItems.length === 0 && page >= result.meta.totalPages) {
+          break;
+        }
+
+        await Promise.all(
+          unreadItems.map((item) => apiNotificationService.markNotificationRead(item.id)),
+        );
+
+        if (page >= result.meta.totalPages) {
+          break;
+        }
+
+        page += 1;
       }
 
-      await Promise.all(
-        unreadItems.map((item) => apiNotificationService.markNotificationRead(item.id)),
-      );
-
-      if (page >= result.meta.totalPages) {
-        break;
-      }
-
-      page += 1;
+      return true;
     }
-
-    return true;
   },
 
   async delete(id) {
     await apiClient.delete(`/api/notifications/${id}/`);
     return true;
+  },
+
+  async deleteAll() {
+    try {
+      await apiClient.delete('/api/notifications/delete-all/');
+      return true;
+    } catch {
+      // Fallback for backends without bulk delete support.
+      let page = 1;
+      const pageSize = 100;
+      while (true) {
+        const result = await apiNotificationService.listNotifications({
+          page,
+          pageSize,
+          ordering: '-created_at',
+        });
+        if (result.items.length === 0) {
+          break;
+        }
+        await Promise.all(result.items.map((item) => apiNotificationService.delete(item.id)));
+        if (page >= result.meta.totalPages) {
+          break;
+        }
+        page += 1;
+      }
+      return true;
+    }
   },
 };
 

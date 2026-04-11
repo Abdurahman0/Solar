@@ -611,7 +611,6 @@ function ProductsPage() {
     return filteredCategories.slice(start, start + PAGE_SIZE);
   }, [categoryMeta.page, filteredCategories]);
 
-  const visibleItemsCount = isCategoriesView ? pagedCategories.length : products.length;
   const totalItemsCount = isCategoriesView ? categoryMeta.totalItems : paginationMeta.totalItems;
 
   const header = (
@@ -631,7 +630,7 @@ function ProductsPage() {
           </button>
           <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-primary/12 px-3 text-[12px] font-semibold text-text-accent">
             <AppIcon name="products" className="h-3.5 w-3.5" aria-hidden="true" />
-            {visibleItemsCount} / {totalItemsCount} {isCategoriesView ? t('products.categoriesRecords') : t('products.records')}
+            {totalItemsCount} {isCategoriesView ? t('products.categoriesRecords') : t('products.records')}
           </span>
         </div>
       }

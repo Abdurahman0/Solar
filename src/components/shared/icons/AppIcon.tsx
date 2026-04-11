@@ -5,6 +5,7 @@ import {
 	FiBox,
 	FiCalendar,
 	FiChevronDown,
+	FiCheckCircle,
 	FiCreditCard,
 	FiDownload,
 	FiFileText,
@@ -24,12 +25,14 @@ import {
 	FiTruck,
 	FiTrendingDown,
 	FiTrendingUp,
+	FiTrash2,
 	FiUser,
 	FiUsers,
 	FiX,
 	FiActivity,
 	FiZap,
 } from 'react-icons/fi'
+import { BsCheck2All } from 'react-icons/bs'
 
 export type AppIconName =
 	| 'dashboard'
@@ -69,6 +72,9 @@ export type AppIconName =
 	| 'activity'
 	| 'settings'
 	| 'refresh-cw'
+	| 'trash'
+	| 'check-circle'
+	| 'mark-read-all'
 
 interface AppIconProps extends SVGProps<SVGSVGElement> {
 	name: AppIconName
@@ -112,6 +118,9 @@ const ICON_MAP: Record<AppIconName, IconType> = {
 	activity: FiActivity,
 	settings: FiSettings,
 	'refresh-cw': FiRefreshCw,
+	trash: FiTrash2,
+	'check-circle': FiCheckCircle,
+	'mark-read-all': BsCheck2All,
 }
 
 function AppIcon({ name, className, ...props }: AppIconProps) {

@@ -661,7 +661,15 @@
       "creating": "Добавление...",
       "saving": "Сохранение...",
       "createSubmit": "Добавить пользователя",
-      "editSubmit": "Сохранить изменения"
+      "editSubmit": "Сохранить изменения",
+      "applyRoleDefaults": "Применить права роли ({{count}})",
+      "permissionGroups": {
+        "viewing": "Права просмотра",
+        "managing": "Права управления",
+        "updating": "Права изменения",
+        "communication": "Права коммуникации",
+        "other": "Другие права"
+      }
     },
     "deleteDialog": {
       "eyebrow": "Удаление пользователя",
@@ -1809,7 +1817,49 @@
       "can_manage_users": "Управление пользователями",
       "can_manage_integrations": "Управление интеграциями",
       "can_manage_ai_settings": "Управление настройками ИИ",
-      "can_view_logs": "Просмотр журналов"
+      "can_view_logs": "Просмотр журналов",
+      "dashboard": {
+        "view": "Панель управления"
+      },
+      "leads": {
+        "view": "Просмотр лидов",
+        "manage": "Управление лидами"
+      },
+      "clients": {
+        "view": "Просмотр клиентов",
+        "manage": "Управление клиентами"
+      },
+      "products": {
+        "view": "Просмотр товаров",
+        "manage": "Управление товарами"
+      },
+      "chats": {
+        "view": "Просмотр чатов",
+        "manage": "Управление чатами"
+      },
+      "contracts": {
+        "view": "Просмотр договоров",
+        "manage": "Управление договорами"
+      },
+      "notifications": {
+        "view": "Просмотр уведомлений",
+        "manage": "Управление уведомлениями"
+      },
+      "integrations": {
+        "view": "Просмотр интеграций",
+        "manage": "Управление интеграциями"
+      },
+      "ai": {
+        "view": "Просмотр настроек ИИ",
+        "manage": "Управление настройками ИИ"
+      },
+      "logs": {
+        "view": "Просмотр журналов"
+      },
+      "users": {
+        "view": "Просмотр пользователей",
+        "manage": "Управление пользователями"
+      }
     },
     "permissionDescriptions": {
       "can_view_dashboard": "Разрешает просматривать статистику dashboard.",
@@ -1832,7 +1882,49 @@
       "can_manage_users": "Разрешает добавлять, редактировать и удалять пользователей.",
       "can_manage_integrations": "Разрешает управлять настройками интеграций.",
       "can_manage_ai_settings": "Разрешает добавлять и редактировать настройки ИИ.",
-      "can_view_logs": "Разрешает просматривать системные журналы."
+      "can_view_logs": "Разрешает просматривать системные журналы.",
+      "dashboard": {
+        "view": "Страницы панели управления и KPI"
+      },
+      "leads": {
+        "view": "Просмотр списка лидов и карточки лида",
+        "manage": "Создание, обновление и управление лидами"
+      },
+      "clients": {
+        "view": "Просмотр списка клиентов и карточки клиента",
+        "manage": "Создание, обновление и управление клиентами"
+      },
+      "products": {
+        "view": "Просмотр товаров и данных каталога",
+        "manage": "Создание, обновление и удаление товаров"
+      },
+      "chats": {
+        "view": "Просмотр чатов и сообщений",
+        "manage": "Ответы, пауза ИИ и управление чатами"
+      },
+      "contracts": {
+        "view": "Просмотр договоров и запросов на аудит",
+        "manage": "Создание, обновление и удаление договоров и аудитов"
+      },
+      "notifications": {
+        "view": "Просмотр списка уведомлений",
+        "manage": "Отметка уведомлений как прочитанных и удаление уведомлений"
+      },
+      "integrations": {
+        "view": "Просмотр настроек интеграций",
+        "manage": "Обновление настроек интеграций"
+      },
+      "ai": {
+        "view": "Просмотр настроек ИИ и активных конфигураций ИИ",
+        "manage": "Создание, обновление и удаление настроек ИИ"
+      },
+      "logs": {
+        "view": "Просмотр API- и ИИ-журналов"
+      },
+      "users": {
+        "view": "Просмотр списка пользователей и ролей",
+        "manage": "Создание, обновление и удаление пользователей"
+      }
     }
   },
   "placeholders": {
@@ -2078,6 +2170,158 @@
       "detailOpen": "Профиль открыт",
       "errorTitle": "Клиенты недоступны",
       "errorDescription": "Не удалось загрузить список клиентов."
+    }
+  },
+  "notifications": {
+    "eyebrow": "Уведомления",
+    "title": "Уведомления",
+    "subtitle": "Следите за важными событиями и обновлениями",
+    "loadingTitle": "Загрузка...",
+    "loadingDescription": "Загружается список уведомлений.",
+    "errorTitle": "Не удалось загрузить уведомления",
+    "errorDescription": "Обновите страницу и попробуйте снова.",
+    "activeFilters": "активных фильтра",
+    "detailOpen": "Панель деталей открыта",
+    "searchPlaceholder": "Поиск уведомления",
+    "listTitle": "Список уведомлений",
+    "listHint": "Непрочитанные выделяются отдельно",
+    "countSuffix": "??.",
+    "filters": {
+      "allChannels": "Все каналы",
+      "all": "Все",
+      "read": "Прочитано",
+      "unread": "Не прочитано",
+      "channel": "Канал",
+      "status": "Статус",
+      "ordering": "Сортировка"
+    },
+    "ordering": {
+      "createdNewest": "Дата создания (новые)",
+      "createdOldest": "Дата создания (старые)",
+      "updatedNewest": "Дата обновления (новые)",
+      "updatedOldest": "Дата обновления (старые)"
+    },
+    "bulk": {
+      "markAllRead": "Прочитать все",
+      "markingAllRead": "Отмечаем...",
+      "deleteAll": "Удалить все",
+      "deletingAll": "Удаляем...",
+      "deleteAllConfirm": "Удалить все уведомления? Это действие нельзя отменить.",
+      "deleteOne": "Удалить",
+      "deletingOne": "Удаляем...",
+      "deleteOneConfirm": "Удалить это уведомление?"
+    },
+    "detailPanelAria": "Детали уведомления",
+    "itemEyebrow": "Уведомление",
+    "detailPanelTitle": "Детали уведомления",
+    "detailPanelClose": "Закрыть панель деталей",
+    "loadingDetailDescription": "Загружаются детали уведомления.",
+    "detailErrorTitle": "Уведомление не найдено",
+    "detailErrorDescription": "Не удалось загрузить выбранное уведомление.",
+    "detailMessageTitle": "Текст",
+    "detailMessageDescription": "Полный текст уведомления.",
+    "detailInfoTitle": "Детали",
+    "createdAt": "Создано",
+    "updatedAt": "Обновлено",
+    "user": "Пользователь",
+    "additionalInfo": "Дополнительно"
+  },
+  "chatPage": {
+    "title": "Чаты",
+    "countSuffix": "шт.",
+    "closeSessionAria": "Закрыть чат",
+    "ordering": {
+      "latestMessage": "Последнее сообщение (новые)",
+      "oldestMessage": "Последнее сообщение (старые)",
+      "newestCreated": "Добавлено (новые)",
+      "oldestCreated": "Добавлено (старые)"
+    },
+    "errors": {
+      "sessionLoad": "Не удалось загрузить данные чата.",
+      "messagesLoad": "Не удалось загрузить сообщения.",
+      "messageSend": "Сообщение не отправлено.",
+      "aiPause": "Не удалось приостановить AI.",
+      "aiResume": "Не удалось включить AI.",
+      "sessionDelete": "Не удалось удалить чат.",
+      "requestOperator": "?? ??????? ????????? ?????? ?????????."
+    },
+    "confirmations": {
+      "deleteSession": "Удалить этот чат и всю его историю?"
+    },
+    "filters": {
+      "searchPlaceholder": "Поиск по чату, клиенту или внешнему ID",
+      "channel": "Канал",
+      "allChannels": "Все каналы",
+      "allChannelsShort": "Все",
+      "operator": "Оператор",
+      "activeOperator": "Активный оператор",
+      "inactiveOperator": "Неактивный оператор",
+      "sorting": "Сортировка"
+    },
+    "channels": {
+      "web": "Веб",
+      "manual": "Вручную"
+    },
+    "states": {
+      "open": "Открыт",
+      "pending": "В ожидании",
+      "resolved": "Завершен"
+    },
+    "sessionList": {
+      "loadingTitle": "Загрузка чатов",
+      "loadingDescription": "Получаем список сессий чата.",
+      "errorTitle": "Не удалось загрузить чаты",
+      "errorDescription": "Попробуйте обновить список сессий.",
+      "emptyTitle": "Чаты не найдены",
+      "emptyDescription": "Измените поиск или фильтры и попробуйте снова.",
+      "unknownChat": "Неизвестный чат",
+      "noTime": "Нет времени",
+      "noMessage": "Нет сообщений",
+      "operatorRequired": "Нужен оператор"
+    },
+    "workspace": {
+      "selectDate": "Выберите дату",
+      "invalidTime": "Введите корректное время.",
+      "futureTime": "Время должно быть позже текущего.",
+      "resumeAi": "Включить AI",
+      "pauseAiTime": "Выбрать время паузы AI",
+      "deleteSession": "Удалить сессию",
+      "pauseUntil": "До какого времени приостановить AI",
+      "cancel": "Отмена",
+      "minuteShort": "мин",
+      "messageLabel": "Текст сообщения",
+      "attachedImages": "Прикрепленные фото",
+      "attachedImage": "Прикрепленное фото",
+      "close": "Закрыть",
+      "emptyChatTitle": "Чат не выбран",
+      "emptyChatDescription": "Выберите чат из списка слева.",
+      "openProfile": "Открыть профиль клиента",
+      "aiOnAction": "Включить",
+      "aiOffAction": "Остановить",
+      "aiPausedStatus": "AI приостановлен",
+      "saveLoading": "Сохраняется...",
+      "pauseSubmit": "Приостановить AI",
+      "loadingMessagesTitle": "Загрузка сообщений",
+      "loadingMessagesDescription": "Получаем сообщения выбранного чата.",
+      "noMessagesTitle": "Сообщения не найдены",
+      "noMessagesDescription": "Для этой сессии пока нет сообщений.",
+      "messagePlaceholder": "Напишите сообщение...",
+      "sendAria": "Отправить",
+      "unknownCustomer": "Неизвестный клиент",
+      "person": {
+        "client": "Клиент",
+        "lead": "Лид",
+        "contact": "Контакт"
+      },
+      "sender": {
+        "customer": "Клиент",
+        "ai": "AI ассистент",
+        "operator": "Оператор",
+        "system": "Система"
+      },
+      "timeUnavailable": "Недоступно",
+      "requestOperator": "??????? ?????????",
+      "operatorRequested": "?????? ????????? ?????????"
     }
   }
 }

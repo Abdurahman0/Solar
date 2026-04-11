@@ -104,6 +104,8 @@ function AiSettingsPage() {
   const [ordering, setOrdering] = useState<AISettingsOrdering>(DEFAULT_ORDERING);
   const [currentPage, setCurrentPage] = useState(1);
   const [settings, setSettings] = useState<AISetting[]>([]);
+  const [activeSettingId, setActiveSettingId] = useState<EntityId | null>(null);
+  const [activeSettingName, setActiveSettingName] = useState<string | null>(null);
   const [paginationMeta, setPaginationMeta] = useState<PaginationMeta>(
     DEFAULT_PAGINATION_META,
   );
@@ -135,14 +137,17 @@ function AiSettingsPage() {
       setHasError(false);
 
       try {
-        const result = await services.aiSettings.listSettings({
-          page: currentPage,
-          pageSize: PAGE_SIZE,
-          search: search.trim() || undefined,
-          is_active: toBooleanActiveFilter(activeFilter),
-          ordering,
-          ...parseOrdering(ordering),
-        });
+        const [result, activeSetting] = await Promise.all([
+          services.aiSettings.listSettings({
+            page: currentPage,
+            pageSize: PAGE_SIZE,
+            search: search.trim() || undefined,
+            is_active: toBooleanActiveFilter(activeFilter),
+            ordering,
+            ...parseOrdering(ordering),
+          }),
+          services.aiSettings.getActiveSetting().catch(() => null),
+        ]);
 
         if (!isActive) {
           return;
@@ -155,6 +160,8 @@ function AiSettingsPage() {
 
         setSettings(result.items);
         setPaginationMeta(result.meta);
+        setActiveSettingId(activeSetting?.id ?? null);
+        setActiveSettingName(activeSetting?.name ?? null);
       } catch {
         if (!isActive) {
           return;
@@ -163,6 +170,8 @@ function AiSettingsPage() {
         setHasError(true);
         setSettings([]);
         setPaginationMeta(DEFAULT_PAGINATION_META);
+        setActiveSettingId(null);
+        setActiveSettingName(null);
       } finally {
         if (isActive) {
           setHasLoadedOnce(true);
@@ -210,7 +219,7 @@ function AiSettingsPage() {
           <div className="grid gap-0.5">
             <div className="flex items-center gap-2">
               <span className={tablePrimaryTextClassName}>{setting.name}</span>
-              {setting.is_active ? (
+              {activeSettingId === setting.id || setting.is_active ? (
                 <span className="inline-flex min-h-5 items-center rounded-pill bg-success-bg px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-success">
                   {t('common.active')}
                 </span>
@@ -256,9 +265,13 @@ function AiSettingsPage() {
         label: t('aiSettings.columns.active'),
         render: (setting) => (
           <StatusBadge
-            status={setting.is_active ? 'active' : 'inactive'}
-            tone={setting.is_active ? 'success' : 'neutral'}
-            label={setting.is_active ? t('common.active') : t('common.inactive')}
+            status={activeSettingId === setting.id || setting.is_active ? 'active' : 'inactive'}
+            tone={activeSettingId === setting.id || setting.is_active ? 'success' : 'neutral'}
+            label={
+              activeSettingId === setting.id || setting.is_active
+                ? t('common.active')
+                : t('common.inactive')
+            }
           />
         ),
       },
@@ -308,7 +321,7 @@ function AiSettingsPage() {
                 event.stopPropagation();
                 requestDelete(setting);
               }}
-              disabled={setting.is_active}
+              disabled={activeSettingId === setting.id || setting.is_active}
               aria-label={`${t('aiSettings.actions.delete')} ${setting.name}`}
             >
               <FiTrash2 className="h-3.5 w-3.5" />
@@ -317,7 +330,7 @@ function AiSettingsPage() {
         ),
       },
     ];
-  }, [canManageAISettings, i18n.language, locale, t]);
+  }, [activeSettingId, canManageAISettings, i18n.language, locale, t]);
 
   function openCreateForm() {
     if (!canManageAISettings) {
@@ -434,6 +447,12 @@ function AiSettingsPage() {
             <AppIcon name="ai-settings" className="h-3.5 w-3.5" aria-hidden="true" />
             {paginationMeta.totalItems} {t('aiSettings.records')}
           </span>
+          {activeSettingName ? (
+            <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-success-bg px-3 text-[12px] font-semibold text-success">
+              <AppIcon name="sparkles" className="h-3.5 w-3.5" aria-hidden="true" />
+              {activeSettingName}
+            </span>
+          ) : null}
         </div>
       }
     />

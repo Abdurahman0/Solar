@@ -661,7 +661,15 @@
       "creating": "Qo'shilmoqda...",
       "saving": "Saqlanmoqda...",
       "createSubmit": "Foydalanuvchi qo'shish",
-      "editSubmit": "O'zgarishlarni saqlash"
+      "editSubmit": "O'zgarishlarni saqlash",
+      "applyRoleDefaults": "Rol huquqlarini qo'llash ({{count}})",
+      "permissionGroups": {
+        "viewing": "Ko'rish huquqlari",
+        "managing": "Boshqaruv huquqlari",
+        "updating": "Yangilash huquqlari",
+        "communication": "Aloqa huquqlari",
+        "other": "Boshqa huquqlar"
+      }
     },
     "deleteDialog": {
       "eyebrow": "Foydalanuvchini o'chirish",
@@ -1809,7 +1817,49 @@
       "can_manage_users": "Foydalanuvchilarni boshqarish",
       "can_manage_integrations": "Integratsiyalarni boshqarish",
       "can_manage_ai_settings": "AI sozlamalarini boshqarish",
-      "can_view_logs": "Jurnallarni ko'rish"
+      "can_view_logs": "Jurnallarni ko'rish",
+      "dashboard": {
+        "view": "Boshqaruv paneli"
+      },
+      "leads": {
+        "view": "Lidlarni ko'rish",
+        "manage": "Lidlarni boshqarish"
+      },
+      "clients": {
+        "view": "Mijozlarni ko'rish",
+        "manage": "Mijozlarni boshqarish"
+      },
+      "products": {
+        "view": "Mahsulotlarni ko'rish",
+        "manage": "Mahsulotlarni boshqarish"
+      },
+      "chats": {
+        "view": "Chatlarni ko'rish",
+        "manage": "Chatlarni boshqarish"
+      },
+      "contracts": {
+        "view": "Shartnomalarni ko'rish",
+        "manage": "Shartnomalarni boshqarish"
+      },
+      "notifications": {
+        "view": "Bildirishnomalarni ko'rish",
+        "manage": "Bildirishnomalarni boshqarish"
+      },
+      "integrations": {
+        "view": "Integratsiyalarni ko'rish",
+        "manage": "Integratsiyalarni boshqarish"
+      },
+      "ai": {
+        "view": "AI sozlamalarini ko'rish",
+        "manage": "AI sozlamalarini boshqarish"
+      },
+      "logs": {
+        "view": "Jurnallarni ko'rish"
+      },
+      "users": {
+        "view": "Foydalanuvchilarni ko'rish",
+        "manage": "Foydalanuvchilarni boshqarish"
+      }
     },
     "permissionDescriptions": {
       "can_view_dashboard": "Dashboard statistikalarini ko'rishga ruxsat beradi.",
@@ -1832,7 +1882,49 @@
       "can_manage_users": "Foydalanuvchilarni qo'shish, tahrirlash va o'chirishga ruxsat beradi.",
       "can_manage_integrations": "Integratsiya sozlamalarini boshqarishga ruxsat beradi.",
       "can_manage_ai_settings": "AI sozlamalarini qo'shish va tahrirlashga ruxsat beradi.",
-      "can_view_logs": "Tizim jurnallarini ko'rishga ruxsat beradi."
+      "can_view_logs": "Tizim jurnallarini ko'rishga ruxsat beradi.",
+      "dashboard": {
+        "view": "Boshqaruv paneli va KPI sahifalari"
+      },
+      "leads": {
+        "view": "Lidlar ro'yxati va lid tafsilotini ko'rish",
+        "manage": "Lidlarni yaratish, yangilash va boshqarish"
+      },
+      "clients": {
+        "view": "Mijozlar ro'yxati va tafsilotlarini ko'rish",
+        "manage": "Mijozlarni yaratish, yangilash va boshqarish"
+      },
+      "products": {
+        "view": "Mahsulotlar va katalog ma'lumotlarini ko'rish",
+        "manage": "Mahsulotlarni yaratish, yangilash va o'chirish"
+      },
+      "chats": {
+        "view": "Chat seanslari va xabarlarni ko'rish",
+        "manage": "Javob berish, AI ni pauza qilish va chatlarni boshqarish"
+      },
+      "contracts": {
+        "view": "Shartnomalar va audit so'rovlarini ko'rish",
+        "manage": "Shartnomalar va auditlarni yaratish, yangilash va o'chirish"
+      },
+      "notifications": {
+        "view": "Bildirishnomalar ro'yxatini ko'rish",
+        "manage": "Bildirishnomalarni o'qilgan deb belgilash va o'chirish"
+      },
+      "integrations": {
+        "view": "Integratsiya sozlamalarini ko'rish",
+        "manage": "Integratsiya sozlamalarini yangilash"
+      },
+      "ai": {
+        "view": "AI sozlamalari va faol AI konfiguratsiyalarini ko'rish",
+        "manage": "AI sozlamalarini yaratish, yangilash va o'chirish"
+      },
+      "logs": {
+        "view": "API va AI jurnallarini ko'rish"
+      },
+      "users": {
+        "view": "Foydalanuvchilar ro'yxati va rollar ma'lumotini ko'rish",
+        "manage": "Foydalanuvchilarni yaratish, yangilash va o'chirish"
+      }
     }
   },
   "placeholders": {
@@ -2031,7 +2123,7 @@
     "edit": "Tahrirlash",
     "delete": "O'chirish",
     "pricing": {
-      "button": "Pricing matrix",
+      "button": "Narxlar jadvali",
       "title": "Narxlar jadvali",
       "loadingTitle": "Yuklanmoqda...",
       "loadingDescription": "Matritsa ma'lumotlari olinmoqda.",
@@ -2078,6 +2170,158 @@
       "detailOpen": "Profil ochiq",
       "errorTitle": "Mijozlar mavjud emas",
       "errorDescription": "Mijozlar ro`yxatini yuklab bo`lmadi."
+    }
+  },
+  "notifications": {
+    "eyebrow": "Bildirishnomalar",
+    "title": "Bildirishnomalar",
+    "subtitle": "Muhim voqealar va yangilanishlarni kuzating",
+    "loadingTitle": "Yuklanmoqda...",
+    "loadingDescription": "Bildirishnomalar ro'yxati yuklanmoqda.",
+    "errorTitle": "Bildirishnomani yuklab bo'lmadi",
+    "errorDescription": "Sahifani yangilab qayta urinib ko'ring.",
+    "activeFilters": "faol filtr",
+    "detailOpen": "Tafsilot paneli ochiq",
+    "searchPlaceholder": "Bildirishnoma qidirish",
+    "listTitle": "Bildirishnomalar ro'yxati",
+    "listHint": "O'qilmaganlar alohida ajratib ko'rsatiladi",
+    "countSuffix": "ta",
+    "filters": {
+      "allChannels": "Barcha kanallar",
+      "all": "Barchasi",
+      "read": "O'qilgan",
+      "unread": "O'qilmagan",
+      "channel": "Kanal",
+      "status": "Holat",
+      "ordering": "Saralash"
+    },
+    "ordering": {
+      "createdNewest": "Qo'shilgan sana (yangi)",
+      "createdOldest": "Qo'shilgan sana (eski)",
+      "updatedNewest": "Yangilangan sana (yangi)",
+      "updatedOldest": "Yangilangan sana (eski)"
+    },
+    "bulk": {
+      "markAllRead": "Barchasini o'qilgan qilish",
+      "markingAllRead": "Belgilanmoqda...",
+      "deleteAll": "Barchasini o'chirish",
+      "deletingAll": "O'chirilmoqda...",
+      "deleteAllConfirm": "Barcha bildirishnomalar o'chirilsinmi? Bu amalni ortga qaytarib bo'lmaydi.",
+      "deleteOne": "O'chirish",
+      "deletingOne": "O'chirilmoqda...",
+      "deleteOneConfirm": "Ushbu bildirishnoma o'chirilsinmi?"
+    },
+    "detailPanelAria": "Bildirishnoma tafsilotlari",
+    "itemEyebrow": "Bildirishnoma",
+    "detailPanelTitle": "Bildirishnoma tafsilotlari",
+    "detailPanelClose": "Tafsilot panelini yopish",
+    "loadingDetailDescription": "Bildirishnoma tafsilotlari olinmoqda.",
+    "detailErrorTitle": "Bildirishnoma topilmadi",
+    "detailErrorDescription": "Tanlangan bildirishnoma ma'lumotlarini yuklab bo'lmadi.",
+    "detailMessageTitle": "Matn",
+    "detailMessageDescription": "To'liq bildirishnoma xabari.",
+    "detailInfoTitle": "Tafsilotlar",
+    "createdAt": "Qo'shilgan",
+    "updatedAt": "Yangilangan",
+    "user": "Foydalanuvchi",
+    "additionalInfo": "Qo'shimcha ma'lumot"
+  },
+  "chatPage": {
+    "title": "Suhbatlar",
+    "countSuffix": "ta",
+    "closeSessionAria": "Suhbatni yopish",
+    "ordering": {
+      "latestMessage": "Oxirgi xabar (yangi)",
+      "oldestMessage": "Oxirgi xabar (eski)",
+      "newestCreated": "Qo'shilgan (yangi)",
+      "oldestCreated": "Qo'shilgan (eski)"
+    },
+    "errors": {
+      "sessionLoad": "Suhbat tafsilotlarini yuklab bo'lmadi.",
+      "messagesLoad": "Xabarlarni yuklab bo'lmadi.",
+      "messageSend": "Xabar yuborilmadi.",
+      "aiPause": "AI ni to'xtatib bo'lmadi.",
+      "aiResume": "AI ni yoqib bo'lmadi.",
+      "sessionDelete": "Suhbatni o'chirib bo'lmadi.",
+      "requestOperator": "Operator so'rovi yuborilmadi."
+    },
+    "confirmations": {
+      "deleteSession": "Ushbu suhbat va uning barcha tarixini o'chirasizmi?"
+    },
+    "filters": {
+      "searchPlaceholder": "Suhbat, mijoz yoki tashqi ID bo'yicha qidirish",
+      "channel": "Kanal",
+      "allChannels": "Barcha kanallar",
+      "allChannelsShort": "Barcha",
+      "operator": "Operator",
+      "activeOperator": "Faol operator",
+      "inactiveOperator": "Nofaol operator",
+      "sorting": "Saralash"
+    },
+    "channels": {
+      "web": "Veb",
+      "manual": "Qo'lda"
+    },
+    "states": {
+      "open": "Ochiq",
+      "pending": "Kutilmoqda",
+      "resolved": "Yakunlangan"
+    },
+    "sessionList": {
+      "loadingTitle": "Suhbatlar yuklanmoqda",
+      "loadingDescription": "Suhbat sessiyalari ro'yxati olinmoqda.",
+      "errorTitle": "Suhbatlarni yuklab bo'lmadi",
+      "errorDescription": "Chat sessiyalarini qayta yuklab urinib ko'ring.",
+      "emptyTitle": "Suhbat topilmadi",
+      "emptyDescription": "Qidiruv yoki filtrlarni o'zgartirib qayta urinib ko'ring.",
+      "unknownChat": "Noma'lum chat",
+      "noTime": "Vaqt yo'q",
+      "noMessage": "Xabar yo'q",
+      "operatorRequired": "Operator kerak"
+    },
+    "workspace": {
+      "selectDate": "Sana tanlang",
+      "invalidTime": "To'g'ri vaqt kiriting.",
+      "futureTime": "Vaqt hozirgi vaqtdan keyin bo'lishi kerak.",
+      "resumeAi": "AI ni yoqish",
+      "pauseAiTime": "AI ni to'xtatish vaqtini tanlash",
+      "deleteSession": "Sessiyani o'chirish",
+      "pauseUntil": "AI ni qachongacha to'xtatish",
+      "cancel": "Bekor qilish",
+      "minuteShort": "daq",
+      "messageLabel": "Xabar matni",
+      "attachedImages": "Biriktirilgan rasmlar",
+      "attachedImage": "Biriktirilgan rasm",
+      "close": "Yopish",
+      "emptyChatTitle": "Suhbat tanlanmagan",
+      "emptyChatDescription": "Chap ro'yxatdan suhbat tanlang.",
+      "openProfile": "Mijoz profilini ochish",
+      "aiOnAction": "Yoqish",
+      "aiOffAction": "To'xtatish",
+      "aiPausedStatus": "AI to'xtatilgan",
+      "saveLoading": "Saqlanmoqda...",
+      "pauseSubmit": "AI ni to'xtatish",
+      "loadingMessagesTitle": "Xabarlar yuklanmoqda",
+      "loadingMessagesDescription": "Tanlangan suhbat bo'yicha xabarlar olinmoqda.",
+      "noMessagesTitle": "Xabarlar topilmadi",
+      "noMessagesDescription": "Bu sessiya uchun hozircha xabarlar mavjud emas.",
+      "messagePlaceholder": "Xabar yozing...",
+      "sendAria": "Yuborish",
+      "unknownCustomer": "Noma'lum mijoz",
+      "person": {
+        "client": "Mijoz",
+        "lead": "Lid",
+        "contact": "Kontakt"
+      },
+      "sender": {
+        "customer": "Mijoz",
+        "ai": "AI yordamchi",
+        "operator": "Operator",
+        "system": "Tizim"
+      },
+      "timeUnavailable": "Mavjud emas",
+      "requestOperator": "Operator chaqirish",
+      "operatorRequested": "Operator so'rovi yuborilgan"
     }
   }
 }

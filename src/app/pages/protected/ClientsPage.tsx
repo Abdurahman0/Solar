@@ -64,6 +64,20 @@ function ClientsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    if (!actionMessage) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setActionMessage(null);
+    }, 4200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [actionMessage]);
+
+  useEffect(() => {
     setSelectedClientId(null);
     setIsFormOpen(false);
     setEditingClient(null);
@@ -342,20 +356,6 @@ function ClientsPage() {
   return (
     <>
       <PageLayout header={header}>
-        {actionMessage ? (
-          <PageSection>
-            <div
-              className={`rounded-xl px-4 py-3 text-sm font-medium ring-1 ${
-                actionMessage.type === 'success'
-                  ? 'bg-success-bg text-success ring-success/30'
-                  : 'bg-danger-bg text-danger ring-danger/30'
-              }`}
-            >
-              {actionMessage.text}
-            </div>
-          </PageSection>
-        ) : null}
-
         <PageSection>
           <ClientsListView
             key={listRefreshKey}
@@ -368,6 +368,35 @@ function ClientsPage() {
           />
         </PageSection>
       </PageLayout>
+
+      {actionMessage ? (
+        <div className="fixed bottom-4 right-4 z-[230] w-[min(92vw,460px)]">
+          <div
+            className={`flex items-start gap-3 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ring-1 backdrop-blur-sm ${
+              actionMessage.type === 'success'
+                ? 'bg-success-bg/95 text-success ring-success/35'
+                : 'bg-danger-bg/95 text-danger ring-danger/35'
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <AppIcon
+              name={actionMessage.type === 'success' ? 'check-circle' : 'activity'}
+              className="mt-0.5 h-4.5 w-4.5 shrink-0"
+              aria-hidden="true"
+            />
+            <span className="min-w-0 flex-1 break-words">{actionMessage.text}</span>
+            <button
+              type="button"
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-card/55 text-current transition duration-fast hover:bg-surface-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/35"
+              onClick={() => setActionMessage(null)}
+              aria-label={t('common.close')}
+            >
+              <AppIcon name="close" className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {selectedClientId ? (
         <div

@@ -35,6 +35,11 @@ export const services = {
 		getSessionById: conversationApi.getSessionById.bind(conversationApi),
 		listMessages: conversationApi.listMessages.bind(conversationApi),
 		sendMessage: conversationApi.sendMessage.bind(conversationApi),
+		markSessionRead: conversationApi.markSessionRead.bind(conversationApi),
+		pauseSessionAI: conversationApi.pauseSessionAI.bind(conversationApi),
+		resumeSessionAI: conversationApi.resumeSessionAI.bind(conversationApi),
+		deleteSession: conversationApi.deleteSession.bind(conversationApi),
+		requestOperator: conversationApi.requestOperator.bind(conversationApi),
 	} as any,
 	notifications: {
 		listNotifications: notificationApi.listNotifications.bind(notificationApi),
@@ -44,6 +49,7 @@ export const services = {
 		markNotificationRead: notificationApi.markNotificationRead.bind(notificationApi),
 		markAllAsRead: notificationApi.markAllAsRead.bind(notificationApi),
 		delete: notificationApi.delete.bind(notificationApi),
+		deleteAll: notificationApi.deleteAll.bind(notificationApi),
 	} as any,
 	integrations: {
 		listConfigs: integrationsApi.listIntegrationConfigs.bind(integrationsApi),
@@ -53,10 +59,12 @@ export const services = {
 		listSettings: aiSettingsApi.listAISettings.bind(aiSettingsApi),
 		getSettingById: aiSettingsApi.getAISettingById.bind(aiSettingsApi),
 		getSetting: aiSettingsApi.getAISettingById.bind(aiSettingsApi),
+		getActiveSetting: aiSettingsApi.getActiveAISetting.bind(aiSettingsApi),
 		createSetting: aiSettingsApi.createAISetting.bind(aiSettingsApi),
 		updateSetting: aiSettingsApi.updateAISetting.bind(aiSettingsApi),
 		patchSetting: aiSettingsApi.patchAISetting.bind(aiSettingsApi),
 		deleteSetting: aiSettingsApi.deleteAISetting.bind(aiSettingsApi),
+		setActiveSetting: aiSettingsApi.setActiveAISetting.bind(aiSettingsApi),
 	} as any,
 	logs: {
 		...coreServices.logs,
