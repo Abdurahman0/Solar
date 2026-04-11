@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AppIcon from '../../../components/shared/icons/AppIcon'
+import ConfirmDialog from '../../../components/shared/dialogs/ConfirmDialog'
 import { StatusBadge } from '../../../components/shared/data'
 import {
 	EmptyState,
@@ -46,6 +47,7 @@ function NotificationDetailPanel({
 	const [isLoading, setIsLoading] = useState(true)
 	const [hasError, setHasError] = useState(false)
 	const [isDeleting, setIsDeleting] = useState(false)
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
 	const metadataEntries = notification
 		? getFormattedNotificationMetadata(notification.metadata, notification.user, i18n.language)
@@ -125,11 +127,6 @@ function NotificationDetailPanel({
 			return
 		}
 
-		const confirmed = window.confirm(t('notifications.bulk.deleteOneConfirm'))
-		if (!confirmed) {
-			return
-		}
-
 		setIsDeleting(true)
 		try {
 			await services.notifications.delete(notification.id)
@@ -138,6 +135,7 @@ function NotificationDetailPanel({
 			onClose()
 		} finally {
 			setIsDeleting(false)
+			setIsDeleteDialogOpen(false)
 		}
 	}
 
@@ -311,7 +309,7 @@ function NotificationDetailPanel({
 										type='button'
 										className='inline-flex min-h-10 items-center gap-2 rounded-lg bg-danger-bg px-4 text-sm font-semibold text-danger transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/30 disabled:cursor-not-allowed disabled:opacity-60'
 										onClick={() => {
-											void handleDeleteNotification()
+											setIsDeleteDialogOpen(true)
 										}}
 										disabled={isDeleting}
 									>
@@ -326,9 +324,29 @@ function NotificationDetailPanel({
 					) : null}
 				</div>
 			</aside>
+
+			{isDeleteDialogOpen ? (
+				<ConfirmDialog
+					eyebrow={t('notifications.bulk.deleteOne')}
+					title={t('notifications.bulk.deleteOne')}
+					description={t('notifications.bulk.deleteOneConfirm')}
+					cancelLabel={t('common.cancel')}
+					confirmLabel={isDeleting ? t('notifications.bulk.deletingOne') : t('notifications.bulk.deleteOne')}
+					isBusy={isDeleting}
+					confirmTone='danger'
+					onCancel={() => {
+						if (!isDeleting) {
+							setIsDeleteDialogOpen(false)
+						}
+					}}
+					onConfirm={() => {
+						void handleDeleteNotification()
+					}}
+					ariaLabel={t('notifications.bulk.deleteOne')}
+				/>
+			) : null}
 		</div>
 	)
 }
 
 export default NotificationDetailPanel
-

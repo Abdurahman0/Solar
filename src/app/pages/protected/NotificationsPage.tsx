@@ -16,6 +16,7 @@ import {
   PageLayout,
   PageSection,
 } from '../../../components/shared/page';
+import ConfirmDialog from '../../../components/shared/dialogs/ConfirmDialog';
 import NotificationDetailPanel from '../../../features/notifications/components/NotificationDetailPanel';
 import NotificationList from '../../../features/notifications/components/NotificationList';
 import { getNotificationChannelLabel } from '../../../features/notifications/utils/notification-format';
@@ -82,6 +83,7 @@ function NotificationsPage() {
   const [reloadCursor, setReloadCursor] = useState(0);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
 
   useEffect(() => {
     const state = location.state as { notificationId?: EntityId } | null;
@@ -212,12 +214,11 @@ function NotificationsPage() {
     }
   }
 
-  async function handleDeleteAll() {
-    const confirmed = window.confirm(t('notifications.bulk.deleteAllConfirm'));
-    if (!confirmed) {
-      return;
-    }
+  function handleDeleteAll() {
+    setIsDeleteAllDialogOpen(true);
+  }
 
+  async function confirmDeleteAll() {
     setIsDeletingAll(true);
     try {
       await services.notifications.deleteAll();
@@ -228,6 +229,7 @@ function NotificationsPage() {
       window.dispatchEvent(new CustomEvent('notifications:changed'));
     } finally {
       setIsDeletingAll(false);
+      setIsDeleteAllDialogOpen(false);
     }
   }
 
@@ -261,9 +263,7 @@ function NotificationsPage() {
           <button
             type="button"
             className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-danger-bg px-3 text-sm font-semibold text-danger transition duration-fast hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => {
-              void handleDeleteAll();
-            }}
+            onClick={handleDeleteAll}
             disabled={isLoading || isMarkingAllRead || isDeletingAll || !hasNotifications}
           >
             <AppIcon name="trash" className="h-4 w-4" aria-hidden="true" />
@@ -409,9 +409,31 @@ function NotificationsPage() {
           onNotificationDeleted={handleNotificationDeleted}
         />
       ) : null}
+
+      {isDeleteAllDialogOpen ? (
+        <ConfirmDialog
+          eyebrow={t('notifications.bulk.deleteAll')}
+          title={t('notifications.bulk.deleteAll')}
+          description={t('notifications.bulk.deleteAllConfirm')}
+          cancelLabel={t('common.cancel')}
+          confirmLabel={
+            isDeletingAll ? t('notifications.bulk.deletingAll') : t('notifications.bulk.deleteAll')
+          }
+          isBusy={isDeletingAll}
+          confirmTone="danger"
+          onCancel={() => {
+            if (!isDeletingAll) {
+              setIsDeleteAllDialogOpen(false);
+            }
+          }}
+          onConfirm={() => {
+            void confirmDeleteAll();
+          }}
+          ariaLabel={t('notifications.bulk.deleteAll')}
+        />
+      ) : null}
     </PageLayout>
   );
 }
 
 export default NotificationsPage;
-

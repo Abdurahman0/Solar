@@ -170,29 +170,17 @@ async function patchConfigRaw(
   id: EntityId,
   input: IntegrationConfigPatchInput,
 ): Promise<IntegrationConfig | null> {
-  const key = String(id).includes(':') ? String(id).split(':').at(-1) ?? String(id) : String(id);
-  const payload: Record<string, unknown> = {};
-
-  if (input.value !== undefined) {
-    payload[key] = input.value;
-  } else if (input.is_active !== undefined && key === 'telegram_polling_enabled') {
-    payload[key] = input.is_active;
-  }
-
+  const payload = toConfigPayload(input);
   if (Object.keys(payload).length === 0) {
-    const current = await getConfigById(id);
-    return current;
+    return getConfigById(id);
   }
 
   const { data } = await apiClient.patch<unknown>(
-    '/api/integrations/configs/',
+    `/api/integrations/configs/${id}/`,
     payload,
   );
 
-  const patchedList = mapIntegrationConfigListDtoToItems(data);
-  return (
-    patchedList.find((config) => config.id === id || config.key === key) ?? null
-  );
+  return mapSingleConfig(data, id);
 }
 
 async function ensureSingleActivePerProvider(
@@ -259,12 +247,8 @@ export async function listConfigs(
 }
 
 export async function getConfigById(id: EntityId): Promise<IntegrationConfig | null> {
-  const { data } = await apiClient.get<unknown>('/api/integrations/configs/');
-  const items = mapIntegrationConfigListDtoToItems(data);
-  const idValue = String(id);
-  const key = idValue.includes(':') ? idValue.split(':').at(-1) ?? idValue : idValue;
-
-  return items.find((entry) => entry.id === idValue || entry.key === key) ?? null;
+  const { data } = await apiClient.get<unknown>(`/api/integrations/configs/${id}/`);
+  return mapSingleConfig(data, id);
 }
 
 export async function createConfig(

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppIcon from '../../../components/shared/icons/AppIcon';
+import ConfirmDialog from '../../../components/shared/dialogs/ConfirmDialog';
 import ChatSessionFilters from '../../../features/chat/components/ChatSessionFilters';
 import ChatSessionList from '../../../features/chat/components/ChatSessionList';
 import ChatWorkspacePanel from '../../../features/chat/components/ChatWorkspacePanel';
@@ -129,6 +130,8 @@ function ChatPage() {
       aiResumeError: t('chatPage.errors.aiResume'),
       sessionDeleteError: t('chatPage.errors.sessionDelete'),
       sessionDeleteConfirm: t('chatPage.confirmations.deleteSession'),
+      deleteSession: t('chatPage.workspace.deleteSession'),
+      cancel: t('chatPage.workspace.cancel'),
     }),
     [t],
   );
@@ -149,6 +152,9 @@ function ChatPage() {
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isDeletingSession, setIsDeletingSession] = useState(false);
+  const [pendingDeleteSession, setPendingDeleteSession] = useState<Conversation | null>(
+    null,
+  );
   const [isUpdatingAIState, setIsUpdatingAIState] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -577,9 +583,13 @@ function ChatPage() {
     }
   }
 
-  async function handleDeleteSession(session: Conversation) {
-    const confirmed = window.confirm(copy.sessionDeleteConfirm);
-    if (!confirmed) {
+  function handleDeleteSession(session: Conversation) {
+    setPendingDeleteSession(session);
+  }
+
+  async function confirmDeleteSession() {
+    const session = pendingDeleteSession;
+    if (!session) {
       return;
     }
 
@@ -600,6 +610,7 @@ function ChatPage() {
       setActionError(copy.sessionDeleteError);
     } finally {
       setIsDeletingSession(false);
+      setPendingDeleteSession(null);
     }
   }
 
@@ -712,6 +723,27 @@ function ChatPage() {
         <div className="fixed bottom-4 right-4 z-[230] max-w-[320px] rounded-lg bg-danger-bg px-3 py-2 text-sm font-medium text-danger shadow-lg ring-1 ring-danger/25">
           {actionError}
         </div>
+      ) : null}
+
+      {pendingDeleteSession ? (
+        <ConfirmDialog
+          eyebrow={copy.deleteSession}
+          title={copy.deleteSession}
+          description={copy.sessionDeleteConfirm}
+          cancelLabel={copy.cancel}
+          confirmLabel={copy.deleteSession}
+          isBusy={isDeletingSession}
+          confirmTone="danger"
+          onCancel={() => {
+            if (!isDeletingSession) {
+              setPendingDeleteSession(null);
+            }
+          }}
+          onConfirm={() => {
+            void confirmDeleteSession();
+          }}
+          ariaLabel={copy.deleteSession}
+        />
       ) : null}
     </>
   );
