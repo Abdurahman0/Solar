@@ -563,11 +563,13 @@ export function mapConversationDtoToModel(dto: ConversationDto): Conversation {
     readString(dto.last_message_at) ||
     readString(lastMessagePayload?.created_at) ||
     null;
+  const title = readString(dto.title) || null;
 
   return {
     id: sessionId,
     channel,
     external_id: externalId,
+    title,
     lead: mapLeadSummary(dto.lead),
     client: mapClientSummary(dto.client ?? dto.customer),
     assigned_operator: mapUserSummary(dto.assigned_operator),

@@ -22,6 +22,7 @@ export interface Conversation {
 	id: EntityId
 	channel: ChatChannel
 	external_id: string | null
+	title?: string | null
 	lead: LeadSummary | null
 	client: ClientSummary | null
 	assigned_operator: UserSummary | null

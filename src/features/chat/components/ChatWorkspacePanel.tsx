@@ -24,6 +24,7 @@ import {
 	formatUzMonthYear,
 } from '../../../i18n/date-format'
 import ChatUserProfilePanel from './ChatUserProfilePanel'
+import { getConversationDisplayName } from '../utils/conversation-display'
 import type { ChatMessage, Conversation } from '../../../types/domain'
 
 interface ChatWorkspacePanelProps {
@@ -99,28 +100,7 @@ function isLikelyIdValue(value: string, session: Conversation): boolean {
 }
 
 function getSessionTitle(session: Conversation, fallbackUnknownCustomer: string): string {
-	const stateRecord = asRecord(session.state_data)
-	const stateCustomerName = asText(stateRecord?.customer_name)
-	const candidates = [
-		stateCustomerName,
-		session.client?.fullName ?? null,
-		session.lead?.fullName ?? null,
-	]
-
-	for (const candidate of candidates) {
-		if (!candidate) {
-			continue
-		}
-
-		const normalized = candidate.trim()
-		if (!normalized || isLikelyIdValue(normalized, session)) {
-			continue
-		}
-
-		return normalized
-	}
-
-	return fallbackUnknownCustomer
+	return getConversationDisplayName(session, fallbackUnknownCustomer)
 }
 
 function getInitial(value: string): string {

@@ -2,6 +2,7 @@ import { FaInstagram, FaTelegramPlane } from 'react-icons/fa';
 import { FiAlertTriangle, FiEdit3, FiGlobe } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, LoadingState } from '../../../components/shared/page';
+import { getConversationDisplayName } from '../utils/conversation-display';
 import type { Conversation, EntityId } from '../../../types/domain';
 
 interface ChatSessionListProps {
@@ -45,28 +46,8 @@ function formatSessionTime(value: string | null, locale: string, emptyLabel: str
   }).format(new Date(value));
 }
 
-function getSessionTitle(
-  session: Conversation,
-  fallbackUnknown: string,
-): string {
-  const stateRecord =
-    session.state_data &&
-      typeof session.state_data === 'object' &&
-      !Array.isArray(session.state_data)
-      ? (session.state_data as Record<string, unknown>)
-      : null;
-  const stateCustomerName =
-    typeof stateRecord?.customer_name === 'string'
-      ? stateRecord.customer_name.trim()
-      : '';
-
-  return (
-    stateCustomerName ||
-    (session.client?.fullName ??
-      session.lead?.fullName ??
-      session.external_id ??
-      fallbackUnknown)
-  );
+function getSessionTitle(session: Conversation, fallbackUnknown: string): string {
+  return getConversationDisplayName(session, fallbackUnknown);
 }
 
 function getInitial(title: string): string {
