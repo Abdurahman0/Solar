@@ -38,20 +38,22 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
         requiredStatus: 'Статус обязателен',
         requiredSource: 'Источник обязателен',
         labels: {
-          fullName: 'Полное имя',
+          fullName: 'ФИО',
           phone: 'Телефон',
+          source: 'Источник',
+          status: 'Статус',
           region: 'Регион',
           address: 'Адрес',
           objectType: 'Тип объекта',
           segment: 'Сегмент клиента',
-          electricity: 'Потребление электроэнергии',
-          monthlyBill: 'Ежемесячный счет',
+          electricity: 'Электропотребление',
+          desiredPower: 'Желаемая мощность (кВт)',
+          monthlyBill: 'Средний чек',
           solutionType: 'Тип решения',
-          budgetRange: 'Бюджет',
-          source: 'Источник',
-          status: 'Статус',
+          budget: 'Бюджет',
+          manager: 'Менеджер',
           notes: 'Заметки',
-          aiSummary: 'AI сводка',
+          aiSummary: 'AI резюме',
         },
       }
     : {
@@ -65,19 +67,21 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
         requiredStatus: 'Holat majburiy',
         requiredSource: 'Manba majburiy',
         labels: {
-          fullName: 'To\'liq ism',
+          fullName: 'F.I.SH.',
           phone: 'Telefon',
+          source: 'Manba',
+          status: 'Holat',
           region: 'Hudud',
           address: 'Manzil',
           objectType: 'Obyekt turi',
           segment: 'Mijoz segmenti',
           electricity: 'Elektr iste\'moli',
+          desiredPower: 'So\'ralgan quvvat (kVt)',
           monthlyBill: 'Oylik hisob',
           solutionType: 'Yechim turi',
-          budgetRange: 'Byudjet oralig\'i',
-          source: 'Manba',
-          status: 'Holat',
-          notes: 'Izoh',
+          budget: 'Byudjet',
+          manager: 'Menejer',
+          notes: 'Izohlar',
           aiSummary: 'AI xulosa',
         },
       };
@@ -248,6 +252,16 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
           <div className="grid gap-1.5">
             <label className={labelClassName}>{tx.labels.electricity}</label>
             <input className={inputClassName} value={form.electricity_consumption || ''} onChange={(e) => updateField('electricity_consumption', e.target.value)} disabled={isSubmitting} />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>{tx.labels.desiredPower}</label>
+            <input 
+              type="number" 
+              className={inputClassName} 
+              value={form.desired_power_kw ?? ''} 
+              onChange={(e) => updateField('desired_power_kw', e.target.value ? Number(e.target.value) : null)} 
+              disabled={isSubmitting} 
+            />
           </div>
           <div className="grid gap-1.5">
             <label className={labelClassName}>{tx.labels.monthlyBill}</label>

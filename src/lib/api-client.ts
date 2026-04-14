@@ -57,7 +57,11 @@ function applyCommonRequestHeaders(
   config: InternalAxiosRequestConfig,
 ): InternalAxiosRequestConfig {
   config.headers = config.headers ?? {};
-  config.headers.Accept = 'application/json';
+  
+  // Only set default Accept if not already specified
+  if (!config.headers.Accept) {
+    config.headers.Accept = 'application/json';
+  }
 
   if (shouldAttachNgrokBypassHeader) {
     config.headers[NGROK_BYPASS_HEADER_NAME] = 'true';

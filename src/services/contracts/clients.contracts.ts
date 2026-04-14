@@ -10,6 +10,26 @@ import type {
 	UpdateInput,
 } from './common.contracts'
 
+export interface ClientSelectedProduct {
+	contract_id?: string
+	contract_title?: string
+	contract_status?: string
+	product_id?: string
+	product_name?: string
+	quantity?: number
+	unit_price?: string | number
+	created_at?: string
+}
+
+export interface ClientRecentContract {
+	id: string
+	title?: string
+	status?: string
+	total_amount?: string | number
+	created_at?: string
+	items?: ClientSelectedProduct[]
+}
+
 export interface Client extends BaseEntity {
 	lead?: string | null
 	lead_id?: string | null
@@ -20,6 +40,7 @@ export interface Client extends BaseEntity {
 	object_type?: string
 	customer_segment?: string
 	electricity_consumption?: string
+	desired_power_kw?: number | null
 	monthly_bill?: string | number
 	solution_type?: string
 	budget_range?: string
@@ -43,6 +64,8 @@ export interface Client extends BaseEntity {
 	notes?: string
 	ai_summary?: string
 	metadata?: Record<string, unknown>
+	selected_products?: ClientSelectedProduct[]
+	recent_contracts?: ClientRecentContract[]
 }
 
 export interface CreateClientInput extends CreateInput<Client> {
@@ -71,7 +94,7 @@ export interface IClientsService {
 	updateClient(id: string, input: UpdateClientInput): Promise<Client>
 	patchClient?(id: string, input: UpdateClientInput): Promise<Client>
 	deleteClient(id: string): Promise<void>
-	exportClients(): Promise<Client[]>
+	exportClients(): Promise<Blob>
 
 	// Bulk operations
 	bulkUpdateClients(ids: string[], input: UpdateClientInput): Promise<Client[]>

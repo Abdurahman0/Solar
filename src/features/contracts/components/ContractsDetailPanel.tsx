@@ -378,7 +378,6 @@ export function ContractsDetailPanel({
 					deliveryStatus: 'Yetkazib berish holati',
 					deliveryNotes: 'Yetkazish izohi',
 					total: 'Jami summa',
-					details: 'Tafsilotlar',
 					created: 'Yaratilgan',
 					updated: 'Yangilangan',
 					items: 'Shartnoma pozitsiyalari',

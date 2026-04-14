@@ -3,6 +3,8 @@
  */
 
 import { BaseCrudAdapter } from './base-crud.adapter'
+import { getAccessToken } from '../../../lib/auth-storage'
+import { apiClient } from '../../../lib/api-client'
 import { ApiRequestor } from './api-requestor'
 import type {
 	Client,
@@ -58,13 +60,14 @@ export class ClientsAdapter
 		return this.delete(id)
 	}
 
-	async exportClients(): Promise<Client[]> {
-		const response = await this.extraRequestor.get<unknown>('/api/clients/export/')
-		if (Array.isArray(response)) {
-			return response as Client[]
-		}
-
-		return response ? [response as Client] : []
+	async exportClients(): Promise<Blob> {
+		const response = await apiClient.get('/api/clients/export/', {
+			responseType: 'blob',
+			headers: {
+				'Accept': '*/*'
+			}
+		})
+		return response.data
 	}
 
 	async bulkUpdateClients(

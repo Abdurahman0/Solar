@@ -56,6 +56,7 @@ export function ClientsDetailPanel({
           objectType: 'Тип объекта',
           segment: 'Сегмент клиента',
           electricity: 'Потребление электроэнергии',
+          desiredPower: 'Желаемая мощность',
           monthlyBill: 'Ежемесячный счет',
           solutionType: 'Тип решения',
           budget: 'Бюджет',
@@ -65,6 +66,8 @@ export function ClientsDetailPanel({
           aiSummary: 'AI сводка',
           created: 'Создан',
           updated: 'Обновлен',
+          selectedProducts: 'Выбранные продукты',
+          recentContracts: 'Недавние договоры',
         },
         edit: 'Редактировать',
         delete: 'Удалить',
@@ -82,6 +85,7 @@ export function ClientsDetailPanel({
           objectType: 'Obyekt turi',
           segment: 'Mijoz segmenti',
           electricity: 'Elektr iste\'moli',
+          desiredPower: 'So\'ralgan quvvat',
           monthlyBill: 'Oylik hisob',
           solutionType: 'Yechim turi',
           budget: 'Byudjet',
@@ -91,6 +95,8 @@ export function ClientsDetailPanel({
           aiSummary: 'AI xulosa',
           created: 'Yaratilgan',
           updated: 'Yangilangan',
+          selectedProducts: 'Tanlangan mahsulotlar',
+          recentContracts: 'Yaqindagi shartnomalar',
         },
         edit: 'Tahrirlash',
         delete: 'O\'chirish',
@@ -213,8 +219,18 @@ export function ClientsDetailPanel({
             <p className={`mt-1 ${valueClassName}`}>{client.electricity_consumption || '-'}</p>
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
+            <p className={labelClassName}>{tx.fields.desiredPower}</p>
+            <p className={`mt-1 ${valueClassName}`}>{client.desired_power_kw ? `${client.desired_power_kw} kVt` : '-'}</p>
+          </div>
+          <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.monthlyBill}</p>
-            <p className={`mt-1 ${valueClassName}`}>{String(client.monthly_bill ?? '-')}</p>
+            <p className={`mt-1 ${valueClassName}`}>
+              {client.monthly_bill 
+                ? (typeof client.monthly_bill === 'number' || !isNaN(Number(client.monthly_bill))
+                  ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(client.monthly_bill))} UZS`
+                  : client.monthly_bill)
+                : '-'}
+            </p>
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.solutionType}</p>
@@ -262,6 +278,97 @@ export function ClientsDetailPanel({
           ) : null}
         </div>
       </PageCard>
+
+      {client.selected_products && client.selected_products.length > 0 ? (
+        <PageCard>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <AppIcon name="package" className="h-4 w-4" />
+            </div>
+            <p className={`${labelClassName} text-text-primary`}>{tx.fields.selectedProducts}</p>
+          </div>
+          <div className="grid gap-2.5">
+            {client.selected_products.map((item, i) => (
+              <div key={item.product_id ?? i} className="group relative flex flex-col gap-1.5 rounded-xl bg-surface-subtle/50 p-3.5 text-sm transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-primary/20">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="font-bold leading-tight text-text-primary [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
+                    {item.product_name}
+                  </span>
+                  <div className="shrink-0 flex items-center gap-1 overflow-hidden rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-bold text-primary">
+                    <span>x</span>
+                    <span>{item.quantity}</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-3 mt-1">
+                  {item.unit_price && (
+                    <div className="flex items-center gap-1.5 text-text-secondary">
+                      <div className="h-1 w-1 rounded-full bg-border-soft" />
+                      <p className="font-semibold text-[13px]">
+                        {new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(item.unit_price))} UZS
+                      </p>
+                    </div>
+                  )}
+                  {item.contract_title && (
+                    <div className="flex items-center gap-1.5 text-text-muted">
+                      <div className="h-1 w-1 rounded-full bg-border-soft" />
+                      <p className="text-[12px] font-medium italic">
+                        {item.contract_title}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </PageCard>
+      ) : null}
+
+      {client.recent_contracts && client.recent_contracts.length > 0 ? (
+        <PageCard>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info-bg text-info">
+              <AppIcon name="document" className="h-4 w-4" />
+            </div>
+            <p className={`${labelClassName} text-text-primary`}>{tx.fields.recentContracts}</p>
+          </div>
+          <div className="grid gap-2.5">
+            {client.recent_contracts.map((contract, i) => (
+              <div key={contract.id ?? i} className="group flex flex-col gap-3 rounded-xl bg-surface-subtle/50 p-3.5 transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-info/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-bold text-text-primary group-hover:text-info transition-colors [overflow-wrap:anywhere]">
+                      {contract.title}
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium text-text-muted flex items-center gap-1">
+                      <AppIcon name="activity" className="h-3 w-3 opacity-60" />
+                      {formatLocalizedDate(contract.created_at, locale, { locale, withYear: true, withTime: true, shortMonth: true, fallback: '-' })}
+                    </p>
+                  </div>
+                  {contract.status && (
+                    <div className="shrink-0 scale-90 origin-top-right">
+                      <StatusBadge
+                        tone="info"
+                        status={contract.status}
+                        label={contract.status}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {contract.total_amount && (
+                  <div className="flex items-center justify-between border-t border-border-soft/20 pt-2.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total</span>
+                    <p className="text-[14px] font-black tracking-tight text-text-primary">
+                      {new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(contract.total_amount))} UZS
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </PageCard>
+      ) : null}
 
       <PageCard>
         <div className="grid gap-2.5 sm:grid-cols-2">

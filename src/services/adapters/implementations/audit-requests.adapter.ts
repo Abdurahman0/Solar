@@ -8,39 +8,7 @@ import type {
 	UpdateAuditRequestInput,
 } from '../../contracts'
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) {
-		return null
-	}
 
-	return value as Record<string, unknown>
-}
-
-function parseListResponse(
-	data: unknown,
-	params?: AuditRequestsListParams,
-): PaginatedResponse<AuditRequest> {
-	const raw = toRecord(data) ?? {}
-	// Unwrap { status, data: { count, results } } envelope if present
-	const payload = toRecord(raw.data) ?? raw
-	const results = Array.isArray(payload.results)
-		? payload.results
-		: Array.isArray(payload.items)
-			? payload.items
-			: []
-	const items = results as AuditRequest[]
-	const count = typeof payload.count === 'number' ? payload.count : items.length
-
-	return {
-		items,
-		total: count,
-		page: params?.page,
-		page_size: params?.page_size,
-		count,
-		next: typeof payload.next === 'string' ? payload.next : null,
-		previous: typeof payload.previous === 'string' ? payload.previous : null,
-	}
-}
 
 export class AuditRequestsAdapter
 	extends BaseCrudAdapter<
@@ -61,18 +29,11 @@ export class AuditRequestsAdapter
 	async listAuditRequests(
 		params?: AuditRequestsListParams,
 	): Promise<PaginatedResponse<AuditRequest>> {
-		const data = await this.requestor.get<unknown>(
-			this.endpoint,
-			params as Record<string, unknown>,
-		)
-		return parseListResponse(data, params)
+		return this.list(params)
 	}
 
 	async getAuditRequest(id: string): Promise<AuditRequest> {
-		const raw = await this.requestor.get<unknown>(`${this.endpoint}${id}/`)
-		const record = toRecord(raw) ?? {}
-		// Unwrap { status, data: { ...auditRequest } } envelope if present
-		return (toRecord(record.data) ?? record) as unknown as AuditRequest
+		return this.get(id)
 	}
 
 	async createAuditRequest(input: CreateAuditRequestInput): Promise<AuditRequest> {

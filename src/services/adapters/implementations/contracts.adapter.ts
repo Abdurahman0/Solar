@@ -17,39 +17,7 @@ import type {
 	UpdateContractInput,
 } from '../../contracts'
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) {
-		return null
-	}
 
-	return value as Record<string, unknown>
-}
-
-function parseListResponse(
-	data: unknown,
-	params?: ContractsListParams,
-): PaginatedResponse<Contract> {
-	const raw = toRecord(data) ?? {}
-	// Unwrap { status, data: { count, results } } envelope if present
-	const payload = toRecord(raw.data) ?? raw
-	const results = Array.isArray(payload.results)
-		? payload.results
-		: Array.isArray(payload.items)
-			? payload.items
-			: []
-	const items = results as Contract[]
-	const count = typeof payload.count === 'number' ? payload.count : items.length
-
-	return {
-		items,
-		total: count,
-		page: params?.page,
-		page_size: params?.page_size,
-		count,
-		next: typeof payload.next === 'string' ? payload.next : null,
-		previous: typeof payload.previous === 'string' ? payload.previous : null,
-	}
-}
 
 export class ContractsAdapter
 	extends BaseCrudAdapter<
@@ -75,18 +43,11 @@ export class ContractsAdapter
 	async listContracts(
 		params?: ContractsListParams,
 	): Promise<PaginatedResponse<Contract>> {
-		const data = await this.requestor.get<unknown>(
-			this.endpoint,
-			params as Record<string, unknown>,
-		)
-		return parseListResponse(data, params)
+		return this.list(params)
 	}
 
 	async getContract(id: string): Promise<Contract> {
-		const raw = await this.requestor.get<unknown>(`${this.endpoint}${id}/`)
-		const record = toRecord(raw) ?? {}
-		// Unwrap { status, data: { ...contract } } envelope if present
-		return (toRecord(record.data) ?? record) as unknown as Contract
+		return this.get(id)
 	}
 
 	async createContract(
@@ -171,10 +132,7 @@ export class ContractsAdapter
 	}
 
 	async getPricingMatrix(): Promise<PricingMatrixData> {
-		const data = await this.fileRequestor.get<unknown>('/api/contracts/pricing-matrix/')
-
-		const payload = toRecord(data)
-		const root = toRecord(payload?.data) ?? payload
+		const root = await this.fileRequestor.get<any>('/api/contracts/pricing-matrix/')
 
 		const subsidyPercent =
 			typeof root?.subsidy_percent === 'string'
@@ -182,7 +140,7 @@ export class ContractsAdapter
 				: String(root?.subsidy_percent ?? '0')
 		const supportedAuditPowers = Array.isArray(root?.supported_audit_powers)
 			? root.supported_audit_powers.filter(
-					power => typeof power === 'number' && Number.isFinite(power),
+					(power: any) => typeof power === 'number' && Number.isFinite(power),
 				)
 			: []
 		const panels = Array.isArray(root?.panels) ? root.panels : []

@@ -37,6 +37,7 @@ export class ApiRequestor {
 
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
+			'ngrok-skip-browser-warning': 'true',
 			...config?.headers,
 		}
 
@@ -83,7 +84,20 @@ export class ApiRequestor {
 				return undefined as T
 			}
 
-			return response.json() as Promise<T>
+			const json = await response.json()
+			
+			// Unwrap { status: 'success', data: ... } envelope if present
+			if (
+				json && 
+				typeof json === 'object' && 
+				!Array.isArray(json) && 
+				(json as any).status === 'success' && 
+				'data' in (json as any)
+			) {
+				return (json as any).data as T
+			}
+
+			return json as Promise<T>
 		} catch (error) {
 			if (error instanceof ServiceErrorClass) {
 				throw error
@@ -139,5 +153,54 @@ export class ApiRequestor {
 		params?: Record<string, unknown>,
 	): Promise<T> {
 		return this.request<T>(endpoint, { method: 'DELETE', params })
+	}
+
+	async blob(endpoint: string, params?: Record<string, unknown>): Promise<Blob> {
+		const url = new URL(endpoint, this.baseUrl)
+
+		if (params) {
+			Object.entries(params).forEach(([key, value]) => {
+				if (value !== undefined && value !== null) {
+					url.searchParams.append(key, String(value))
+				}
+			})
+		}
+
+		const headers: Record<string, string> = {
+			'ngrok-skip-browser-warning': 'true',
+		}
+
+		const token = getAccessToken()
+		if (token) {
+			headers['Authorization'] = `Bearer ${token}`
+		}
+
+		const fetchConfig: RequestInit = {
+			method: 'GET',
+			headers,
+			cache: 'no-store',
+		}
+
+		let response = await fetch(url.toString(), fetchConfig)
+
+		if (response.status === 401) {
+			const refreshedTokens = await requestTokenRefresh()
+			if (refreshedTokens?.access) {
+				headers['Authorization'] = `Bearer ${refreshedTokens.access}`
+				fetchConfig.headers = headers
+				response = await fetch(url.toString(), fetchConfig)
+			}
+		}
+
+		if (!response.ok) {
+			const errorData = await this.parseErrorResponse(response)
+			throw new ServiceErrorClass(
+				response.status,
+				errorData?.detail || errorData?.message || 'Request failed',
+				errorData ?? undefined,
+			)
+		}
+
+		return response.blob()
 	}
 }
