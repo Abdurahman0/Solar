@@ -76,25 +76,7 @@ export class ContractsAdapter
 	}
 
 	async downloadFile(id: string): Promise<Blob> {
-		const token = getAccessToken()
-		const headers: Record<string, string> = {}
-		if (token) {
-			headers['Authorization'] = `Bearer ${token}`
-		}
-
-		const response = await fetch(
-			`${this.baseUrl}/api/contracts/${id}/download-file/`,
-			{
-				method: 'GET',
-				headers,
-			},
-		)
-
-		if (!response.ok) {
-			throw new Error(`Failed to download file: ${response.statusText}`)
-		}
-
-		return response.blob()
+		return this.fileRequestor.blob(`/api/contracts/${id}/download-file/`)
 	}
 
 	async getDownloadFileInfo(id: string): Promise<Contract> {
@@ -105,23 +87,10 @@ export class ContractsAdapter
 		const formData = new FormData()
 		formData.append('file', file)
 
-		const token = getAccessToken()
-		const headers: Record<string, string> = {}
-		if (token) {
-			headers['Authorization'] = `Bearer ${token}`
-		}
-
-		const response = await fetch(`${this.baseUrl}/api/contracts/${id}/`, {
+		return this.fileRequestor.request<Contract>(`/api/contracts/${id}/`, {
 			method: 'PATCH',
-			headers,
 			body: formData,
 		})
-
-		if (!response.ok) {
-			throw new Error(`Failed to upload file: ${response.statusText}`)
-		}
-
-		return response.json() as Promise<Contract>
 	}
 
 	async recalculate(id: string, input?: UpdateContractInput): Promise<Contract> {
@@ -225,16 +194,9 @@ export class ContractsAdapter
 			mode === 'create' ? '/api/contracts/' : `/api/contracts/${id}/`
 		const method = mode === 'create' ? 'POST' : 'PATCH'
 
-		const response = await fetch(`${this.baseUrl}${endpoint}`, {
+		return this.fileRequestor.request<Contract>(endpoint, {
 			method,
-			headers,
 			body: formData,
 		})
-
-		if (!response.ok) {
-			throw new Error(`Failed to upload contract: ${response.statusText}`)
-		}
-
-		return response.json() as Promise<Contract>
 	}
 }

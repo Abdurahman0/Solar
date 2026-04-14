@@ -35,10 +35,14 @@ export class ApiRequestor {
 			})
 		}
 
+		const isFormData = config?.body instanceof FormData
 		const headers: Record<string, string> = {
-			'Content-Type': 'application/json',
 			'ngrok-skip-browser-warning': 'true',
 			...config?.headers,
+		}
+
+		if (!isFormData) {
+			headers['Content-Type'] = 'application/json'
 		}
 
 		// Add authorization token
@@ -52,7 +56,9 @@ export class ApiRequestor {
 				method: config?.method || 'GET',
 				headers,
 				cache: 'no-store' as RequestCache,
-				body: config?.body ? JSON.stringify(config.body) : undefined,
+				body: isFormData 
+					? (config?.body as FormData) 
+					: (config?.body ? JSON.stringify(config.body) : undefined),
 				signal: config?.timeout
 					? AbortSignal.timeout(config.timeout)
 					: undefined,

@@ -5,10 +5,19 @@ import './i18n'
 import './styles/tailwind.css'
 
 // Initialize services at app startup
-const apiBaseUrl =
+const configuredBaseUrl = (
 	import.meta.env.VITE_API_BASE_URL ||
 	import.meta.env.VITE_API_URL ||
 	'http://localhost:8000'
+).trim()
+
+const useApiProxy = 
+	import.meta.env.DEV && 
+	configuredBaseUrl.length > 0 && 
+	import.meta.env.VITE_API_USE_PROXY !== 'false'
+
+const apiBaseUrl = useApiProxy ? window.location.origin : configuredBaseUrl
+
 initializeServices(apiBaseUrl)
 
 try {
