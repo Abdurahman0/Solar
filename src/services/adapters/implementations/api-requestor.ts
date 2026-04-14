@@ -86,18 +86,17 @@ export class ApiRequestor {
 
 			const json = await response.json()
 			
-			// Unwrap { status: 'success', data: ... } envelope if present
-			if (
-				json && 
+			if (json && 
 				typeof json === 'object' && 
 				!Array.isArray(json) && 
 				(json as any).status === 'success' && 
 				'data' in (json as any)
 			) {
-				return (json as any).data as T
+				const unwrappedData = (json as any).data;
+				return this.normalizeResponse<T>(unwrappedData);
 			}
 
-			return json as Promise<T>
+			return this.normalizeResponse<T>(json) as T;
 		} catch (error) {
 			if (error instanceof ServiceErrorClass) {
 				throw error
@@ -108,6 +107,19 @@ export class ApiRequestor {
 				error instanceof Error ? error.message : 'Unknown error',
 			)
 		}
+	}
+
+	private normalizeResponse<T>(data: any): T {
+		if (data && typeof data === 'object' && !Array.isArray(data)) {
+			// Normalize paginated response keys (results -> items, count -> total)
+			if ('results' in data && Array.isArray(data.results) && !('items' in data)) {
+				data.items = data.results;
+			}
+			if ('count' in data && typeof data.count === 'number' && !('total' in data)) {
+				data.total = data.count;
+			}
+		}
+		return data as T;
 	}
 
 	private async parseErrorResponse(
