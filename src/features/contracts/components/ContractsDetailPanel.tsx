@@ -504,100 +504,96 @@ export function ContractsDetailPanel({
 								'-'}
 						</p>
 					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
-						<p className={labelClassName}>{tx.fields.address}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.installation_address || '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
-						<p className={labelClassName}>{tx.fields.deliveryNotes}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.delivery_notes || '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
-						<p className={labelClassName}>{tx.fields.details}</p>
-						<ContractsDetailsView details={contract.details} isRu={isRu} locale={locale} />
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.total}</p>
-						<p className={`mt-1 ${valueClassName}`}>{String(contract.total_amount ?? '-')}</p>
-					</div>
+				<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
+					<p className={labelClassName}>{tx.fields.address}</p>
+					<p className={`mt-1 ${valueClassName}`}>{contract.installation_address || '-'}</p>
 				</div>
-			</PageCard>
-
-			<PageCard>
-				<p className={labelClassName}>{tx.fields.items}</p>
-				<div className='mt-2 grid gap-2'>
-					{contract.items?.length ? (
-						contract.items.map((item, index) => (
-							<div
-								key={item.id ?? `${item.product}-${index}`}
-								className='rounded-lg bg-surface-subtle/70 p-3 text-sm text-text-primary'
-							>
-								{item.product_name || item.product} x {item.quantity} - {String(item.unit_price)}
-							</div>
-						))
-					) : (
-						<div className='rounded-lg bg-surface-subtle/70 p-3 text-sm text-text-secondary'>-</div>
-					)}
+				<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
+					<p className={labelClassName}>{tx.fields.deliveryNotes}</p>
+					<p className={`mt-1 ${valueClassName}`}>{contract.delivery_notes || '-'}</p>
 				</div>
-			</PageCard>
-
-			<PageCard>
-				<div className='grid gap-2.5 sm:grid-cols-2'>
-					<div className='rounded-lg bg-surface-subtle/35 p-3 ring-1 ring-border-soft/20'>
-						<p className={labelClassName}>{tx.fields.created}</p>
-						<p className={`mt-1 ${valueClassName}`}>
-							{formatLocalizedDate(contract.created_at, locale, {
-								locale,
-								withYear: true,
-								withTime: true,
-								shortMonth: true,
-								fallback: '-',
-							})}
-						</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/35 p-3 ring-1 ring-border-soft/20'>
-						<p className={labelClassName}>{tx.fields.updated}</p>
-						<p className={`mt-1 ${valueClassName}`}>
-							{formatLocalizedDate(contract.updated_at, locale, {
-								locale,
-								withYear: true,
-								withTime: true,
-								shortMonth: true,
-								fallback: '-',
-							})}
-						</p>
-					</div>
+				<div className='rounded-lg bg-surface-subtle/80 p-3'>
+					<p className={labelClassName}>{tx.fields.total}</p>
+					<p className={`mt-1 ${valueClassName}`}>{String(contract.total_amount ?? '-')}</p>
 				</div>
-			</PageCard>
-
-			<div className='mt-1 flex flex-wrap items-center gap-2'>
-				<button
-					type='button'
-					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-info-bg px-4 text-sm font-semibold text-info shadow-sm ring-1 ring-info/25 transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30 disabled:cursor-not-allowed disabled:opacity-60'
-					onClick={() => onRecalculate?.(contract)}
-					disabled={isRecalculating}
-				>
-					<AppIcon name='activity' className='h-4 w-4' />
-					{recalculateLabel}
-				</button>
-				<button
-					type='button'
-					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35'
-					onClick={() => onEdit?.(contract)}
-				>
-					<FiEdit2 className='h-4 w-4' />
-					{tx.edit}
-				</button>
-				<button
-					type='button'
-					className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-surface-card px-4 text-sm font-semibold text-danger shadow-sm ring-1 ring-danger/25 transition duration-fast hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/25'
-					onClick={() => onRequestDelete?.(contract)}
-				>
-					<FiTrash2 className='h-4 w-4' />
-					{tx.delete}
-				</button>
 			</div>
+		</PageCard>
+
+		<PageCard>
+			<p className={labelClassName}>{tx.fields.items}</p>
+			<div className='mt-2 grid gap-2'>
+				{contract.items?.length ? (
+					contract.items.map((item, index) => (
+						<div
+							key={item.id ?? `${item.product}-${index}`}
+							className='rounded-lg bg-surface-subtle/70 p-3 text-sm text-text-primary'
+						>
+							{item.product_name || item.product} x {item.quantity} - {String(item.unit_price)}
+						</div>
+					))
+				) : (
+					<div className='rounded-lg bg-surface-subtle/70 p-3 text-sm text-text-secondary'>-</div>
+				)}
+			</div>
+		</PageCard>
+
+		<PageCard>
+			<div className='grid gap-2.5 sm:grid-cols-2'>
+				<div className='rounded-lg bg-surface-subtle/35 p-3 ring-1 ring-border-soft/20'>
+					<p className={labelClassName}>{tx.fields.created}</p>
+					<p className={`mt-1 ${valueClassName}`}>
+						{formatLocalizedDate(contract.created_at, locale, {
+							locale,
+							withYear: true,
+							withTime: true,
+							shortMonth: true,
+							fallback: '-',
+						})}
+					</p>
+				</div>
+				<div className='rounded-lg bg-surface-subtle/35 p-3 ring-1 ring-border-soft/20'>
+					<p className={labelClassName}>{tx.fields.updated}</p>
+					<p className={`mt-1 ${valueClassName}`}>
+						{formatLocalizedDate(contract.updated_at, locale, {
+							locale,
+							withYear: true,
+							withTime: true,
+							shortMonth: true,
+							fallback: '-',
+						})}
+					</p>
+				</div>
+			</div>
+		</PageCard>
+
+		<div className='mt-1 flex flex-wrap items-center gap-2'>
+			<button
+				type='button'
+				className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-info-bg px-4 text-sm font-semibold text-info shadow-sm ring-1 ring-info/25 transition duration-fast hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/30 disabled:cursor-not-allowed disabled:opacity-60'
+				onClick={() => onRecalculate?.(contract)}
+				disabled={isRecalculating}
+			>
+				<AppIcon name='activity' className='h-4 w-4' />
+				{recalculateLabel}
+			</button>
+			<button
+				type='button'
+				className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35'
+				onClick={() => onEdit?.(contract)}
+			>
+				<FiEdit2 className='h-4 w-4' />
+				{tx.edit}
+			</button>
+			<button
+				type='button'
+				className='inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-surface-card px-4 text-sm font-semibold text-danger shadow-sm ring-1 ring-danger/25 transition duration-fast hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/25'
+				onClick={() => onRequestDelete?.(contract)}
+			>
+				<FiTrash2 className='h-4 w-4' />
+				{tx.delete}
+			</button>
+		</div>
+
 		</div>
 	)
 }
-

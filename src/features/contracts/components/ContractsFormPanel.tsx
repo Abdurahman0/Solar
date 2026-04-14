@@ -339,22 +339,7 @@ export function ContractsFormPanel({
 			return
 		}
 
-		const rawDetails = form.details.trim()
-		let parsedDetails: Record<string, unknown> | null = null
-		if (rawDetails.length) {
-			try {
-				const parsed = JSON.parse(rawDetails) as unknown
-				if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-					parsedDetails = parsed as Record<string, unknown>
-				} else {
-					setErrorMessage(tx.detailsJsonError)
-					return
-				}
-			} catch {
-				setErrorMessage(tx.detailsJsonError)
-				return
-			}
-		}
+		const parsedDetails: Record<string, unknown> | null = null
 
 		const payload: CreateContractInput | UpdateContractInput = {
 			client: form.client,
@@ -371,7 +356,7 @@ export function ContractsFormPanel({
 			installation_address: form.installation_address || '',
 			delivery_status: form.delivery_status || 'pending',
 			delivery_notes: form.delivery_notes || '',
-			...(parsedDetails ? { details: parsedDetails } : {}),
+
 			items: form.items
 				.filter(item => item.product && item.quantity > 0)
 				.map(item => ({
@@ -577,15 +562,7 @@ export function ContractsFormPanel({
 							disabled={isSubmitting}
 						/>
 					</div>
-					<div className='grid gap-1.5 sm:col-span-2'>
-						<label className={labelClassName}>{tx.labels.details}</label>
-						<textarea
-							className={`${inputClassName} min-h-[92px] resize-y`}
-							value={form.details}
-							onChange={event => updateField('details', event.target.value)}
-							disabled={isSubmitting}
-						/>
-					</div>
+
 					<div className='sm:col-span-2'>
 						<FilePickerField
 							id='contract-file'

@@ -29,7 +29,9 @@ function parseListResponse(
 	data: unknown,
 	params?: ContractsListParams,
 ): PaginatedResponse<Contract> {
-	const payload = toRecord(data) ?? {}
+	const raw = toRecord(data) ?? {}
+	// Unwrap { status, data: { count, results } } envelope if present
+	const payload = toRecord(raw.data) ?? raw
 	const results = Array.isArray(payload.results)
 		? payload.results
 		: Array.isArray(payload.items)
@@ -81,7 +83,10 @@ export class ContractsAdapter
 	}
 
 	async getContract(id: string): Promise<Contract> {
-		return this.get(id)
+		const raw = await this.requestor.get<unknown>(`${this.endpoint}${id}/`)
+		const record = toRecord(raw) ?? {}
+		// Unwrap { status, data: { ...contract } } envelope if present
+		return (toRecord(record.data) ?? record) as unknown as Contract
 	}
 
 	async createContract(
