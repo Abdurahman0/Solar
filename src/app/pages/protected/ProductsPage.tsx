@@ -321,9 +321,11 @@ function ProductsPage() {
 
     try {
       let savedProduct: Product;
+      let productIdForImages: EntityId | null = null;
 
       if (formMode === 'create') {
         savedProduct = await services.products.createProduct(input.product);
+        productIdForImages = savedProduct.id;
         setCurrentPage(1);
       } else {
         const editingId = editingProduct?.id;
@@ -331,10 +333,23 @@ function ProductsPage() {
           throw new Error(t('products.form.saveError'));
         }
 
-        savedProduct = await services.products.patchProduct(editingId, input.product);
+        // When editing and primary image is selected, update it via PATCH /api/products/{id}/ multipart/form-data.
+        const patchPayload =
+          input.primaryImageFile
+            ? {
+                ...input.product,
+                image: input.primaryImageFile,
+                imageAltText: input.product.name,
+                imageIsPrimary: true,
+              }
+            : input.product;
+
+        savedProduct = await services.products.patchProduct(editingId, patchPayload);
+        // Don't rely on response id for multipart PATCH; use the real editingId for subsequent image calls.
+        productIdForImages = editingId;
       }
 
-      const productId = savedProduct.id;
+      const productId = productIdForImages ?? savedProduct.id;
 
       if (input.removedImageIds.length > 0) {
         await Promise.all(
@@ -345,21 +360,35 @@ function ProductsPage() {
       }
 
       if (input.primaryImageFile) {
-        await services.products.createProductImage(productId, {
-          image: input.primaryImageFile,
-          isPrimary: true,
-        });
+        // For edit mode we already patched via /api/products/{id}/. Only use legacy upload on create.
+        if (formMode === 'create') {
+          await services.products.createProductImage(productId, {
+            image: input.primaryImageFile,
+            isPrimary: true,
+          });
+        }
       }
 
       if (input.galleryImageFiles.length > 0) {
-        await Promise.all(
-          input.galleryImageFiles.map((file) =>
-            services.products.createProductImage(productId, {
+        if (formMode === 'edit') {
+          // Use PATCH /api/products/{id}/ multipart/form-data for secondary images as well.
+          for (const [index, file] of input.galleryImageFiles.entries()) {
+            await services.products.patchProduct(productId, {
               image: file,
-              isPrimary: false,
-            }),
-          ),
-        );
+              imageAltText: `${input.product.name} ${index + 1}`,
+              imageIsPrimary: false,
+            });
+          }
+        } else {
+          await Promise.all(
+            input.galleryImageFiles.map((file) =>
+              services.products.createProductImage(productId, {
+                image: file,
+                isPrimary: false,
+              }),
+            ),
+          );
+        }
       }
 
       setIsFormOpen(false);

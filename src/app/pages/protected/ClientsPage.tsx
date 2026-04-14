@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import { EmptyState, PageHeader, PageLayout, PageSection } from '../../../components/shared/page';
 import ClientDeleteDialog from '../../../features/clients/components/ClientDeleteDialog';
@@ -14,6 +14,7 @@ import type { Client } from '../../../services/contracts';
 function ClientsPage() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const canManageClients = hasPermission('can_manage_clients');
 
@@ -64,6 +65,17 @@ function ClientsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    const state = location.state as { clientId?: string } | null;
+    const requestedClientId = state?.clientId;
+    if (!requestedClientId || typeof requestedClientId !== 'string') {
+      return;
+    }
+
+    setSelectedClientId(requestedClientId);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
     if (!actionMessage) {
       return undefined;
     }
@@ -78,7 +90,13 @@ function ClientsPage() {
   }, [actionMessage]);
 
   useEffect(() => {
-    setSelectedClientId(null);
+    const state = location.state as { clientId?: string } | null;
+    const requestedClientId = state?.clientId;
+
+    if (!requestedClientId || typeof requestedClientId !== 'string') {
+      setSelectedClientId(null);
+    }
+
     setIsFormOpen(false);
     setEditingClient(null);
     setClientToDelete(null);

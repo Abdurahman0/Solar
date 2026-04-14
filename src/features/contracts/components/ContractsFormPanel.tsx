@@ -71,16 +71,24 @@ function FilePickerField({
 			<label className={labelClassName} htmlFor={id}>
 				{label}
 			</label>
-			<div className='flex min-h-[46px] items-center justify-between gap-3 rounded-lg border border-border-soft/60 bg-surface-card px-3.5 py-2.5'>
+			<label
+				htmlFor={id}
+				className={[
+					'flex min-h-[46px] items-center justify-between gap-3 rounded-lg border border-border-soft/60 bg-surface-card px-3.5 py-2.5',
+					disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+				].join(' ')}
+				onClick={event => {
+					if (disabled) {
+						event.preventDefault()
+					}
+				}}
+			>
 				<span className='min-w-0 truncate text-sm font-medium text-text-secondary'>
 					{value?.name || emptyLabel}
 				</span>
-				<label
-					htmlFor={id}
-					className='inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-md bg-surface-subtle px-3 text-xs font-semibold text-text-primary transition duration-fast hover:bg-surface-muted'
-				>
+				<span className='inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-surface-subtle px-3 text-xs font-semibold text-text-primary transition duration-fast hover:bg-surface-muted'>
 					{chooseLabel}
-				</label>
+				</span>
 				<input
 					id={id}
 					type='file'
@@ -89,7 +97,7 @@ function FilePickerField({
 					onChange={event => onChange(event.target.files?.[0] ?? null)}
 					disabled={disabled}
 				/>
-			</div>
+			</label>
 		</div>
 	)
 }
@@ -101,10 +109,11 @@ function extractDetails(details: Contract['details']): string {
 	if (typeof details === 'string') {
 		return details
 	}
-	return Object.values(details)
-		.map(value => (typeof value === 'string' ? value.trim() : String(value)))
-		.filter(Boolean)
-		.join(', ')
+	try {
+		return JSON.stringify(details, null, 2)
+	} catch {
+		return String(details)
+	}
 }
 
 function toInitialState(contract?: Contract): ContractFormState {
@@ -147,7 +156,7 @@ export function ContractsFormPanel({
 	onClose,
 	onSuccess,
 }: ContractsFormPanelProps) {
-	const { i18n } = useTranslation()
+	const { t, i18n } = useTranslation()
 	const isRu = i18n.language === 'ru'
 	const isEditing = Boolean(contract)
 
@@ -157,6 +166,7 @@ export function ContractsFormPanel({
 				createTitle: 'Новый договор',
 				editTitle: 'Редактирование договора',
 				requiredError: 'Заполните обязательные поля: клиент и название.',
+				detailsJsonError: 'Поле "Детали" должно быть валидным JSON объектом.',
 				saveError: 'Не удалось сохранить договор.',
 				saving: 'Сохранение...',
 				createSubmit: 'Создать договор',
@@ -194,6 +204,8 @@ export function ContractsFormPanel({
 				createTitle: 'Yangi shartnoma',
 				editTitle: 'Shartnomani tahrirlash',
 				requiredError: 'Majburiy maydonlarni to`ldiring: mijoz va nom.',
+				detailsJsonError:
+					'"Tafsilotlar" maydoni yaroqli JSON obyekt bo`lishi kerak.',
 				saveError: 'Shartnomani saqlab bo`lmadi.',
 				saving: 'Saqlanmoqda...',
 				createSubmit: 'Shartnoma yaratish',
@@ -215,7 +227,7 @@ export function ContractsFormPanel({
 					subsidyPercent: 'Subsidiya (%)',
 					customerPhone: 'Mijoz telefoni',
 					address: "O`rnatish manzili",
-					deliveryStatus: 'Yetkazish holati',
+					deliveryStatus: 'Yetkazib berish holati',
 					deliveryNotes: 'Yetkazish izohi',
 					details: 'Tafsilotlar',
 					file: 'Shartnoma fayli',
@@ -235,6 +247,7 @@ export function ContractsFormPanel({
 	const [isLoadingReferences, setIsLoadingReferences] = useState(true)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
+	const canSubmit = Boolean(form.client && form.title.trim().length > 0)
 
 	useEffect(() => {
 		let isActive = true
@@ -326,6 +339,23 @@ export function ContractsFormPanel({
 			return
 		}
 
+		const rawDetails = form.details.trim()
+		let parsedDetails: Record<string, unknown> | null = null
+		if (rawDetails.length) {
+			try {
+				const parsed = JSON.parse(rawDetails) as unknown
+				if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+					parsedDetails = parsed as Record<string, unknown>
+				} else {
+					setErrorMessage(tx.detailsJsonError)
+					return
+				}
+			} catch {
+				setErrorMessage(tx.detailsJsonError)
+				return
+			}
+		}
+
 		const payload: CreateContractInput | UpdateContractInput = {
 			client: form.client,
 			title: form.title.trim(),
@@ -341,7 +371,7 @@ export function ContractsFormPanel({
 			installation_address: form.installation_address || '',
 			delivery_status: form.delivery_status || 'pending',
 			delivery_notes: form.delivery_notes || '',
-			details: form.details || '',
+			...(parsedDetails ? { details: parsedDetails } : {}),
 			items: form.items
 				.filter(item => item.product && item.quantity > 0)
 				.map(item => ({
@@ -400,10 +430,13 @@ export function ContractsFormPanel({
 						<label className={labelClassName}>{tx.labels.client}</label>
 						<FilterSelect
 							value={form.client}
-							options={clients.map(client => ({
-								value: client.id,
-								label: client.full_name,
-							}))}
+							options={[
+								{ value: '', label: t('shared.filterSelect.select'), disabled: true },
+								...clients.map(client => ({
+									value: client.id,
+									label: client.full_name,
+								})),
+							]}
 							onChange={value => updateField('client', value)}
 							disabled={isSubmitting || isLoadingReferences}
 						/>
@@ -462,15 +495,20 @@ export function ContractsFormPanel({
 					</div>
 					<div className='grid gap-1.5'>
 						<label className={labelClassName}>{tx.labels.requestedPower}</label>
-						<input
-							type='number'
-							min={0}
-							className={inputClassName}
-							value={form.requested_power_kw}
-							onChange={event =>
+						<FilterSelect
+							value={form.requested_power_kw === '' ? '' : String(form.requested_power_kw)}
+							options={[
+								{ value: '', label: t('shared.filterSelect.select'), disabled: true },
+								{ value: '10', label: '10kW' },
+								{ value: '20', label: '20kW' },
+								{ value: '30', label: '30kW' },
+								{ value: '40', label: '40kW' },
+								{ value: '50', label: '50kW' },
+							]}
+							onChange={value =>
 								updateField(
 									'requested_power_kw',
-									event.target.value === '' ? '' : Number(event.target.value),
+									value === '' ? '' : Number(value),
 								)
 							}
 							disabled={isSubmitting}
@@ -548,24 +586,28 @@ export function ContractsFormPanel({
 							disabled={isSubmitting}
 						/>
 					</div>
-					<FilePickerField
-						id='contract-file'
-						label={tx.labels.file}
-						value={form.file}
-						chooseLabel={tx.chooseFile}
-						emptyLabel={tx.noFile}
-						disabled={isSubmitting}
-						onChange={file => updateField('file', file)}
-					/>
-					<FilePickerField
-						id='contract-cadastre-file'
-						label={tx.labels.cadastreFile}
-						value={form.cadastre_file}
-						chooseLabel={tx.chooseFile}
-						emptyLabel={tx.noFile}
-						disabled={isSubmitting}
-						onChange={file => updateField('cadastre_file', file)}
-					/>
+					<div className='sm:col-span-2'>
+						<FilePickerField
+							id='contract-file'
+							label={tx.labels.file}
+							value={form.file}
+							chooseLabel={tx.chooseFile}
+							emptyLabel={tx.noFile}
+							disabled={isSubmitting}
+							onChange={file => updateField('file', file)}
+						/>
+					</div>
+					<div className='sm:col-span-2'>
+						<FilePickerField
+							id='contract-cadastre-file'
+							label={tx.labels.cadastreFile}
+							value={form.cadastre_file}
+							chooseLabel={tx.chooseFile}
+							emptyLabel={tx.noFile}
+							disabled={isSubmitting}
+							onChange={file => updateField('cadastre_file', file)}
+						/>
+					</div>
 					<div className='sm:col-span-2'>
 						<FilePickerField
 							id='contract-house-image'
@@ -679,7 +721,7 @@ export function ContractsFormPanel({
 					<button
 						type='submit'
 						className='ml-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60'
-						disabled={isSubmitting}
+						disabled={isSubmitting || !canSubmit}
 					>
 						{isSubmitting ? tx.saving : isEditing ? tx.editSubmit : tx.createSubmit}
 					</button>

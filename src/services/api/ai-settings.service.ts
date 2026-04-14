@@ -78,6 +78,9 @@ function toMutationPayload(
   if (input.system_prompt !== undefined) {
     payload.system_prompt = input.system_prompt;
   }
+  if (input.follow_up_message !== undefined) {
+    payload.follow_up_message = input.follow_up_message;
+  }
   if (input.model_name !== undefined) {
     payload.model = input.model_name;
   }

@@ -124,6 +124,34 @@ function toMutationPayload(input: ProductMutationInput | ProductPatchInput): Rec
   return payload;
 }
 
+function toMutationFormData(input: ProductMutationInput | ProductPatchInput): FormData {
+  const payload = toMutationPayload(input);
+  const fd = new FormData();
+
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null) {
+      return;
+    }
+    if (key === 'metadata' && typeof value === 'object') {
+      fd.append(key, JSON.stringify(value));
+      return;
+    }
+    fd.append(key, String(value));
+  });
+
+  if (input.image instanceof File) {
+    fd.append('image', input.image);
+  }
+  if (input.imageAltText !== undefined) {
+    fd.append('image_alt_text', String(input.imageAltText ?? ''));
+  }
+  if (input.imageIsPrimary !== undefined) {
+    fd.append('image_is_primary', input.imageIsPrimary ? 'true' : 'false');
+  }
+
+  return fd;
+}
+
 function toCategoryMutationPayload(
   input: ProductCategoryMutationInput | ProductCategoryPatchInput,
 ): Record<string, unknown> {
@@ -189,7 +217,11 @@ export const apiProductService: ProductService = {
   },
 
   async updateProduct(id, input) {
-    const { data } = await apiClient.patch<ProductDto>(`/api/products/${id}/`, toMutationPayload(input));
+    const hasImage = input?.image instanceof File;
+    const { data } = await apiClient.patch<ProductDto>(
+      `/api/products/${id}/`,
+      hasImage ? toMutationFormData(input) : toMutationPayload(input),
+    );
     return mapProductDtoToModel(data);
   },
 
@@ -198,7 +230,11 @@ export const apiProductService: ProductService = {
   },
 
   async patchProduct(id, input) {
-    const { data } = await apiClient.patch<ProductDto>(`/api/products/${id}/`, toMutationPayload(input));
+    const hasImage = input?.image instanceof File;
+    const { data } = await apiClient.patch<ProductDto>(
+      `/api/products/${id}/`,
+      hasImage ? toMutationFormData(input) : toMutationPayload(input),
+    );
     return mapProductDtoToModel(data);
   },
 

@@ -144,6 +144,51 @@ function replaceKnownEnglishWords(input: string): string {
   return output;
 }
 
+function translateKnownNotificationPhrases(input: string, language = 'uz'): string {
+  const isRu = isRussian(language);
+
+  // Keep replacements tolerant to case/punctuation coming from backend.
+  const map: Array<{ pattern: RegExp; ru: string; uz: string }> = [
+    {
+      pattern: /\bnew client lead created\b/gi,
+      ru: 'Создан новый лид клиента',
+      uz: 'Yangi mijoz lidi yaratildi',
+    },
+    {
+      pattern: /\bnew lead created\b/gi,
+      ru: 'Создан новый лид',
+      uz: 'Yangi lid yaratildi',
+    },
+    {
+      pattern: /\bnew client created\b/gi,
+      ru: 'Создан новый клиент',
+      uz: 'Yangi mijoz yaratildi',
+    },
+    {
+      pattern: /\bchat requires operator\b/gi,
+      ru: 'Чату требуется оператор',
+      uz: 'Chat uchun operator kerak',
+    },
+    {
+      pattern: /\boperator needed for further assistance\b/gi,
+      ru: 'Для дальнейшей помощи нужен оператор',
+      uz: "Qo'shimcha yordam uchun operator kerak",
+    },
+    {
+      pattern: /\boperator handoff requested\b/gi,
+      ru: 'Запрошена передача оператору',
+      uz: "Operatorga topshirish so'raldi",
+    },
+    {
+      pattern: /\boperator needed\b/gi,
+      ru: 'Operator kerak',
+      uz: 'Operator kerak',
+    },
+  ];
+
+  return map.reduce((acc, { pattern, ru, uz }) => acc.replace(pattern, isRu ? ru : uz), input);
+}
+
 function capitalizeFirstLetter(value: string): string {
   const trimmedStart = value.match(/^\s*/)?.[0] ?? '';
   const content = value.slice(trimmedStart.length);
@@ -364,9 +409,10 @@ export function formatNotificationTitle(title: string, language = 'uz'): string 
     return isRussian(language) ? 'Уведомление' : 'Bildirishnoma';
   }
 
+  const translated = translateKnownNotificationPhrases(cleaned, language);
   return isRussian(language)
-    ? capitalizeFirstLetter(cleaned)
-    : capitalizeFirstLetter(replaceKnownEnglishWords(cleaned));
+    ? capitalizeFirstLetter(translated)
+    : capitalizeFirstLetter(replaceKnownEnglishWords(translated));
 }
 
 export function formatNotificationMessage(message: string, language = 'uz'): string {
@@ -377,7 +423,10 @@ export function formatNotificationMessage(message: string, language = 'uz'): str
       : "Bildirishnoma matni mavjud emas.";
   }
 
-  const translated = isRussian(language) ? cleaned : replaceKnownEnglishWords(cleaned);
+  const translatedRaw = translateKnownNotificationPhrases(cleaned, language);
+  const translated = isRussian(language)
+    ? translatedRaw
+    : replaceKnownEnglishWords(translatedRaw);
   return formatChangedFieldsSegment(translated);
 }
 

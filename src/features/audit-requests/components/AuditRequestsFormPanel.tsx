@@ -79,6 +79,11 @@ export function AuditRequestsFormPanel({
 	const [clients, setClients] = useState<ClientOptionSource[]>([])
 	const [contracts, setContracts] = useState<ContractOptionSource[]>([])
 	const [isLoadingReferences, setIsLoadingReferences] = useState(true)
+	const canSubmit = Boolean(
+		form.client &&
+			form.contract &&
+			form.requested_power_kw !== '',
+	)
 
 	const statusOptions = useMemo(
 		() => [
@@ -357,7 +362,7 @@ export function AuditRequestsFormPanel({
 					<button
 						type='submit'
 						className='ml-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60'
-						disabled={isSubmitting}
+						disabled={isSubmitting || !canSubmit}
 					>
 						{isSubmitting
 							? t('auditRequests.form.saving')

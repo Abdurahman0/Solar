@@ -71,7 +71,7 @@ export interface CreateContractInput {
 	installation_address?: string
 	delivery_status?: string
 	delivery_notes?: string
-	details?: string
+	details?: string | Record<string, unknown> | null
 	items?: Array<{
 		product: string
 		quantity: number
@@ -95,7 +95,7 @@ export interface UpdateContractInput {
 	installation_address?: string
 	delivery_status?: string
 	delivery_notes?: string
-	details?: string
+	details?: string | Record<string, unknown> | null
 	file?: string | File | null
 	cadastre_file?: string | File | null
 	house_image?: string | File | null

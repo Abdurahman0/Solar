@@ -123,6 +123,9 @@ export function mapAISettingDtoToModel(dto: AISettingDto): AISetting {
     explicitUpdatedByName && !isUuidLike(explicitUpdatedByName)
       ? explicitUpdatedByName
       : updatedByPayload.updatedByName;
+  const followUpMessageRaw =
+    readString(dto.follow_up_message) || readString(dto.followUpMessage) || '';
+  const followUpMessage = followUpMessageRaw.trim().length ? followUpMessageRaw : null;
 
   return {
     id,
@@ -130,6 +133,7 @@ export function mapAISettingDtoToModel(dto: AISettingDto): AISetting {
     updated_at: readString(dto.updated_at, nowIso) || readString(dto.updatedAt, nowIso),
     name: readString(dto.name) || 'AI Setting',
     system_prompt: readString(dto.system_prompt) || readString(dto.systemPrompt),
+    follow_up_message: followUpMessage,
     model_name:
       readString(dto.model_name) ||
       readString(dto.model) ||

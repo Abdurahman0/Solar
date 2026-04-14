@@ -6,6 +6,7 @@ export interface AISetting {
   updated_at: TimestampString;
   name: string;
   system_prompt: string;
+  follow_up_message?: string | null;
   model_name: string;
   temperature: number;
   auto_order_enabled: boolean;
@@ -29,6 +30,7 @@ export interface AISettingsListParams {
 export interface AISettingMutationInput {
   name: string;
   system_prompt: string;
+  follow_up_message?: string | null;
   model_name: string;
   temperature: number;
   auto_order_enabled: boolean;

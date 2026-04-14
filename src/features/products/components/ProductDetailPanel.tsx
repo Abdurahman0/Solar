@@ -41,6 +41,8 @@ function ProductDetailPanel({
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewImageAlt, setPreviewImageAlt] = useState<string>('');
 
   useEffect(() => {
     let isActive = true;
@@ -77,6 +79,16 @@ function ProductDetailPanel({
       isActive = false;
     };
   }, [productId]);
+
+  function openImagePreview(imageUrl: string, alt: string) {
+    setPreviewImageUrl(imageUrl);
+    setPreviewImageAlt(alt);
+  }
+
+  function closeImagePreview() {
+    setPreviewImageUrl(null);
+    setPreviewImageAlt('');
+  }
 
   return (
     <div
@@ -138,7 +150,8 @@ function ProductDetailPanel({
                     <img
                       src={product.imageUrl}
                       alt={product.name}
-                      className="h-44 w-full rounded-xl object-cover ring-1 ring-border-soft/40"
+                      className="h-44 w-full cursor-zoom-in rounded-xl object-cover ring-1 ring-border-soft/40"
+                      onClick={() => openImagePreview(product.imageUrl ?? '', product.name)}
                     />
                     {product.images.length > 1 ? (
                       <div className="flex flex-wrap gap-2">
@@ -147,7 +160,10 @@ function ProductDetailPanel({
                             key={image.id}
                             src={image.imageUrl}
                             alt={product.name}
-                            className="h-16 w-16 rounded-lg object-cover ring-1 ring-border-soft/35"
+                            className="h-16 w-16 cursor-zoom-in rounded-lg object-cover ring-1 ring-border-soft/35"
+                            onClick={() =>
+                              openImagePreview(image.imageUrl, `${product.name} (${t('products.detail.images')})`)
+                            }
                           />
                         ))}
                       </div>
@@ -236,6 +252,36 @@ function ProductDetailPanel({
           ) : null}
         </div>
       </aside>
+
+      {previewImageUrl ? (
+        <div
+          className="fixed inset-0 z-[70] grid place-items-center bg-background-overlay/85 p-4"
+          onClick={closeImagePreview}
+          role="presentation"
+        >
+          <div
+            className="relative max-h-[92vh] w-full max-w-[960px] overflow-hidden rounded-xl bg-surface-card shadow-xl ring-1 ring-border-soft/50"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={previewImageAlt || t('products.detail.images')}
+          >
+            <button
+              type="button"
+              className="absolute right-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-surface-card/90 text-text-primary shadow-sm ring-1 ring-border-soft/60 transition duration-fast hover:bg-surface-muted"
+              onClick={closeImagePreview}
+              aria-label={t('common.close')}
+            >
+              <AppIcon name="close" className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <img
+              src={previewImageUrl}
+              alt={previewImageAlt}
+              className="max-h-[92vh] w-full bg-background-subtle object-contain"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

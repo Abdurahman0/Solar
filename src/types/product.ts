@@ -83,6 +83,10 @@ export interface ProductMutationInput {
   isPromoted?: boolean;
   reviewsEnabled?: boolean;
   isActive: boolean;
+  // Image update via PATCH /api/products/{id}/ with multipart/form-data.
+  image?: File | null;
+  imageAltText?: string;
+  imageIsPrimary?: boolean;
 }
 
 export interface ProductPatchInput extends Partial<ProductMutationInput> {}

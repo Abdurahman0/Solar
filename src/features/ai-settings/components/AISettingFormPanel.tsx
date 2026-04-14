@@ -16,6 +16,7 @@ interface AISettingFormPanelProps {
 interface AISettingFormState {
   name: string;
   systemPrompt: string;
+  followUpMessage: string;
   modelName: string;
   temperature: string;
   autoOrderEnabled: boolean;
@@ -48,6 +49,7 @@ function createInitialState(
     return {
       name: setting.name,
       systemPrompt: setting.system_prompt,
+      followUpMessage: setting.follow_up_message ?? '',
       modelName: setting.model_name,
       temperature: setting.temperature.toString(),
       autoOrderEnabled: setting.auto_order_enabled,
@@ -64,6 +66,7 @@ function createInitialState(
   return {
     name: '',
     systemPrompt: '',
+    followUpMessage: '',
     modelName: 'gpt-4.1-mini',
     temperature: '0.35',
     autoOrderEnabled: true,
@@ -133,6 +136,7 @@ function AISettingFormPanel({
     const temperature = Number(form.temperature);
     const confidenceThreshold = Number(form.orderConfidenceThreshold);
     const followUpMinutes = Number(form.followUpMinutes);
+    const followUpMessage = form.followUpMessage.trim();
 
     if (!name || !systemPrompt || !modelName) {
       setFieldError(t('aiSettings.form.requiredError'));
@@ -161,9 +165,15 @@ function AISettingFormPanel({
       return;
     }
 
+    if (form.followUpEnabled && followUpMinutes > 0 && !followUpMessage) {
+      setFieldError(t('aiSettings.form.followUpMessageError'));
+      return;
+    }
+
     onSubmit({
       name,
       system_prompt: systemPrompt,
+      follow_up_message: form.followUpEnabled && followUpMinutes > 0 ? followUpMessage : '',
       model_name: modelName,
       temperature,
       auto_order_enabled: form.autoOrderEnabled,
@@ -280,6 +290,25 @@ function AISettingFormPanel({
             />
             <p className="m-0 text-[12px] leading-5 text-text-secondary">
               {t('aiSettings.form.systemPromptHint')}
+            </p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className={labelClassName} htmlFor="ai-setting-follow-up-message">
+              {t('aiSettings.form.followUpMessage')}
+            </label>
+            <textarea
+              id="ai-setting-follow-up-message"
+              value={form.followUpMessage}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, followUpMessage: event.target.value }))
+              }
+              className={[inputClassName, 'min-h-[120px] resize-y leading-6'].join(' ')}
+              placeholder={t('aiSettings.form.followUpMessagePlaceholder')}
+              disabled={isSubmitting || !form.followUpEnabled}
+            />
+            <p className="m-0 text-[12px] leading-5 text-text-secondary">
+              {t('aiSettings.form.followUpMessageHint')}
             </p>
           </div>
 

@@ -77,6 +77,13 @@ function IntegrationConfigFormPanel({
     createInitialState(mode, config),
   );
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const canSubmit = useMemo(() => {
+    return (
+      form.key.trim().length > 0 &&
+      form.label.trim().length > 0 &&
+      form.value.trim().length > 0
+    );
+  }, [form.key, form.label, form.value]);
 
   useEffect(() => {
     setForm(createInitialState(mode, config));
@@ -303,7 +310,7 @@ function IntegrationConfigFormPanel({
             <button
               type="submit"
               className="ml-auto inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !canSubmit}
             >
               {isSubmitting
                 ? mode === 'create'

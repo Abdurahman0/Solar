@@ -104,6 +104,13 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const canSubmit = useMemo(() => {
+    const fullNameOk = (form.full_name ?? '').trim().length > 0;
+    const phoneOk = (form.phone ?? '').trim().length > 0;
+    const statusOk = String(form.status ?? 'new').trim().length > 0;
+    const sourceOk = String(form.source_platform ?? 'manual').trim().length > 0;
+    return fullNameOk && phoneOk && statusOk && sourceOk;
+  }, [form.full_name, form.phone, form.source_platform, form.status]);
 
   const statusOptions = useMemo(
     () => [
@@ -280,7 +287,7 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
           <button
             type="submit"
             className="ml-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canSubmit}
           >
             {isSubmitting ? tx.saving : isEditing ? tx.submitEdit : tx.submitCreate}
           </button>

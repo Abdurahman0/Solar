@@ -1159,7 +1159,7 @@ function DashboardPage() {
 									<Line
 										type='monotone'
 										dataKey='chats'
-										stroke='rgb(var(--color-success))'
+										stroke={SOURCE_COLORS.telegram}
 										strokeWidth={2.2}
 										dot={false}
 									/>

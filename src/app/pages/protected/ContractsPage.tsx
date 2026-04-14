@@ -1,6 +1,8 @@
 ﻿import { useMemo, useState } from 'react'
+import { useEffect } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
 	DataTable,
 	FilterBar,
@@ -75,6 +77,8 @@ function ContractsPage() {
 	const { t, i18n } = useTranslation()
 	const isRu = i18n.language === 'ru'
 	const locale = isRu ? 'ru-RU' : 'uz-UZ'
+	const location = useLocation()
+	const navigate = useNavigate()
 	const { hasPermission } = useAuth()
 	const canManageContracts = hasPermission('can_manage_contracts')
 
@@ -163,6 +167,17 @@ function ContractsPage() {
 	const [pricingMatrix, setPricingMatrix] = useState<PricingMatrixData | null>(
 		null,
 	)
+
+	useEffect(() => {
+		const state = location.state as { contractId?: string } | null
+		const requestedContractId = state?.contractId
+		if (!requestedContractId || typeof requestedContractId !== 'string') {
+			return
+		}
+
+		setSelectedContractId(requestedContractId)
+		navigate(location.pathname, { replace: true, state: null })
+	}, [location.pathname, location.state, navigate])
 
 	const fetcher = (params?: ContractsListParams) =>
 		services.contracts.listContracts(params)

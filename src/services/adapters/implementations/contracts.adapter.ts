@@ -222,6 +222,19 @@ export class ContractsAdapter
 					formData.append(key, JSON.stringify(value))
 					return
 				}
+				if (key === 'details') {
+					// Backend expects valid JSON for details. For multipart we must send a JSON string.
+					if (typeof value === 'object') {
+						formData.append(key, JSON.stringify(value))
+						return
+					}
+					const text = String(value).trim()
+					if (!text.length) {
+						return
+					}
+					formData.append(key, text)
+					return
+				}
 				formData.append(key, String(value))
 			}
 		})

@@ -1,10 +1,12 @@
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useDetail } from '../../../components/hooks'
 import { EmptyState, LoadingState, PageCard } from '../../../components/shared/page'
 import { StatusBadge } from '../../../components/shared/data'
 import AppIcon from '../../../components/shared/icons/AppIcon'
 import { formatLocalizedDate } from '../../../i18n/date-format'
+import { routePaths } from '../../../config/routes'
 import { services } from '../../../services'
 import type { AuditRequest } from '../../../services/contracts'
 
@@ -47,6 +49,7 @@ export function AuditRequestsDetailPanel({
 }: AuditRequestsDetailPanelProps) {
 	const { t, i18n } = useTranslation()
 	const locale = i18n.language === 'ru' ? 'ru-RU' : i18n.language === 'en' ? 'en-US' : 'uz-UZ'
+	const navigate = useNavigate()
 	const [state] = useDetail(
 		() => services.auditRequests.getAuditRequest(auditRequestId),
 		{ autoFetch: true },
@@ -107,14 +110,60 @@ export function AuditRequestsDetailPanel({
 
 			<PageCard>
 				<div className='grid gap-2.5 sm:grid-cols-2'>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{t('auditRequests.fields.client')}</p>
-						<p className={`mt-1 ${valueClassName}`}>{auditRequest.client_name || '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{t('auditRequests.fields.contract')}</p>
-						<p className={`mt-1 ${valueClassName}`}>{auditRequest.contract_title || '-'}</p>
-					</div>
+					{auditRequest.client && auditRequest.client_name ? (
+						<div
+							className='cursor-pointer rounded-lg bg-surface-subtle/80 p-3'
+							role='button'
+							tabIndex={0}
+							onClick={() => {
+								onClose?.()
+								navigate(routePaths.clients, { state: { clientId: auditRequest.client } })
+							}}
+							onKeyDown={event => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault()
+									onClose?.()
+									navigate(routePaths.clients, { state: { clientId: auditRequest.client } })
+								}
+							}}
+							aria-label={auditRequest.client_name}
+						>
+							<p className={labelClassName}>{t('auditRequests.fields.client')}</p>
+							<p className={`mt-1 ${valueClassName}`}>{auditRequest.client_name}</p>
+						</div>
+					) : (
+						<div className='rounded-lg bg-surface-subtle/80 p-3'>
+							<p className={labelClassName}>{t('auditRequests.fields.client')}</p>
+							<p className={`mt-1 ${valueClassName}`}>{auditRequest.client_name || '-'}</p>
+						</div>
+					)}
+					{auditRequest.contract && auditRequest.contract_title ? (
+						<div
+							className='cursor-pointer rounded-lg bg-surface-subtle/80 p-3'
+							role='button'
+							tabIndex={0}
+							onClick={() => {
+								onClose?.()
+								navigate(routePaths.contracts, { state: { contractId: auditRequest.contract } })
+							}}
+							onKeyDown={event => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault()
+									onClose?.()
+									navigate(routePaths.contracts, { state: { contractId: auditRequest.contract } })
+								}
+							}}
+							aria-label={auditRequest.contract_title}
+						>
+							<p className={labelClassName}>{t('auditRequests.fields.contract')}</p>
+							<p className={`mt-1 ${valueClassName}`}>{auditRequest.contract_title}</p>
+						</div>
+					) : (
+						<div className='rounded-lg bg-surface-subtle/80 p-3'>
+							<p className={labelClassName}>{t('auditRequests.fields.contract')}</p>
+							<p className={`mt-1 ${valueClassName}`}>{auditRequest.contract_title || '-'}</p>
+						</div>
+					)}
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{t('auditRequests.fields.requestedPower')}</p>
 						<p className={`mt-1 ${valueClassName}`}>

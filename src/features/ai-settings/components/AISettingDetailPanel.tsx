@@ -318,6 +318,21 @@ function AISettingDetailPanel({
 							</PageCard>
 
 							<PageCard>
+								<div className='grid gap-3'>
+									<h3 className='m-0 text-[1rem] font-semibold text-text-primary'>
+										{t('aiSettings.form.followUpMessage')}
+									</h3>
+									<div className='max-h-[220px] overflow-y-auto rounded-lg bg-surface-subtle/80 p-3'>
+										<p className='m-0 whitespace-pre-wrap text-sm leading-6 text-text-primary'>
+											{setting.follow_up_message?.trim()?.length
+												? setting.follow_up_message
+												: t('common.na')}
+										</p>
+									</div>
+								</div>
+							</PageCard>
+
+							<PageCard>
 								<dl className='m-0 grid gap-2'>
 									<div className='flex items-center justify-between gap-3 rounded-lg bg-surface-subtle/80 px-3 py-2.5'>
 										<dt className={labelClassName}>
