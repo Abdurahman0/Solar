@@ -9,6 +9,7 @@ import type {
 } from '../../contracts'
 import { ServiceError as ServiceErrorClass } from '../../contracts'
 import { getAccessToken } from '../../../lib/auth-storage'
+import { requestTokenRefresh } from '../../../lib/api-client'
 
 export interface RequestConfig {
 	method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -16,6 +17,7 @@ export interface RequestConfig {
 	body?: unknown
 	params?: Record<string, unknown>
 	timeout?: number
+	_retry?: boolean
 }
 
 export class ApiRequestor {
@@ -45,15 +47,27 @@ export class ApiRequestor {
 		}
 
 		try {
-			const response = await fetch(url.toString(), {
+			const fetchConfig: RequestInit = {
 				method: config?.method || 'GET',
 				headers,
-				cache: 'no-store',
+				cache: 'no-store' as RequestCache,
 				body: config?.body ? JSON.stringify(config.body) : undefined,
 				signal: config?.timeout
 					? AbortSignal.timeout(config.timeout)
 					: undefined,
-			})
+			}
+
+			let response = await fetch(url.toString(), fetchConfig)
+
+			if (response.status === 401 && !config?._retry) {
+				const refreshedTokens = await requestTokenRefresh()
+				if (refreshedTokens?.access) {
+					// Retry with new token
+					headers['Authorization'] = `Bearer ${refreshedTokens.access}`
+					fetchConfig.headers = headers
+					response = await fetch(url.toString(), fetchConfig)
+				}
+			}
 
 			if (!response.ok) {
 				const errorData = await this.parseErrorResponse(response)
