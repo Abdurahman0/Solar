@@ -26,11 +26,11 @@ function ClientDeleteDialog({
         cancel: 'Отмена',
       }
     : {
-        eyebrow: 'O`chirishni tasdiqlash',
-        title: '"' + client.full_name + '" mijozini o`chirasizmi?',
-        description: 'Bu amalni ortga qaytarib bo`lmaydi.',
-        deleting: 'O`chirilmoqda...',
-        confirm: 'Mijozni o`chirish',
+        eyebrow: 'O\'chirishni tasdiqlash',
+        title: '"' + client.full_name + '" mijozini o\'chirasizmi?',
+        description: 'Bu amalni ortga qaytarib bo\'lmaydi.',
+        deleting: 'O\'chirilmoqda...',
+        confirm: 'Mijozni o\'chirish',
         cancel: 'Bekor qilish',
       };
 

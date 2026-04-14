@@ -65,11 +65,11 @@ function getStatusLabel(status: string, isRu: boolean): string {
 	const map: Record<string, string> = {
 		draft: 'Qoralama',
 		audit_pending: 'Audit kutilmoqda',
-		audit_paid: 'Audit to`langan',
+		audit_paid: 'Audit to\'langan',
 		moderation: 'Moderatsiya',
 		contract_ready: 'Shartnoma tayyor',
-		payment_pending: 'To`lov kutilmoqda',
-		paid: 'To`langan',
+		payment_pending: 'To\'lov kutilmoqda',
+		paid: 'To\'langan',
 		delivered: 'Yetkazilgan',
 		sent: 'Yuborilgan',
 		signed: 'Imzolangan',
@@ -201,7 +201,7 @@ function getDetailsLabel(key: string, isRu: boolean): string {
 		subsidy_amount: 'Subsidiya summasi',
 		customer_amount: 'Mijoz summasi',
 		subsidy_percent: 'Subsidiya (%)',
-		requested_power_kw: 'So`ralgan quvvat',
+		requested_power_kw: 'So\'ralgan quvvat',
 		audit_power_kw: 'Audit quvvati',
 		subsidy_reference_power_kw: 'Subsidiya uchun quvvat',
 		panel_type: 'Panel turi',
@@ -308,7 +308,7 @@ function ContractsDetailsView({
 					<p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted'>
 						{isRu
 							? '\u0414\u0440\u0443\u0433\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0435'
-							: "Boshqa ma`lumotlar"}
+							: "Boshqa ma'lumotlar"}
 					</p>
 					<pre className='mt-2 whitespace-pre-wrap break-words rounded-lg bg-surface-card/70 p-3 text-xs font-medium leading-relaxed text-text-primary ring-1 ring-border-soft/25'>
 						{formatDetailsText(details)}
@@ -361,11 +361,11 @@ export function ContractsDetailPanel({
 		: {
 				title: 'Shartnoma profili',
 				loadingTitle: 'Yuklanmoqda...',
-				loadingDescription: "Shartnoma ma`lumotlari olinmoqda.",
+				loadingDescription: "Shartnoma ma'lumotlari olinmoqda.",
 				errorTitle: 'Shartnoma topilmadi',
-				errorDescription: "Shartnoma mavjud emas yoki o`chirilgan.",
+				errorDescription: "Shartnoma mavjud emas yoki o\'chirilgan.",
 				edit: 'Tahrirlash',
-				delete: "O`chirish",
+				delete: "O'chirish",
 				fields: {
 					client: 'Mijoz',
 					panel: 'Panel turi',
@@ -374,7 +374,7 @@ export function ContractsDetailPanel({
 					auditPower: 'Audit quvvati (kW)',
 					subsidy: 'Subsidiya (%)',
 					phone: 'Telefon',
-					address: "O`rnatish manzili",
+					address: "O'rnatish manzili",
 					deliveryStatus: 'Yetkazib berish holati',
 					deliveryNotes: 'Yetkazish izohi',
 					total: 'Jami summa',

@@ -72,16 +72,16 @@ export function ClientsDetailPanel({
     : {
         title: 'Mijoz profili',
         loadingTitle: 'Yuklanmoqda...',
-        loadingDescription: 'Mijoz ma`lumotlari olinmoqda.',
+        loadingDescription: 'Mijoz ma\'lumotlari olinmoqda.',
         errorTitle: 'Mijoz topilmadi',
-        errorDescription: 'Mijoz mavjud emas yoki o`chirilgan.',
+        errorDescription: 'Mijoz mavjud emas yoki o\'chirilgan.',
         fields: {
           phone: 'Telefon',
           region: 'Hudud',
           address: 'Manzil',
           objectType: 'Obyekt turi',
           segment: 'Mijoz segmenti',
-          electricity: 'Elektr iste`moli',
+          electricity: 'Elektr iste\'moli',
           monthlyBill: 'Oylik hisob',
           solutionType: 'Yechim turi',
           budget: 'Byudjet',
@@ -93,7 +93,7 @@ export function ClientsDetailPanel({
           updated: 'Yangilangan',
         },
         edit: 'Tahrirlash',
-        delete: 'O`chirish',
+        delete: 'O\'chirish',
       };
 
   const statusLabels = isRu
@@ -226,7 +226,15 @@ export function ClientsDetailPanel({
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.source}</p>
-            <p className={`mt-1 ${valueClassName}`}>{client.source_platform_label || client.source_platform || '-'}</p>
+            <p className={`mt-1 ${valueClassName}`}>
+              {client.source_platform === 'manual' 
+                ? (isRu ? 'Вручную' : 'Qo\'lda') 
+                : client.source_platform === 'telegram'
+                ? 'Telegram'
+                : client.source_platform === 'instagram'
+                ? 'Instagram'
+                : (client.source_platform_label || client.source_platform || '-')}
+            </p>
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.manager}</p>

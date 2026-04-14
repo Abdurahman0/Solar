@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import {
@@ -112,7 +112,7 @@ export function ClientsListView({
 				delete: 'Удалить',
 			}
 		: {
-				searchPlaceholder: 'Ism, telefon, hudud yoki izoh bo`yicha qidiring...',
+				searchPlaceholder: 'Ism, telefon, hudud yoki izoh bo\'yicha qidiring...',
 				allStatuses: 'Barcha holatlar',
 				allSources: 'Barcha manbalar',
 				updatedNewest: 'Yangilangan (yangi)',
@@ -123,7 +123,7 @@ export function ClientsListView({
 				sourceLabel: 'Manba',
 				orderLabel: 'Saralash',
 				listTitle: 'Mijozlar navbati',
-				listHint: 'Profilni ko`rish uchun satrni bosing.',
+				listHint: 'Profilni ko\'rish uchun satrni bosing.',
 				columns: {
 					name: 'Mijoz',
 					phone: 'Telefon',
@@ -148,7 +148,7 @@ export function ClientsListView({
 				},
 				empty: 'Mijozlar topilmadi',
 				edit: 'Tahrirlash',
-				delete: 'O`chirish',
+				delete: 'O\'chirish',
 			}
 
 	const [searchQuery, setSearchQuery] = useState('')
@@ -201,7 +201,7 @@ export function ClientsListView({
 	const sourceOptions = useMemo<SelectOption[]>(
 		() => [
 			{ value: 'all', label: tx.allSources },
-			{ value: 'manual', label: isRu ? 'Вручную' : 'Qo`lda' },
+			{ value: 'manual', label: isRu ? 'Вручную' : 'Qo\'lda' },
 			{ value: 'telegram', label: 'Telegram' },
 			{ value: 'instagram', label: 'Instagram' },
 		],
@@ -243,7 +243,17 @@ export function ClientsListView({
 			{
 				key: 'source_platform',
 				label: tx.columns.source,
-				render: client => <span className={tablePrimaryTextClassName}>{client.source_platform_label || client.source_platform || '-'}</span>,
+				render: client => (
+					<span className={tablePrimaryTextClassName}>
+						{client.source_platform === 'manual'
+							? (isRu ? 'Вручную' : 'Qo\'lda')
+							: client.source_platform === 'telegram'
+							? 'Telegram'
+							: client.source_platform === 'instagram'
+							? 'Instagram'
+							: (client.source_platform_label || client.source_platform || '-')}
+					</span>
+				),
 			},
 			{
 				key: 'customer_segment',
@@ -397,7 +407,7 @@ export function ClientsListView({
 						emptyDescription={
 							isRu
 								? 'Измените параметры поиска или фильтры.'
-								: 'Qidiruv yoki filtrlarni o`zgartiring.'
+								: 'Qidiruv yoki filtrlarni o\'zgartiring.'
 						}
 					/>
 				</div>
