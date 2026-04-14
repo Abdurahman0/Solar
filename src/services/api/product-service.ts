@@ -23,6 +23,26 @@ import {
   type ProductImageDto,
 } from '../adapters/product-adapter';
 
+function isNotFoundError(error: unknown): boolean {
+  const status =
+    error &&
+    typeof error === 'object' &&
+    'response' in error &&
+    (error as { response?: { status?: number } }).response?.status;
+
+  return status === 404;
+}
+
+function shouldTryAlternativeImageEndpoint(error: unknown): boolean {
+  const status =
+    error &&
+    typeof error === 'object' &&
+    'response' in error &&
+    (error as { response?: { status?: number } }).response?.status;
+
+  return status === 400 || status === 404 || status === 405 || status === 422;
+}
+
 function readNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -246,16 +266,42 @@ export const apiProductService: ProductService = {
   },
 
   async listProductImages(productId, params) {
-    const { data } = await apiClient.get<unknown>(`/api/products/${productId}/images/`, {
-      params: {
-        page: params?.page,
-        page_size: params?.pageSize ?? params?.page_size,
-        search: params?.search,
-        ordering:
-          params?.ordering ??
-          (params?.sortBy ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}` : undefined),
-      },
-    });
+    let data: unknown;
+
+    try {
+      const response = await apiClient.get<unknown>(`/api/products/${productId}/images/`, {
+        params: {
+          page: params?.page,
+          page_size: params?.pageSize ?? params?.page_size,
+          search: params?.search,
+          ordering:
+            params?.ordering ??
+            (params?.sortBy
+              ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}`
+              : undefined),
+        },
+      });
+      data = response.data;
+    } catch (error) {
+      if (!shouldTryAlternativeImageEndpoint(error)) {
+        throw error;
+      }
+
+      const response = await apiClient.get<unknown>('/api/products/images/', {
+        params: {
+          page: params?.page,
+          page_size: params?.pageSize ?? params?.page_size,
+          search: params?.search,
+          product: productId,
+          ordering:
+            params?.ordering ??
+            (params?.sortBy
+              ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}`
+              : undefined),
+        },
+      });
+      data = response.data;
+    }
 
     if (Array.isArray(data)) {
       return data
@@ -276,38 +322,82 @@ export const apiProductService: ProductService = {
     productId,
     input: { image: File; altText?: string; isPrimary?: boolean },
   ) {
-    const formData = new FormData();
-    formData.append('product', String(productId));
-    formData.append('image', input.image);
+    const scopedFormData = new FormData();
+    scopedFormData.append('image', input.image);
     if (input.altText) {
-      formData.append('alt_text', input.altText);
+      scopedFormData.append('alt_text', input.altText);
     }
     if (input.isPrimary !== undefined) {
-      formData.append('is_primary', String(input.isPrimary));
+      scopedFormData.append('is_primary', String(input.isPrimary));
     }
 
-    const { data } = await apiClient.post<ProductImageDto>(`/api/products/${productId}/images/`, formData);
-    return mapProductImageDtoToModel(data);
+    try {
+      const { data } = await apiClient.post<ProductImageDto>(`/api/products/${productId}/images/`, scopedFormData);
+      return mapProductImageDtoToModel(data);
+    } catch (error) {
+      if (!shouldTryAlternativeImageEndpoint(error)) {
+        throw error;
+      }
+
+      const fallbackFormData = new FormData();
+      fallbackFormData.append('product', String(productId));
+      fallbackFormData.append('image', input.image);
+      if (input.altText) {
+        fallbackFormData.append('alt_text', input.altText);
+      }
+      if (input.isPrimary !== undefined) {
+        fallbackFormData.append('is_primary', String(input.isPrimary));
+      }
+
+      const { data } = await apiClient.post<ProductImageDto>('/api/products/images/', fallbackFormData);
+      return mapProductImageDtoToModel(data);
+    }
   },
 
   async uploadProductImages(productId, payload) {
     if (payload instanceof FormData) {
-      await apiClient.post(`/api/products/${productId}/images/`, payload);
+      try {
+        await apiClient.post(`/api/products/${productId}/images/`, payload);
+      } catch (error) {
+        if (!shouldTryAlternativeImageEndpoint(error)) {
+          throw error;
+        }
+
+        await apiClient.post('/api/products/images/', payload);
+      }
       return apiProductService.getProductById(productId);
     }
 
     for (const file of payload) {
-      const formData = new FormData();
-      formData.append('product', String(productId));
-      formData.append('image', file);
-      await apiClient.post(`/api/products/${productId}/images/`, formData);
+      const scopedFormData = new FormData();
+      scopedFormData.append('image', file);
+      try {
+        await apiClient.post(`/api/products/${productId}/images/`, scopedFormData);
+      } catch (error) {
+        if (!shouldTryAlternativeImageEndpoint(error)) {
+          throw error;
+        }
+
+        const fallbackFormData = new FormData();
+        fallbackFormData.append('product', String(productId));
+        fallbackFormData.append('image', file);
+        await apiClient.post('/api/products/images/', fallbackFormData);
+      }
     }
 
     return apiProductService.getProductById(productId);
   },
 
   async deleteProductImage(productId, imageId) {
-    await apiClient.delete(`/api/products/${productId}/images/${imageId}/`);
+    try {
+      await apiClient.delete(`/api/products/${productId}/images/${imageId}/`);
+    } catch (error) {
+      if (!shouldTryAlternativeImageEndpoint(error)) {
+        throw error;
+      }
+
+      await apiClient.delete(`/api/products/images/${imageId}/`);
+    }
     return true;
   },
 };

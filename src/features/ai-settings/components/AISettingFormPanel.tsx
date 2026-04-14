@@ -20,7 +20,8 @@ interface AISettingFormState {
   temperature: string;
   autoOrderEnabled: boolean;
   orderConfidenceThreshold: string;
-  resumeAfterOperatorMinutes: string;
+  followUpEnabled: boolean;
+  followUpMinutes: string;
   isActive: boolean;
 }
 
@@ -51,7 +52,11 @@ function createInitialState(
       temperature: setting.temperature.toString(),
       autoOrderEnabled: setting.auto_order_enabled,
       orderConfidenceThreshold: setting.order_confidence_threshold.toString(),
-      resumeAfterOperatorMinutes: setting.resume_after_operator_minutes.toString(),
+      followUpEnabled: setting.resume_after_operator_minutes > 0,
+      followUpMinutes:
+        setting.resume_after_operator_minutes > 0
+          ? setting.resume_after_operator_minutes.toString()
+          : '15',
       isActive: setting.is_active,
     };
   }
@@ -63,7 +68,8 @@ function createInitialState(
     temperature: '0.35',
     autoOrderEnabled: true,
     orderConfidenceThreshold: '0.82',
-    resumeAfterOperatorMinutes: '15',
+    followUpEnabled: true,
+    followUpMinutes: '15',
     isActive: false,
   };
 }
@@ -126,7 +132,7 @@ function AISettingFormPanel({
     const modelName = form.modelName.trim();
     const temperature = Number(form.temperature);
     const confidenceThreshold = Number(form.orderConfidenceThreshold);
-    const resumeMinutes = Number(form.resumeAfterOperatorMinutes);
+    const followUpMinutes = Number(form.followUpMinutes);
 
     if (!name || !systemPrompt || !modelName) {
       setFieldError(t('aiSettings.form.requiredError'));
@@ -147,8 +153,11 @@ function AISettingFormPanel({
       return;
     }
 
-    if (Number.isNaN(resumeMinutes) || resumeMinutes < 1) {
-      setFieldError(t('aiSettings.form.resumeError'));
+    if (
+      form.followUpEnabled &&
+      (Number.isNaN(followUpMinutes) || followUpMinutes < 1)
+    ) {
+      setFieldError(t('aiSettings.form.followUpError'));
       return;
     }
 
@@ -159,7 +168,9 @@ function AISettingFormPanel({
       temperature,
       auto_order_enabled: form.autoOrderEnabled,
       order_confidence_threshold: confidenceThreshold,
-      resume_after_operator_minutes: Math.round(resumeMinutes),
+      resume_after_operator_minutes: form.followUpEnabled
+        ? Math.round(followUpMinutes)
+        : 0,
       is_active: form.isActive,
     });
   }
@@ -344,29 +355,48 @@ function AISettingFormPanel({
             </div>
 
             <div className="grid gap-1.5">
-              <label className={labelClassName} htmlFor="ai-setting-resume-minutes">
-                {t('aiSettings.form.resumeAfterOperatorMinutes')}
+              <label className={labelClassName} htmlFor="ai-setting-follow-up-minutes">
+                {t('aiSettings.form.followUpMinutes')}
               </label>
               <input
-                id="ai-setting-resume-minutes"
-                type="number"
+                id="ai-setting-follow-up-range"
+                type="range"
                 min={1}
+                max={180}
                 step={1}
-                value={form.resumeAfterOperatorMinutes}
+                value={Math.min(
+                  180,
+                  Math.max(1, Number(form.followUpMinutes) || 15),
+                )}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    resumeAfterOperatorMinutes: event.target.value,
+                    followUpMinutes: event.target.value,
+                  }))
+                }
+                disabled={isSubmitting || !form.followUpEnabled}
+              />
+              <input
+                id="ai-setting-follow-up-minutes"
+                type="number"
+                min={1}
+                max={180}
+                step={1}
+                value={form.followUpMinutes}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    followUpMinutes: event.target.value,
                   }))
                 }
                 className={inputClassName}
-                disabled={isSubmitting}
-                required
+                disabled={isSubmitting || !form.followUpEnabled}
+                required={form.followUpEnabled}
               />
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-card px-4 py-4 ring-1 ring-border-soft/35">
               <div className="grid gap-0.5">
                 <p className="m-0 text-sm font-semibold text-text-primary">
@@ -382,6 +412,27 @@ function AISettingFormPanel({
                   setForm((current) => ({
                     ...current,
                     autoOrderEnabled: nextValue,
+                  }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-card px-4 py-4 ring-1 ring-border-soft/35">
+              <div className="grid gap-0.5">
+                <p className="m-0 text-sm font-semibold text-text-primary">
+                  {t('aiSettings.form.followUpEnabled')}
+                </p>
+                <p className="m-0 text-[12px] text-text-secondary">
+                  {t('aiSettings.form.followUpHint')}
+                </p>
+              </div>
+              <Switch
+                checked={form.followUpEnabled}
+                onChange={(nextValue) =>
+                  setForm((current) => ({
+                    ...current,
+                    followUpEnabled: nextValue,
                   }))
                 }
                 disabled={isSubmitting}

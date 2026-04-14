@@ -256,6 +256,7 @@
       "trend": "Trendlar",
       "source": "Lid manbalari",
       "leadStatus": "Lid holatlari",
+      "contractStatus": "Shartnoma holati",
       "orderStatus": "Buyurtma holati",
       "paymentStatus": "To'lov holati",
       "chatChannels": "Chat kanallari",
@@ -265,11 +266,12 @@
       "managerPerformance": "Menejerlar samaradorligi"
     },
     "descriptions": {
-      "trend": "Tanlangan davr bo'yicha lidlar, mijozlar va buyurtmalar dinamikasi.",
-      "source": "Lidlar hajmi bo'yicha eng faol kanallar.",
+      "trend": "Tanlangan davr bo'yicha mijozlar, chatlar va shartnomalar dinamikasi.",
+      "source": "Telegram va manual kanallar bo'yicha murojaatlar taqsimoti.",
       "leadStatus": "Jarayon bo'ylab holatlar taqsimoti.",
+      "contractStatus": "Shartnomalar holatlari bo'yicha taqsimot.",
       "topProducts": "Sotuv hajmi bo'yicha eng ko'p sotilgan mahsulotlar ro'yxati.",
-      "regionDemand": "Tanlangan davrda hududlar kesimidagi lidlar taqsimoti.",
+      "regionDemand": "Tanlangan davrda hududlar kesimidagi so'rovlar taqsimoti.",
       "managerPerformance": "Menejerlar kesimida umumiy, yutilgan va yo'qotilgan lidlar ko'rsatkichlari."
     },
     "performance": {
@@ -831,10 +833,15 @@
       "promotedProductHint": "Reklama blokida ko'rsatish uchun yoqing.",
       "reviewsEnabled": "Sharhlarni qabul qilish",
       "reviewsEnabledHint": "Ushbu mahsulot uchun sharhlarni yoqing yoki o'chiring.",
-      "currentImages": "Joriy rasmlar",
-      "images": "Rasmlar",
-      "removeImage": "Rasmni olib tashlash",
-      "noImages": "Rasmlar topilmadi.",
+        "currentImages": "Joriy rasmlar",
+        "images": "Rasmlar",
+        "primaryImage": "Asosiy rasm",
+        "otherImages": "Oddiy rasmlar",
+        "selectedImages": "ta rasm tanlandi",
+        "ordinaryImageOne": "Oddiy rasm 1",
+        "ordinaryImageTwo": "Oddiy rasm 2",
+        "removeImage": "Rasmni olib tashlash",
+        "noImages": "Rasmlar topilmadi.",
       "metadata": "Metadata (JSON)",
       "imagesMinError": "Mahsulot qo'shishda kamida 1 ta rasm tanlang.",
       "imagesMaxError": "Mahsulot qo'shishda ko'pi bilan 3 ta rasm tanlash mumkin.",
@@ -1418,6 +1425,8 @@
     "errorDescription": "Xizmatdan ma'lumot olishda xatolik yuz berdi.",
     "autoOrderOn": "Avto buyurtma yoqilgan",
     "autoOrderOff": "Avto buyurtma o'chirilgan",
+    "followUpOn": "Follow-up yoqilgan",
+    "followUpOff": "Follow-up o'chirilgan",
     "filters": {
       "allStatuses": "Barcha holatlar",
       "status": "Holat",
@@ -1438,6 +1447,7 @@
       "model": "Model",
       "temperature": "Temperatura",
       "autoOrder": "Avto buyurtma",
+      "followUp": "Follow-up",
       "active": "Faol",
       "updatedAt": "Yangilangan",
       "actions": "Amallar"
@@ -1464,6 +1474,9 @@
       "systemPromptHint": "Aniq, qisqa va biznesga mos qoidalarni yozing. Bu matn agentning asosiy xulq-atvorini belgilaydi.",
       "temperature": "Temperatura (0-1)",
       "orderConfidenceThreshold": "Buyurtma ishonch chegarasi (0-1)",
+      "followUpMinutes": "Follow-up kechikishi (daqiqada)",
+      "followUpEnabled": "Follow-up yoqish",
+      "followUpHint": "Yoqilgan bo'lsa, AI belgilangan daqiqadan so'ng qayta aloqani boshlaydi.",
       "resumeAfterOperatorMinutes": "Operator pauzasidan keyin davom etish (daqiqada)",
       "autoOrderEnabled": "Avto buyurtma",
       "autoOrderHint": "AI yetarli ishonchga ega bo'lsa buyurtmani avtomatik tayyorlaydi.",
@@ -1472,6 +1485,7 @@
       "requiredError": "Majburiy maydonlarni to'ldiring.",
       "temperatureError": "Temperatura 0 va 1 oralig'ida bo'lishi kerak.",
       "confidenceError": "Ishonch chegarasi 0 va 1 oralig'ida bo'lishi kerak.",
+      "followUpError": "Follow-up yoqilganida daqiqa qiymati 1 dan katta bo'lishi kerak.",
       "resumeError": "Daqiqa qiymati 1 dan katta bo'lishi kerak.",
       "creating": "Qo'shilmoqda...",
       "saving": "Saqlanmoqda...",
@@ -1759,6 +1773,9 @@
       "archived": "Arxiv"
     },
     "orderStatus": {
+      "all": "Barcha buyurtmalar",
+      "contract": "Buyurtma",
+      "contracts": "Buyurtmalar",
       "draft": "Qoralama",
       "waiting_payment": "To'lov kutilmoqda",
       "pending": "Kutilmoqda",
@@ -2013,7 +2030,7 @@
       "ordering": "Saralash",
       "allStatuses": "Barcha holatlar",
       "allClients": "Barcha mijozlar",
-      "clientPlaceholder": "Mijoz UUID bo'yicha filtrlang"
+        "clientPlaceholder": "Mijoz nomi bo'yicha filtrlang"
     },
     "ordering": {
       "updatedNewest": "Yangilangan (yangi)",
@@ -2060,8 +2077,8 @@
       "saving": "Saqlanmoqda...",
       "createSubmit": "So'rov yaratish",
       "editSubmit": "O'zgarishlarni saqlash",
-      "clientPlaceholder": "Mijoz UUID kiriting",
-      "contractPlaceholder": "Shartnoma UUID kiriting"
+        "clientPlaceholder": "Mijozni tanlang",
+        "contractPlaceholder": "Shartnomani tanlang"
     },
     "detail": {
       "eyebrow": "Audit so'rovi profili",

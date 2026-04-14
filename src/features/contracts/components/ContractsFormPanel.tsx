@@ -604,17 +604,19 @@ export function ContractsFormPanel({
 						{form.items.map((item, index) => (
 							<div
 								key={`item-${index}`}
-								className='grid min-w-0 gap-2 rounded-lg bg-surface-subtle/60 p-2 sm:grid-cols-[minmax(0,1fr)_110px_140px_auto]'
+								className='grid min-w-0 gap-2 rounded-lg bg-surface-subtle/60 p-2 sm:grid-cols-[minmax(0,1.8fr)_96px_130px_auto]'
 							>
-								<FilterSelect
-									value={item.product}
-									options={products.map(product => ({
-										value: product.id,
-										label: product.name,
-									}))}
-									onChange={value => updateItemField(index, 'product', value)}
-									disabled={isSubmitting || isLoadingReferences}
-								/>
+								<div className='grid min-w-0 gap-1'>
+									<FilterSelect
+										value={item.product}
+										options={products.map(product => ({
+											value: product.id,
+											label: product.name,
+										}))}
+										onChange={value => updateItemField(index, 'product', value)}
+										disabled={isSubmitting || isLoadingReferences}
+									/>
+								</div>
 								<input
 									type='number'
 									min={1}
@@ -640,7 +642,7 @@ export function ContractsFormPanel({
 								/>
 								<button
 									type='button'
-									className='inline-flex min-h-10 items-center justify-center rounded-lg bg-danger/10 px-3 text-sm font-semibold text-danger transition duration-fast hover:bg-danger/20 disabled:opacity-60'
+									className='inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-lg bg-danger/10 px-2.5 text-xs font-semibold text-danger transition duration-fast hover:bg-danger/20 disabled:opacity-60'
 									onClick={() =>
 										setForm(current => ({
 											...current,

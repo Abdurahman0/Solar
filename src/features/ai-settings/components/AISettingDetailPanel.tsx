@@ -220,6 +220,11 @@ function AISettingDetailPanel({
 									? t('aiSettings.autoOrderOn')
 									: t('aiSettings.autoOrderOff')}
 							</span>
+							<span className='inline-flex min-h-7 items-center rounded-pill bg-info-bg px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-info'>
+								{setting.resume_after_operator_minutes > 0
+									? `${t('aiSettings.followUpOn')} (${setting.resume_after_operator_minutes}m)`
+									: t('aiSettings.followUpOff')}
+							</span>
 						</div>
 					) : null}
 				</header>
@@ -279,10 +284,12 @@ function AISettingDetailPanel({
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3'>
 											<p className={labelClassName}>
-												{t('aiSettings.form.resumeAfterOperatorMinutes')}
+												{t('aiSettings.form.followUpMinutes')}
 											</p>
 											<p className={`mt-1 ${valueClassName}`}>
-												{setting.resume_after_operator_minutes}
+												{setting.resume_after_operator_minutes > 0
+													? setting.resume_after_operator_minutes
+													: t('aiSettings.followUpOff')}
 											</p>
 										</div>
 										<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>

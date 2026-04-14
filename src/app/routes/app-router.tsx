@@ -25,7 +25,6 @@ import ContractsPage from '../pages/protected/ContractsPage'
 import AuditRequestsPage from '../pages/protected/AuditRequestsPage'
 import DashboardPage from '../pages/protected/DashboardPage'
 import IntegrationsPage from '../pages/protected/IntegrationsPage'
-import LeadsPage from '../pages/protected/LeadsPage'
 import LoginPage from '../pages/public/LoginPage'
 import LogsPage from '../pages/protected/LogsPage'
 import NotFoundPage from '../pages/public/NotFoundPage'
@@ -44,7 +43,6 @@ const pageRegistry: Record<RoutedPageId, ComponentType> = {
 	'audit-requests': AuditRequestsPage,
 	dashboard: DashboardPage,
 	integrations: IntegrationsPage,
-	leads: LeadsPage,
 	login: LoginPage,
 	logs: LogsPage,
 	'not-found': NotFoundPage,

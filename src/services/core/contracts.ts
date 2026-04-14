@@ -95,6 +95,7 @@ export interface DashboardFilteredSummary {
   total_contracts: number;
   active_contracts: number;
   completed_orders?: number;
+  total_chat_sessions?: number;
   active_chat_sessions?: number;
   pending_payment_amount?: string;
   revenue: string;
@@ -122,6 +123,7 @@ export interface DashboardTimeSeriesPoint {
   bucket_end: string;
   label: string;
   leads: number;
+  chats: number;
   clients: number;
   contracts: number;
   revenue: string;
@@ -131,6 +133,9 @@ export interface DashboardTimeSeriesPoint {
 export interface DashboardOverview {
   leads: number;
   clients: number;
+  products?: number;
+  chats?: number;
+  notifications?: number;
   customers?: number;
   orders?: number;
   pending_payments?: number;

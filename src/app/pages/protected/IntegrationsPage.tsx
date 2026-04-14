@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { FaInstagram, FaTelegramPlane } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import {
@@ -21,6 +22,9 @@ import {
   PageSection,
 } from '../../../components/shared/page';
 import { useAuth } from '../../../auth';
+import IntegrationConfigDeleteDialog from '../../../features/integrations/components/IntegrationConfigDeleteDialog';
+import IntegrationConfigDetailPanel from '../../../features/integrations/components/IntegrationConfigDetailPanel';
+import IntegrationConfigFormPanel from '../../../features/integrations/components/IntegrationConfigFormPanel';
 import { formatLocalizedDate } from '../../../i18n/date-format';
 import {
   getIntegrationProviderClassName,
@@ -32,6 +36,7 @@ import { services } from '../../../services';
 import type {
   IntegrationConfig,
   IntegrationConfigListParams,
+  IntegrationConfigMutationInput,
   IntegrationProvider,
   PaginationMeta,
   SelectOption,
@@ -120,6 +125,15 @@ function IntegrationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [selectedConfigId, setSelectedConfigId] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('edit');
+  const [editingConfig, setEditingConfig] = useState<IntegrationConfig | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
+  const [configToDelete, setConfigToDelete] = useState<IntegrationConfig | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -171,7 +185,7 @@ function IntegrationsPage() {
     return () => {
       isActive = false;
     };
-  }, [activeFilter, configSearch, currentPage, ordering, providerFilter, secretFilter]);
+  }, [activeFilter, configSearch, currentPage, ordering, providerFilter, secretFilter, refreshToken]);
 
   async function handleToggleConfigActive(config: IntegrationConfig, nextIsActive: boolean) {
     if (!canManageIntegrations) {
@@ -192,6 +206,71 @@ function IntegrationsPage() {
       );
     } catch {
       // No-op: keep current UI state.
+    }
+  }
+
+  function openDetail(config: IntegrationConfig) {
+    setSelectedConfigId(config.id);
+  }
+
+  function closeDetail() {
+    setSelectedConfigId(null);
+  }
+
+  function openEditForm(config: IntegrationConfig) {
+    setFormMode('edit');
+    setEditingConfig(config);
+    setFormErrorMessage(null);
+    setIsFormOpen(true);
+    setSelectedConfigId(null);
+  }
+
+  function requestDelete(config: IntegrationConfig) {
+    setConfigToDelete(config);
+    setSelectedConfigId(null);
+  }
+
+  async function handleSaveConfig(payload: IntegrationConfigMutationInput) {
+    if (formMode !== 'edit' || !editingConfig?.id) {
+      return;
+    }
+
+    setIsSaving(true);
+    setFormErrorMessage(null);
+
+    try {
+      const updated = await services.integrations.patchConfig(editingConfig.id, payload);
+      if (updated) {
+        setConfigs((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item)),
+        );
+      }
+      setIsFormOpen(false);
+      setEditingConfig(null);
+      setRefreshToken((current) => current + 1);
+    } catch (error) {
+      setFormErrorMessage(
+        error instanceof Error ? error.message : t('integrations.configForm.saveError'),
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!configToDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await services.integrations.deleteConfig(configToDelete.id);
+      setConfigToDelete(null);
+      setConfigs((current) => current.filter((item) => item.id !== configToDelete.id));
+      setRefreshToken((current) => current + 1);
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -318,6 +397,41 @@ function IntegrationsPage() {
           </span>
         ),
       },
+      ...(canManageIntegrations
+        ? [
+            {
+              key: 'actions',
+              label: t('integrations.configColumns.actions'),
+              align: 'right' as const,
+              render: (config: IntegrationConfig) => (
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-surface-card text-text-secondary shadow-sm ring-1 ring-border-soft/40 transition duration-fast hover:bg-surface-subtle hover:text-text-primary"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openEditForm(config);
+                    }}
+                    aria-label={t('integrations.actions.edit')}
+                  >
+                    <FiEdit2 className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-danger-bg text-danger shadow-sm ring-1 ring-danger/30 transition duration-fast hover:brightness-95"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      requestDelete(config);
+                    }}
+                    aria-label={t('integrations.actions.delete')}
+                  >
+                    <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              ),
+            },
+          ]
+        : []),
     ];
   }, [canManageIntegrations, i18n.language, locale, t]);
 
@@ -419,9 +533,11 @@ function IntegrationsPage() {
             data={configs}
             columns={columns}
             rowKey="id"
+            selectedRowKey={selectedConfigId}
             loading={isLoading}
             emptyTitle={t('integrations.configEmptyTitle')}
             emptyDescription={t('integrations.configEmptyDescription')}
+            onRowClick={openDetail}
           />
         </PageCard>
 
@@ -434,6 +550,51 @@ function IntegrationsPage() {
           />
         ) : null}
       </PageSection>
+
+      {selectedConfigId ? (
+        <IntegrationConfigDetailPanel
+          configId={selectedConfigId}
+          refreshToken={refreshToken}
+          canManage={canManageIntegrations}
+          onClose={closeDetail}
+          onEdit={openEditForm}
+          onDelete={requestDelete}
+        />
+      ) : null}
+
+      {isFormOpen ? (
+        <IntegrationConfigFormPanel
+          mode={formMode}
+          config={editingConfig}
+          isSubmitting={isSaving}
+          errorMessage={formErrorMessage}
+          onClose={() => {
+            if (!isSaving) {
+              setIsFormOpen(false);
+              setEditingConfig(null);
+              setFormErrorMessage(null);
+            }
+          }}
+          onSubmit={(payload) => {
+            void handleSaveConfig(payload);
+          }}
+        />
+      ) : null}
+
+      {configToDelete ? (
+        <IntegrationConfigDeleteDialog
+          config={configToDelete}
+          isDeleting={isDeleting}
+          onCancel={() => {
+            if (!isDeleting) {
+              setConfigToDelete(null);
+            }
+          }}
+          onConfirm={() => {
+            void handleConfirmDelete();
+          }}
+        />
+      ) : null}
     </PageLayout>
   );
 }

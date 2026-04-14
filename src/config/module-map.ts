@@ -23,43 +23,12 @@ export const moduleMap: AppModule[] = [
     notes: 'Main operational dashboard for all roles.',
   },
   {
-    id: 'leads',
-    label: 'Leads',
-    description: 'Lead pipeline and management.',
-    category: 'operational',
-    priority: 'high',
-    priorityOrder: 2,
-    allowedRoles: ['developer', 'admin', 'operator'],
-    accessStrategy: 'permission-based',
-    pages: [
-      {
-        id: 'leads-list',
-        label: 'Leads',
-        kind: 'list',
-        path: '/leads',
-      },
-      {
-        id: 'leads-detail',
-        label: 'Lead Detail',
-        kind: 'detail',
-        path: '/leads/:id',
-      },
-      {
-        id: 'leads-create',
-        label: 'Create Lead',
-        kind: 'create',
-        path: '/leads/new',
-      },
-    ],
-    notes: 'Core CRM lead management.',
-  },
-  {
     id: 'clients',
     label: 'Clients',
     description: 'Client records and relationship history.',
     category: 'operational',
     priority: 'high',
-    priorityOrder: 3,
+    priorityOrder: 2,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -90,7 +59,7 @@ export const moduleMap: AppModule[] = [
     description: 'Product catalog and inventory.',
     category: 'operational',
     priority: 'high',
-    priorityOrder: 4,
+    priorityOrder: 3,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -121,7 +90,7 @@ export const moduleMap: AppModule[] = [
     description: 'Client communication and messaging.',
     category: 'operational',
     priority: 'medium',
-    priorityOrder: 5,
+    priorityOrder: 4,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -146,7 +115,7 @@ export const moduleMap: AppModule[] = [
     description: 'Contract management and document handling.',
     category: 'operational',
     priority: 'high',
-    priorityOrder: 6,
+    priorityOrder: 5,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -177,7 +146,7 @@ export const moduleMap: AppModule[] = [
     description: 'Energy audit request queue and conclusion workflow.',
     category: 'operational',
     priority: 'high',
-    priorityOrder: 7,
+    priorityOrder: 6,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -208,7 +177,7 @@ export const moduleMap: AppModule[] = [
     description: 'System notifications and alerts.',
     category: 'operational',
     priority: 'medium',
-    priorityOrder: 8,
+    priorityOrder: 7,
     allowedRoles: ['developer', 'admin', 'operator'],
     accessStrategy: 'permission-based',
     pages: [
@@ -227,7 +196,7 @@ export const moduleMap: AppModule[] = [
     description: 'Third-party integrations and API setup.',
     category: 'system',
     priority: 'low',
-    priorityOrder: 9,
+    priorityOrder: 8,
     allowedRoles: ['developer'],
     accessStrategy: 'static-role-based',
     pages: [
@@ -246,7 +215,7 @@ export const moduleMap: AppModule[] = [
     description: 'AI agent configuration and behavior.',
     category: 'intelligence',
     priority: 'low',
-    priorityOrder: 10,
+    priorityOrder: 9,
     allowedRoles: ['developer'],
     accessStrategy: 'static-role-based',
     pages: [
@@ -265,7 +234,7 @@ export const moduleMap: AppModule[] = [
     description: 'System and API audit logs.',
     category: 'system',
     priority: 'low',
-    priorityOrder: 11,
+    priorityOrder: 10,
     allowedRoles: ['developer'],
     accessStrategy: 'static-role-based',
     pages: [
@@ -284,7 +253,7 @@ export const moduleMap: AppModule[] = [
     description: 'User account and access management.',
     category: 'system',
     priority: 'low',
-    priorityOrder: 12,
+    priorityOrder: 11,
     allowedRoles: ['developer', 'admin'],
     accessStrategy: 'permission-based',
     pages: [

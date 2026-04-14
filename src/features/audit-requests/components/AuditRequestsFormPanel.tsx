@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FilterSelect } from '../../../components/shared/data'
 import AppIcon from '../../../components/shared/icons/AppIcon'
@@ -24,6 +24,18 @@ type AuditRequestFormState = {
 	site_address: string
 	notes: string
 	conclusion: string
+}
+
+interface ClientOptionSource {
+	id: string
+	full_name: string
+}
+
+interface ContractOptionSource {
+	id: string
+	title: string
+	client?: string
+	client_name?: string
 }
 
 const inputClassName = [
@@ -64,6 +76,9 @@ export function AuditRequestsFormPanel({
 	)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
+	const [clients, setClients] = useState<ClientOptionSource[]>([])
+	const [contracts, setContracts] = useState<ContractOptionSource[]>([])
+	const [isLoadingReferences, setIsLoadingReferences] = useState(true)
 
 	const statusOptions = useMemo(
 		() => [
@@ -78,6 +93,90 @@ export function AuditRequestsFormPanel({
 		],
 		[t],
 	)
+
+	useEffect(() => {
+		let isActive = true
+
+		void (async () => {
+			setIsLoadingReferences(true)
+			try {
+				const [clientsResponse, contractsResponse] = await Promise.all([
+					services.clients.listClients({ page: 1, page_size: 300, ordering: 'full_name' }),
+					services.contracts.listContracts({ page: 1, page_size: 300, ordering: 'title' }),
+				])
+
+				if (!isActive) {
+					return
+				}
+
+				setClients(
+					clientsResponse.items.map((client: ClientOptionSource) => ({
+						id: client.id,
+						full_name: client.full_name,
+					})),
+				)
+				setContracts(
+					contractsResponse.items.map((contract: ContractOptionSource) => ({
+						id: contract.id,
+						title: contract.title,
+						client: contract.client,
+						client_name: contract.client_name,
+					})),
+				)
+			} catch {
+				if (!isActive) {
+					return
+				}
+
+				setClients([])
+				setContracts([])
+			} finally {
+				if (isActive) {
+					setIsLoadingReferences(false)
+				}
+			}
+		})()
+
+		return () => {
+			isActive = false
+		}
+	}, [])
+
+	const clientOptions = useMemo(() => {
+		const options = clients.map(client => ({
+			value: client.id,
+			label: client.full_name,
+		}))
+
+		if (form.client && !options.some(option => option.value === form.client)) {
+			options.unshift({
+				value: form.client,
+				label: auditRequest?.client_name || form.client,
+			})
+		}
+
+		return [{ value: '', label: t('shared.filterSelect.select') }, ...options]
+	}, [auditRequest?.client_name, clients, form.client, t])
+
+	const contractOptions = useMemo(() => {
+		const base = contracts
+			.filter(contract => !form.client || !contract.client || contract.client === form.client)
+			.map(contract => ({
+				value: contract.id,
+				label: contract.client_name
+					? `${contract.title} - ${contract.client_name}`
+					: contract.title,
+			}))
+
+		if (form.contract && !base.some(option => option.value === form.contract)) {
+			base.unshift({
+				value: form.contract,
+				label: auditRequest?.contract_title || form.contract,
+			})
+		}
+
+		return [{ value: '', label: t('shared.filterSelect.select') }, ...base]
+	}, [auditRequest?.contract_title, contracts, form.client, form.contract, t])
 
 	function updateField<Key extends keyof AuditRequestFormState>(
 		key: Key,
@@ -151,27 +250,28 @@ export function AuditRequestsFormPanel({
 			</header>
 
 			<form className='grid gap-3' onSubmit={handleSubmit} noValidate>
-				<div className='grid gap-3 sm:grid-cols-2'>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{t('auditRequests.fields.client')}</label>
-						<input
-							type='text'
-							className={inputClassName}
-							value={form.client}
-							onChange={event => updateField('client', event.target.value)}
-							placeholder={t('auditRequests.form.clientPlaceholder')}
-							disabled={isSubmitting}
+				<div className='grid gap-3 sm:grid-cols-3'>
+					<div className='grid gap-1.5 sm:col-span-2'>
+						<label className={labelClassName}>{t('auditRequests.fields.contract')}</label>
+						<FilterSelect
+							value={form.contract}
+							options={contractOptions}
+							onChange={value => updateField('contract', value)}
+							disabled={isSubmitting || isLoadingReferences}
 						/>
 					</div>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{t('auditRequests.fields.contract')}</label>
-						<input
-							type='text'
-							className={inputClassName}
-							value={form.contract}
-							onChange={event => updateField('contract', event.target.value)}
-							placeholder={t('auditRequests.form.contractPlaceholder')}
-							disabled={isSubmitting}
+					<div className='grid gap-1.5 sm:col-span-1'>
+						<label className={labelClassName}>{t('auditRequests.fields.client')}</label>
+						<FilterSelect
+							value={form.client}
+							options={clientOptions}
+							onChange={value => {
+								updateField('client', value)
+								if (form.contract) {
+									updateField('contract', '')
+								}
+							}}
+							disabled={isSubmitting || isLoadingReferences}
 						/>
 					</div>
 					<div className='grid gap-1.5'>
@@ -212,8 +312,8 @@ export function AuditRequestsFormPanel({
 					</div>
 					<div className='grid gap-1.5'>
 						<label className={labelClassName}>{t('auditRequests.fields.siteAddress')}</label>
-						<input
-							className={inputClassName}
+						<textarea
+							className={`${inputClassName} min-h-[86px] resize-y`}
 							value={form.site_address}
 							onChange={event => updateField('site_address', event.target.value)}
 							disabled={isSubmitting}

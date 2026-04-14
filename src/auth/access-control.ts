@@ -7,7 +7,6 @@ import type { AuthenticatedUser, PermissionCode } from './types'
 const ROUTE_REQUIRED_PERMISSIONS: Partial<Record<AppRouteId, PermissionCode>> =
 	{
 		dashboard: 'can_view_dashboard',
-		leads: 'can_view_leads',
 		clients: 'can_view_clients',
 		products: 'can_view_products',
 		contracts: 'can_view_contracts',
@@ -21,7 +20,6 @@ const ROUTE_REQUIRED_PERMISSIONS: Partial<Record<AppRouteId, PermissionCode>> =
 	}
 
 const IMPLIED_PERMISSIONS: Partial<Record<PermissionCode, PermissionCode[]>> = {
-	can_view_leads: ['can_manage_leads'],
 	can_view_clients: ['can_manage_clients'],
 	can_view_products: ['can_manage_products'],
 	can_view_contracts: ['can_manage_contracts'],
@@ -36,7 +34,6 @@ const PUBLIC_ROUTE_IDS = new Set<AppRouteId>([
 
 const MODULE_PATH_BY_ROUTE_ID: Record<string, string> = {
 	dashboard: routePaths.dashboard,
-	leads: routePaths.leads,
 	clients: routePaths.clients,
 	products: routePaths.products,
 	contracts: routePaths.contracts,
@@ -130,16 +127,11 @@ export function resolveDefaultLandingPathForUser(
 		return routePaths.dashboard
 	}
 
-	if (hasPermission(user, 'can_view_leads')) {
-		return routePaths.leads
-	}
-
 	if (hasPermission(user, 'can_view_clients')) {
 		return routePaths.clients
 	}
 
 	const fallbackRouteOrder: AppRouteId[] = [
-		'leads',
 		'clients',
 		'products',
 		'chats',

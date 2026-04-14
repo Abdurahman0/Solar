@@ -585,7 +585,7 @@ function ContractsPage() {
 					onClick={() => setIsFormOpen(false)}
 				>
 					<div
-						className='h-full w-full max-w-[640px] overflow-x-hidden overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
+						className='h-full w-full max-w-[760px] overflow-x-hidden overflow-y-auto bg-background-subtle p-4 shadow-xl ring-1 ring-border-soft/50 min-[641px]:p-5'
 						onClick={event => event.stopPropagation()}
 					>
 						<ContractsFormPanel

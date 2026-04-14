@@ -145,7 +145,7 @@ export function mapAISettingDtoToModel(dto: AISettingDto): AISetting {
       ).toFixed(2),
     ),
     resume_after_operator_minutes: Math.max(
-      1,
+      0,
       Math.round(
         readNumber(
           dto.resume_after_operator_minutes ??

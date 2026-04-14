@@ -5,7 +5,6 @@ export type NavigationGroupId = 'main' | 'operations' | 'system';
 
 export type NavigationIconKey =
   | 'dashboard'
-  | 'leads'
   | 'clients'
   | 'products'
   | 'chats'
@@ -57,23 +56,13 @@ export const navigationConfig: NavigationGroupConfig[] = [
         allowedRoles: ['developer', 'admin', 'operator'],
       },
       {
-        id: 'leads',
-        label: 'Leads',
-        path: '/leads',
-        moduleId: 'leads',
-        iconKey: 'leads',
-        group: 'main',
-        sortOrder: 2,
-        allowedRoles: ['developer', 'admin', 'operator'],
-      },
-      {
         id: 'clients',
         label: 'Clients',
         path: '/clients',
         moduleId: 'clients',
         iconKey: 'clients',
         group: 'main',
-        sortOrder: 3,
+        sortOrder: 2,
         allowedRoles: ['developer', 'admin', 'operator'],
       },
     ],

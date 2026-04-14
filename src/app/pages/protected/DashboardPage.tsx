@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ru, uz } from 'date-fns/locale'
 import { type DateRange } from 'react-day-picker'
@@ -22,7 +22,6 @@ import {
 } from '../../../components/ui/popover'
 import {
 	getChannelLabel,
-	getLeadStatusLabel,
 	getOrderStatusLabel,
 	getPaymentStatusLabel,
 } from '../../../i18n/labels'
@@ -41,7 +40,6 @@ import type {
 	DashboardRegionDemandItem,
 	DashboardTopProduct,
 } from '../../../services'
-import type { LeadStatus } from '../../../types/domain'
 import {
 	CartesianGrid,
 	Cell,
@@ -64,7 +62,7 @@ const SOURCE_COLORS: Record<string, string> = {
 }
 
 const SOURCE_COLORS_FALLBACK = ['#0EA5E9', '#E1306C', '#10B981', '#F59E0B']
-const LEAD_STATUS_COLORS: Record<string, string> = {
+const STATUS_COLORS: Record<string, string> = {
 	new: '#3B82F6',
 	contacted: '#8B5CF6',
 	qualified: '#10B981',
@@ -72,7 +70,7 @@ const LEAD_STATUS_COLORS: Record<string, string> = {
 	converted: '#059669',
 	lost: '#EF4444',
 }
-const LEAD_STATUS_COLORS_FALLBACK = [
+const STATUS_COLORS_FALLBACK = [
 	'#3B82F6',
 	'#8B5CF6',
 	'#10B981',
@@ -122,7 +120,6 @@ interface SubsidyInputState {
 	panel_type: string
 	inverter_type: string
 	requested_power_kw: number
-	audit_power_kw: number
 }
 
 interface SubsidyResultCardData {
@@ -442,7 +439,6 @@ function DashboardPage() {
 		panelType: t('dashboard.publicApi.panelType'),
 		inverterType: t('dashboard.publicApi.inverterType'),
 		requestedPower: t('dashboard.publicApi.requestedPower'),
-		auditPower: t('dashboard.publicApi.auditPower'),
 		calculate: t('dashboard.publicApi.calculate'),
 		calculating: t('dashboard.publicApi.calculating'),
 		subsidyError: t('dashboard.publicApi.subsidyError'),
@@ -467,7 +463,6 @@ function DashboardPage() {
 		panel_type: 'jinko_ja',
 		inverter_type: 'deye',
 		requested_power_kw: 10,
-		audit_power_kw: 10,
 	})
 	const [subsidyResult, setSubsidyResult] = useState<unknown>(null)
 	const [subsidyLoading, setSubsidyLoading] = useState(false)
@@ -524,16 +519,16 @@ function DashboardPage() {
 	const trendChartConfig = useMemo(
 		() =>
 			({
-				leads: {
-					label: t('dashboard.metrics.leads'),
+				clients: {
+					label: t('routes.clients.title', { defaultValue: 'Clients' }),
 					color: 'rgb(var(--color-primary))',
 				},
-				customers: {
-					label: t('dashboard.metrics.customers'),
+				chats: {
+					label: t('routes.chat.title', { defaultValue: 'Chats' }),
 					color: 'rgb(var(--color-success))',
 				},
-				orders: {
-					label: t('dashboard.metrics.orders'),
+				contracts: {
+					label: t('routes.contracts.title', { defaultValue: 'Contracts' }),
 					color: SOURCE_COLORS.instagram,
 				},
 			}) satisfies ChartConfig,
@@ -617,11 +612,15 @@ function DashboardPage() {
 	}))
 
 	const leadStatusData = pickForDisplay(
-		overview.breakdowns.leads_by_status,
+		overview.breakdowns.contracts_by_status,
 		6,
 	).map(item => ({
 		...item,
-		label: getLeadStatusLabel(t, item.key as LeadStatus, item.label),
+		label:
+			['all', 'contract', 'contracts'].includes(item.key) ||
+			['contract', 'contracts'].includes(item.label.trim().toLowerCase())
+				? t('routes.contracts.title', { defaultValue: item.label })
+				: getOrderStatusLabel(t, item.key, item.label),
 	}))
 	const leadStatusTotal = leadStatusData.reduce(
 		(sum, item) => sum + item.count,
@@ -630,16 +629,18 @@ function DashboardPage() {
 	const leadStatusPieData: PieSlice[] = leadStatusData.map((item, index) => ({
 		...item,
 		color:
-			LEAD_STATUS_COLORS[item.key] ??
-			LEAD_STATUS_COLORS_FALLBACK[
-				index % LEAD_STATUS_COLORS_FALLBACK.length
+			STATUS_COLORS[item.key] ??
+			STATUS_COLORS_FALLBACK[
+				index % STATUS_COLORS_FALLBACK.length
 			]!,
 		share: (item.count / leadStatusTotal) * 100,
 	}))
-	const orderStatusData = pickForDisplay(
-		overview.breakdowns.orders_by_status ?? [],
-		4,
-	).map(item => ({
+	const orderStatusSource =
+		overview.breakdowns.orders_by_status &&
+		overview.breakdowns.orders_by_status.length > 0
+			? overview.breakdowns.orders_by_status
+			: overview.breakdowns.contracts_by_status
+	const orderStatusData = pickForDisplay(orderStatusSource, 4).map(item => ({
 		...item,
 		label: getOrderStatusLabel(t, item.key, item.label),
 	}))
@@ -762,29 +763,29 @@ function DashboardPage() {
 		]
 	const metricCards = [
 		{
-			label: t('dashboard.metrics.leads'),
-			value: formatCount(overview.leads, locale),
-			hint: `${formatCount(overview.filtered_summary.new_leads, locale)} ${t('dashboard.metrics.newLeads')}`,
+			label: t('routes.clients.title', { defaultValue: 'Clients' }),
+			value: formatCount(overview.clients, locale),
+			hint: `${formatCount(overview.filtered_summary.new_clients, locale)} ${t('dashboard.metrics.newCustomers')}`,
 		},
 		{
-			label: t('dashboard.metrics.customers'),
-			value: formatCount(overview.customers ?? overview.clients, locale),
-			hint: `${formatCount(overview.filtered_summary.new_customers ?? overview.filtered_summary.new_clients, locale)} ${t('dashboard.metrics.newCustomers')}`,
+			label: t('routes.products.title', { defaultValue: 'Products' }),
+			value: formatCount(overview.products ?? 0, locale),
+			hint: `${formatCount((overview.breakdowns.top_products ?? []).length, locale)} ${t('products.records')}`,
 		},
 		{
-			label: t('dashboard.metrics.orders'),
-			value: formatCount(overview.orders ?? 0, locale),
-			hint: `${formatCount(overview.filtered_summary.completed_orders ?? 0, locale)} ${t('dashboard.metrics.completed')}`,
-		},
-		{
-			label: t('dashboard.metrics.pendingPayments'),
-			value: formatCount(overview.pending_payments ?? 0, locale),
-			hint: `${formatAmount(overview.filtered_summary.pending_payment_amount ?? '0', locale)} ${t('dashboard.metrics.pending')}`,
-		},
-		{
-			label: t('dashboard.metrics.unreadMessages'),
-			value: formatCount(overview.unread_messages, locale),
+			label: t('routes.chat.title', { defaultValue: 'Chats' }),
+			value: formatCount(overview.chats ?? 0, locale),
 			hint: `${formatCount(overview.filtered_summary.active_chat_sessions ?? 0, locale)} ${t('dashboard.metrics.activeSessions')}`,
+		},
+		{
+			label: t('routes.contracts.title', { defaultValue: 'Contracts' }),
+			value: formatCount(overview.contracts, locale),
+			hint: `${formatCount(overview.filtered_summary.active_contracts, locale)} ${t('common.active')}`,
+		},
+		{
+			label: t('routes.notifications.title', { defaultValue: 'Notifications' }),
+			value: formatCount(overview.notifications ?? 0, locale),
+			hint: `${formatCount(overview.unread_messages, locale)} ${t('dashboard.metrics.pending')}`,
 		},
 		{
 			label: t('dashboard.metrics.revenue'),
@@ -840,7 +841,10 @@ function DashboardPage() {
 		setSubsidyError(null)
 
 		try {
-			const payload = await services.common.calculateSubsidy(subsidyInput)
+			const payload = await services.common.calculateSubsidy({
+				...subsidyInput,
+				audit_power_kw: subsidyInput.requested_power_kw,
+			})
 			setSubsidyResult(payload)
 		} catch {
 			setSubsidyError(publicTx.subsidyError)
@@ -876,6 +880,128 @@ function DashboardPage() {
 							</p>
 						</article>
 					))}
+				</section>
+
+				<section className='grid max-w-[900px] gap-3'>
+					<article className='min-w-0 rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
+						<h2 className='m-0 text-[1.08rem] font-semibold text-text-primary'>
+							{publicTx.subsidyTitle}
+						</h2>
+						<p className='mt-1 text-sm text-text-secondary'>
+							{publicTx.subsidyDescription}
+						</p>
+
+						<form className='mt-3 grid gap-2.5' onSubmit={handleCalculateSubsidy}>
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.panelType}
+								</span>
+								<StylishDropdown
+									value={subsidyInput.panel_type}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											panel_type: value,
+										}))
+									}
+									options={panelTypeOptions}
+									ariaLabel={publicTx.panelType}
+								/>
+							</label>
+
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.inverterType}
+								</span>
+								<StylishDropdown
+									value={subsidyInput.inverter_type}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											inverter_type: value,
+										}))
+									}
+									options={inverterTypeOptions}
+									ariaLabel={publicTx.inverterType}
+								/>
+							</label>
+
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.requestedPower}
+								</span>
+								<StylishDropdown
+									value={String(subsidyInput.requested_power_kw)}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											requested_power_kw: Number(value),
+										}))
+									}
+									options={requestedPowerOptions}
+									ariaLabel={publicTx.requestedPower}
+								/>
+							</label>
+
+							<button
+								type='submit'
+								className='inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65'
+								disabled={subsidyLoading}
+							>
+								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
+								{subsidyLoading ? publicTx.calculating : publicTx.calculate}
+							</button>
+						</form>
+
+						<div className='mt-3 rounded-lg bg-surface-subtle/70 p-2.5 ring-1 ring-border-soft/35'>
+							{subsidyError ? (
+								<p className='m-0 text-sm font-medium text-danger'>{subsidyError}</p>
+							) : parsedSubsidyResult ? (
+								<div className='grid gap-2 sm:grid-cols-2'>
+									<div className='rounded-lg bg-surface-card p-2.5 ring-1 ring-border-soft/50'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+											{publicTx.basePrice}
+										</p>
+										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-text-primary'>
+											{formatAmount(parsedSubsidyResult.basePrice, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-success-bg/65 p-2.5 ring-1 ring-success/35'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-success'>
+											{publicTx.subsidyAmount}
+										</p>
+										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-success'>
+											{formatAmount(parsedSubsidyResult.subsidyAmount, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-primary/10 p-2.5 ring-1 ring-primary/30 sm:col-span-2'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-primary'>
+											{publicTx.customerAmount}
+										</p>
+										<p className='mt-1 font-display text-[1.4rem] font-extrabold text-text-primary'>
+											{formatAmount(parsedSubsidyResult.customerAmount, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-surface-card p-2.5 ring-1 ring-border-soft/50 sm:col-span-2'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+											{publicTx.referencePower}
+										</p>
+										<p className='mt-1 text-sm font-semibold text-text-primary'>
+											{formatCount(parsedSubsidyResult.subsidyReferencePowerKw, locale)} kW
+										</p>
+									</div>
+								</div>
+							) : subsidyResult ? (
+								<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
+									<pre className='m-0 max-h-[220px] overflow-auto text-[12px] leading-5 text-text-primary'>
+										{JSON.stringify(subsidyResult, null, 2)}
+									</pre>
+								</div>
+							) : (
+								<p className='m-0 text-sm text-text-secondary'>{publicTx.subsidyEmpty}</p>
+							)}
+						</div>
+					</article>
 				</section>
 
 				<section className='flex flex-wrap items-stretch justify-start gap-2 min-[480px]:items-center min-[480px]:justify-end'>
@@ -983,149 +1109,6 @@ function DashboardPage() {
 					/>
 				</section>
 
-				<section className='grid gap-3'>
-					<article className='min-w-0 rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
-						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
-							{publicTx.subsidyTitle}
-						</h2>
-						<p className='mt-1 text-sm text-text-secondary'>
-							{publicTx.subsidyDescription}
-						</p>
-
-						<form className='mt-4 grid gap-3' onSubmit={handleCalculateSubsidy}>
-							<label className='grid gap-1.5'>
-								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{publicTx.panelType}
-								</span>
-								<StylishDropdown
-									value={subsidyInput.panel_type}
-									onChange={value =>
-										setSubsidyInput(current => ({
-											...current,
-											panel_type: value,
-										}))
-									}
-									options={panelTypeOptions}
-									ariaLabel={publicTx.panelType}
-								/>
-							</label>
-
-							<label className='grid gap-1.5'>
-								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{publicTx.inverterType}
-								</span>
-								<StylishDropdown
-									value={subsidyInput.inverter_type}
-									onChange={value =>
-										setSubsidyInput(current => ({
-											...current,
-											inverter_type: value,
-										}))
-									}
-									options={inverterTypeOptions}
-									ariaLabel={publicTx.inverterType}
-								/>
-							</label>
-
-							<div className='grid gap-3 sm:grid-cols-2'>
-								<label className='grid gap-1.5'>
-									<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-										{publicTx.requestedPower}
-									</span>
-									<StylishDropdown
-										value={String(subsidyInput.requested_power_kw)}
-										onChange={value =>
-											setSubsidyInput(current => ({
-												...current,
-												requested_power_kw: Number(value),
-											}))
-										}
-										options={requestedPowerOptions}
-										ariaLabel={publicTx.requestedPower}
-									/>
-								</label>
-
-								<label className='grid gap-1.5'>
-									<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-										{publicTx.auditPower}
-									</span>
-									<input
-										type='number'
-										min={1}
-										step={1}
-										className='h-10 rounded-lg border border-border-soft bg-surface-card px-3 text-sm text-text-primary outline-none ring-primary/25 transition duration-fast focus:border-primary focus:ring-2'
-										value={subsidyInput.audit_power_kw}
-										onChange={event =>
-											setSubsidyInput(current => ({
-												...current,
-												audit_power_kw: Math.max(1, Number(event.target.value) || 1),
-											}))
-										}
-									/>
-								</label>
-							</div>
-
-							<button
-								type='submit'
-								className='inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65'
-								disabled={subsidyLoading}
-							>
-								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
-								{subsidyLoading ? publicTx.calculating : publicTx.calculate}
-							</button>
-						</form>
-
-						<div className='mt-4 rounded-lg bg-surface-subtle/70 p-3 ring-1 ring-border-soft/35'>
-							{subsidyError ? (
-								<p className='m-0 text-sm font-medium text-danger'>{subsidyError}</p>
-							) : parsedSubsidyResult ? (
-								<div className='grid gap-2 sm:grid-cols-2'>
-									<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-											{publicTx.basePrice}
-										</p>
-										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-text-primary'>
-											{formatAmount(parsedSubsidyResult.basePrice, locale)}
-										</p>
-									</div>
-									<div className='rounded-lg bg-success-bg/65 p-3 ring-1 ring-success/35'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-success'>
-											{publicTx.subsidyAmount}
-										</p>
-										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-success'>
-											{formatAmount(parsedSubsidyResult.subsidyAmount, locale)}
-										</p>
-									</div>
-									<div className='rounded-lg bg-primary/10 p-3 ring-1 ring-primary/30 sm:col-span-2'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-primary'>
-											{publicTx.customerAmount}
-										</p>
-										<p className='mt-1 font-display text-[1.4rem] font-extrabold text-text-primary'>
-											{formatAmount(parsedSubsidyResult.customerAmount, locale)}
-										</p>
-									</div>
-									<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50 sm:col-span-2'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-											{publicTx.referencePower}
-										</p>
-										<p className='mt-1 text-sm font-semibold text-text-primary'>
-											{formatCount(parsedSubsidyResult.subsidyReferencePowerKw, locale)} kW
-										</p>
-									</div>
-								</div>
-							) : subsidyResult ? (
-								<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
-									<pre className='m-0 max-h-[220px] overflow-auto text-[12px] leading-5 text-text-primary'>
-										{JSON.stringify(subsidyResult, null, 2)}
-									</pre>
-								</div>
-							) : (
-								<p className='m-0 text-sm text-text-secondary'>{publicTx.subsidyEmpty}</p>
-							)}
-						</div>
-					</article>
-				</section>
-
 				<section className='grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,340px)]'>
 					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
@@ -1168,21 +1151,21 @@ function DashboardPage() {
 									<ChartTooltip content={<ChartTooltipContent />} />
 									<Line
 										type='monotone'
-										dataKey='leads'
+										dataKey='clients'
 										stroke='rgb(var(--color-primary))'
 										strokeWidth={2.4}
 										dot={false}
 									/>
 									<Line
 										type='monotone'
-										dataKey='customers'
+										dataKey='chats'
 										stroke='rgb(var(--color-success))'
 										strokeWidth={2.2}
 										dot={false}
 									/>
 									<Line
 										type='monotone'
-										dataKey='orders'
+										dataKey='contracts'
 										stroke={SOURCE_COLORS.instagram}
 										strokeWidth={2}
 										dot={false}
@@ -1236,7 +1219,7 @@ function DashboardPage() {
 														<ChartTooltipContent
 															hideLabel
 															formatter={value =>
-																`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
+																`${value ?? 0} ${t('dashboard.metrics.orders').toLowerCase()}`
 															}
 														/>
 													}
@@ -1250,7 +1233,7 @@ function DashboardPage() {
 												{formatCount(sourceTotal, locale)}
 											</p>
 											<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
-												{t('dashboard.totalLeads')}
+												{t('dashboard.metrics.orders')}
 											</p>
 										</div>
 									</div>
@@ -1296,10 +1279,10 @@ function DashboardPage() {
 				<section className='grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]'>
 					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
-							{t('dashboard.sections.leadStatus')}
+							{t('dashboard.sections.contractStatus')}
 						</h2>
 						<p className='mt-1 text-sm text-text-secondary'>
-							{t('dashboard.descriptions.leadStatus')}
+							{t('dashboard.descriptions.contractStatus')}
 						</p>
 						{leadStatusTotal <= 0 ? (
 							<div className='mt-6 flex items-center justify-center rounded-xl border border-border-soft/60 bg-surface-subtle/65 p-12'>
@@ -1337,9 +1320,6 @@ function DashboardPage() {
 													content={
 														<ChartTooltipContent
 															hideLabel
-															formatter={value =>
-																`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
-															}
 														/>
 													}
 												/>
@@ -1352,7 +1332,7 @@ function DashboardPage() {
 												{formatCount(leadStatusTotal, locale)}
 											</p>
 											<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
-												{t('dashboard.totalLeads')}
+												{t('routes.contracts.title')}
 											</p>
 										</div>
 									</div>
@@ -1400,16 +1380,6 @@ function DashboardPage() {
 							{t('dashboard.sections.performance')}
 						</h2>
 						<ul className='mt-4 grid list-none gap-2 p-0'>
-							<li className='flex items-center justify-between rounded-lg bg-surface-subtle/85 px-3 py-2.5 text-sm'>
-								<span className='text-text-secondary'>
-									{t('dashboard.performance.leadConversionRate')}
-								</span>
-								<span className='font-semibold text-text-primary'>
-									{formatPercent(
-										overview.filtered_summary.lead_conversion_rate,
-									)}
-								</span>
-							</li>
 							<li className='flex items-center justify-between rounded-lg bg-surface-subtle/85 px-3 py-2.5 text-sm'>
 								<span className='text-text-secondary'>
 									{t('dashboard.performance.orderCompletionRate')}

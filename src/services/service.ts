@@ -53,7 +53,11 @@ export const services = {
 	} as any,
 	integrations: {
 		listConfigs: integrationsApi.listIntegrationConfigs.bind(integrationsApi),
+		getConfig: integrationsApi.getIntegrationConfigById.bind(integrationsApi),
+		createConfig: integrationsApi.createIntegrationConfig.bind(integrationsApi),
+		updateConfig: integrationsApi.updateIntegrationConfig.bind(integrationsApi),
 		patchConfig: integrationsApi.patchIntegrationConfig.bind(integrationsApi),
+		deleteConfig: integrationsApi.deleteIntegrationConfig.bind(integrationsApi),
 	} as any,
 	aiSettings: {
 		listSettings: aiSettingsApi.listAISettings.bind(aiSettingsApi),

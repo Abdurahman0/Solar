@@ -23,6 +23,9 @@ const CHANNEL_KEYS: Record<string, string> = {
 };
 
 const ORDER_STATUS_KEYS: Record<string, string> = {
+  all: 'labels.orderStatus.all',
+  contract: 'labels.orderStatus.contract',
+  contracts: 'labels.orderStatus.contracts',
   draft: 'labels.orderStatus.draft',
   waiting_payment: 'labels.orderStatus.waiting_payment',
   pending: 'labels.orderStatus.pending',

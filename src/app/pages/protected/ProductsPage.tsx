@@ -29,6 +29,7 @@ import { formatLocalizedDate } from '../../../i18n/date-format';
 import { usePersistentState } from '../../../lib/persistent-state';
 import { services } from '../../../services';
 import type {
+  EntityId,
   PaginationMeta,
   Product,
   ProductCategory,
@@ -309,13 +310,20 @@ function ProductsPage() {
     setProductToDelete(product);
   }
 
-  async function handleSaveProduct(payload: ProductMutationInput) {
+  async function handleSaveProduct(input: {
+    product: ProductMutationInput;
+    primaryImageFile: File | null;
+    galleryImageFiles: File[];
+    removedImageIds: EntityId[];
+  }) {
     setIsSaving(true);
     setFormErrorMessage(null);
 
     try {
+      let savedProduct: Product;
+
       if (formMode === 'create') {
-        await services.products.createProduct(payload);
+        savedProduct = await services.products.createProduct(input.product);
         setCurrentPage(1);
       } else {
         const editingId = editingProduct?.id;
@@ -323,7 +331,35 @@ function ProductsPage() {
           throw new Error(t('products.form.saveError'));
         }
 
-        await services.products.patchProduct(editingId, payload);
+        savedProduct = await services.products.patchProduct(editingId, input.product);
+      }
+
+      const productId = savedProduct.id;
+
+      if (input.removedImageIds.length > 0) {
+        await Promise.all(
+          input.removedImageIds.map((imageId) =>
+            services.products.deleteProductImage(productId, imageId),
+          ),
+        );
+      }
+
+      if (input.primaryImageFile) {
+        await services.products.createProductImage(productId, {
+          image: input.primaryImageFile,
+          isPrimary: true,
+        });
+      }
+
+      if (input.galleryImageFiles.length > 0) {
+        await Promise.all(
+          input.galleryImageFiles.map((file) =>
+            services.products.createProductImage(productId, {
+              image: file,
+              isPrimary: false,
+            }),
+          ),
+        );
       }
 
       setIsFormOpen(false);
