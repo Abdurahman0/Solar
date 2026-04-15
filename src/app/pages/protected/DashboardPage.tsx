@@ -20,11 +20,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '../../../components/ui/popover'
-import {
-	getChannelLabel,
-	getOrderStatusLabel,
-	getPaymentStatusLabel,
-} from '../../../i18n/labels'
+import { getChannelLabel, getOrderStatusLabel } from '../../../i18n/labels'
 import {
 	formatLocalizedDate,
 	formatUzMonthYear,
@@ -77,23 +73,12 @@ const STATUS_COLORS_FALLBACK = [
 	'#059669',
 	'#EF4444',
 ]
-const CHIP_BASE_CLASS_NAME =
-	'inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] font-semibold'
-const CHIP_TONE_CLASS_NAMES = {
-	success: 'bg-success-bg text-success',
-	warning: 'bg-warning-bg text-warning',
-	danger: 'bg-danger-bg text-danger',
-	info: 'bg-info-bg text-info',
-	neutral: 'bg-neutral-bg text-neutral',
-} as const
 
 const tablePrimaryTextClassName =
 	'block max-w-[180px] truncate text-sm font-semibold leading-[1.35] text-text-primary min-[640px]:max-w-[320px]'
 
 const tableSecondaryTextClassName =
 	'block max-w-[180px] truncate text-[12px] leading-[1.45] text-text-secondary min-[640px]:max-w-[320px]'
-
-type ChipTone = keyof typeof CHIP_TONE_CLASS_NAMES
 
 interface DashboardFilters {
 	interval: DashboardInterval
@@ -229,39 +214,6 @@ function pickForDisplay(
 ): DashboardBreakdownItem[] {
 	const nonZero = items.filter(item => item.count > 0)
 	return (nonZero.length > 0 ? nonZero : items).slice(0, maxItems)
-}
-
-function getOrderStatusTone(statusKey: string): ChipTone {
-	switch (statusKey) {
-		case 'completed':
-		case 'paid':
-			return 'success'
-		case 'waiting_payment':
-		case 'pending':
-			return 'warning'
-		case 'cancelled':
-			return 'danger'
-		case 'confirmed':
-			return 'info'
-		case 'draft':
-		default:
-			return 'neutral'
-	}
-}
-
-function getPaymentStatusTone(statusKey: string): ChipTone {
-	switch (statusKey) {
-		case 'approved':
-		case 'verified':
-			return 'success'
-		case 'pending':
-			return 'warning'
-		case 'rejected':
-		case 'failed':
-			return 'danger'
-		default:
-			return 'neutral'
-	}
 }
 
 function hexToRgba(hexColor: string, alpha: number): string {
@@ -634,29 +586,6 @@ function DashboardPage() {
 			]!,
 		share: (item.count / leadStatusTotal) * 100,
 	}))
-	const orderStatusSource =
-		overview.breakdowns.orders_by_status &&
-		overview.breakdowns.orders_by_status.length > 0
-			? overview.breakdowns.orders_by_status
-			: overview.breakdowns.contracts_by_status
-	const orderStatusData = pickForDisplay(orderStatusSource, 4).map(item => ({
-		...item,
-		label: getOrderStatusLabel(t, item.key, item.label),
-	}))
-	const paymentStatusData = pickForDisplay(
-		overview.breakdowns.payments_by_status ?? [],
-		4,
-	).map(item => ({
-		...item,
-		label: getPaymentStatusLabel(t, item.key, item.label),
-	}))
-	const chatChannelData = pickForDisplay(
-		overview.breakdowns.chats_by_channel,
-		4,
-	).map(item => ({
-		...item,
-		label: getChannelLabel(t, item.key, item.label),
-	}))
 	const topProducts = overview.breakdowns.top_products.slice(0, 15)
 	const regionDemand = overview.region_demand ?? []
 	const topProductColumns: DataTableColumn<DashboardTopProduct>[] = [
@@ -940,7 +869,7 @@ function DashboardPage() {
 					/>
 				</section>
 
-				<section className='grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,340px)]'>
+				<section className='grid gap-3'>
 					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.trend')}
@@ -1005,7 +934,9 @@ function DashboardPage() {
 							</ChartContainer>
 						</div>
 					</article>
+				</section>
 
+				<section className='grid gap-3 lg:grid-cols-2'>
 					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.08rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.source')}
@@ -1050,7 +981,7 @@ function DashboardPage() {
 														<ChartTooltipContent
 															hideLabel
 															formatter={value =>
-																`${value ?? 0} ${t('dashboard.metrics.orders').toLowerCase()}`
+																`${value ?? 0} ${t('dashboard.metrics.leads').toLowerCase()}`
 															}
 														/>
 													}
@@ -1064,7 +995,7 @@ function DashboardPage() {
 												{formatCount(sourceTotal, locale)}
 											</p>
 											<p className='mt-0.5 text-[9px] font-semibold uppercase tracking-[0.11em] text-text-muted'>
-												{t('dashboard.metrics.orders')}
+												{t('dashboard.metrics.leads')}
 											</p>
 										</div>
 									</div>
@@ -1105,9 +1036,7 @@ function DashboardPage() {
 							</>
 						)}
 					</article>
-				</section>
 
-				<section className='grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]'>
 					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
 						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
 							{t('dashboard.sections.contractStatus')}
@@ -1204,104 +1133,6 @@ function DashboardPage() {
 								</ul>
 							</div>
 						)}
-					</article>
-
-					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
-						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
-							{t('dashboard.sections.performance')}
-						</h2>
-						<ul className='mt-4 grid list-none gap-2 p-0'>
-							<li className='flex items-center justify-between rounded-lg bg-surface-subtle/85 px-3 py-2.5 text-sm'>
-								<span className='text-text-secondary'>
-									{t('dashboard.performance.orderCompletionRate')}
-								</span>
-								<span className='font-semibold text-text-primary'>
-									{formatPercent(
-										overview.filtered_summary.order_completion_rate ?? '0',
-									)}
-								</span>
-							</li>
-							<li className='flex items-center justify-between rounded-lg bg-surface-subtle/85 px-3 py-2.5 text-sm'>
-								<span className='text-text-secondary'>
-									{t('dashboard.performance.averageOrderValue')}
-								</span>
-								<span className='font-semibold text-text-primary'>
-									{formatAmount(
-										overview.filtered_summary.average_order_value ?? '0',
-										locale,
-									)}
-								</span>
-							</li>
-						</ul>
-
-						<div className='mt-4 grid gap-3'>
-							<div>
-								<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{t('dashboard.sections.orderStatus')}
-								</p>
-								<ul className='mt-1.5 flex list-none flex-wrap gap-1.5 p-0'>
-									{orderStatusData.map(item => {
-										const tone = getOrderStatusTone(item.key)
-										return (
-											<li
-												key={item.key}
-												className={`${CHIP_BASE_CLASS_NAME} ${CHIP_TONE_CLASS_NAMES[tone]}`}
-											>
-												{item.label}
-												<span className='font-bold'>
-													{formatCount(item.count, locale)}
-												</span>
-											</li>
-										)
-									})}
-								</ul>
-							</div>
-
-							<div>
-								<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{t('dashboard.sections.paymentStatus')}
-								</p>
-								<ul className='mt-1.5 flex list-none flex-wrap gap-1.5 p-0'>
-									{paymentStatusData.map(item => {
-										const tone = getPaymentStatusTone(item.key)
-										return (
-											<li
-												key={item.key}
-												className={`${CHIP_BASE_CLASS_NAME} ${CHIP_TONE_CLASS_NAMES[tone]}`}
-											>
-												{item.label}
-												<span className='font-bold'>
-													{formatCount(item.count, locale)}
-												</span>
-											</li>
-										)
-									})}
-								</ul>
-							</div>
-
-							<div>
-								<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{t('dashboard.sections.chatChannels')}
-								</p>
-								<ul className='mt-1.5 flex list-none flex-wrap gap-1.5 p-0'>
-									{chatChannelData.map(item => {
-										const channelStyle = getChannelChipStyle(item.key)
-										return (
-											<li
-												key={item.key}
-												className={`${CHIP_BASE_CLASS_NAME} ${channelStyle ? '' : CHIP_TONE_CLASS_NAMES.neutral}`}
-												style={channelStyle}
-											>
-												{item.label}
-												<span className='font-bold'>
-													{formatCount(item.count, locale)}
-												</span>
-											</li>
-										)
-									})}
-								</ul>
-							</div>
-						</div>
 					</article>
 				</section>
 

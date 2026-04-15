@@ -133,6 +133,12 @@ export interface DashboardTimeSeriesPoint {
 export interface DashboardOverview {
   leads: number;
   clients: number;
+  instagram_leads?: number;
+  telegram_leads?: number;
+  manual_leads?: number;
+  closed_sales?: number;
+  lost_leads?: number;
+  installations?: number;
   products?: number;
   chats?: number;
   notifications?: number;
@@ -144,6 +150,8 @@ export interface DashboardOverview {
   revenue: string;
   collected_amount?: string;
   pipeline_amount?: string;
+  delivered_amount?: string;
+  subsidy_amount?: string;
   date_range: DashboardDateRange;
   filtered_summary: DashboardFilteredSummary;
   breakdowns: DashboardBreakdowns;

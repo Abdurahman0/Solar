@@ -236,26 +236,28 @@
     "title": "Boshqaruv paneli",
     "welcome": "Xush kelibsiz",
     "workspaceFallback": "Ish maydoni",
-    "totalLeads": "Jami lidlar",
-    "sourceDataHint": "Yangi lidlar qayd etilgandan keyin manba ma'lumotlari ko'rsatiladi.",
+    "totalLeads": "Jami mijozlar",
+    "sourceDataHint": "Yangi mijozlar qo'shilgandan keyin manba ma'lumotlari ko'rsatiladi.",
     "metrics": {
-      "leads": "Lidlar",
+      "leads": "Mijozlar",
       "customers": "Mijozlar",
       "orders": "Buyurtmalar",
       "pendingPayments": "Kutilayotgan to'lovlar",
       "unreadMessages": "O'qilmagan xabarlar",
       "revenue": "Daromad",
-      "newLeads": "yangi lid",
+      "newLeads": "yangi mijoz",
       "newCustomers": "yangi mijoz",
       "completed": "yakunlangan",
       "pending": "kutilmoqda",
       "activeSessions": "faol sessiya",
-      "collected": "yig'ilgan"
+      "collected": "yig'ilgan",
+      "collectedAmount": "Yig'ilgan summa",
+      "pipelineAmount": "Kutilayotgan summa"
     },
     "sections": {
       "trend": "Trendlar",
-      "source": "Lid manbalari",
-      "leadStatus": "Lid holatlari",
+      "source": "Mijoz manbalari",
+      "leadStatus": "Mijoz holatlari",
       "contractStatus": "Shartnoma holati",
       "orderStatus": "Buyurtma holati",
       "paymentStatus": "To'lov holati",
@@ -267,15 +269,15 @@
     },
     "descriptions": {
       "trend": "Tanlangan davr bo'yicha mijozlar, chatlar va shartnomalar dinamikasi.",
-      "source": "Telegram va manual kanallar bo'yicha murojaatlar taqsimoti.",
+      "source": "Telegram va qo'lda kiritilgan manbalar bo'yicha mijozlar taqsimoti.",
       "leadStatus": "Jarayon bo'ylab holatlar taqsimoti.",
       "contractStatus": "Shartnomalar holatlari bo'yicha taqsimot.",
       "topProducts": "Sotuv hajmi bo'yicha eng ko'p sotilgan mahsulotlar ro'yxati.",
-      "regionDemand": "Tanlangan davrda hududlar kesimidagi so'rovlar taqsimoti.",
-      "managerPerformance": "Menejerlar kesimida umumiy, yutilgan va yo'qotilgan lidlar ko'rsatkichlari."
+      "regionDemand": "Tanlangan davrda hududlar kesimidagi mijozlar taqsimoti.",
+      "managerPerformance": "Menejerlar kesimida umumiy, yutilgan va yo'qotilgan mijozlar ko'rsatkichlari."
     },
     "performance": {
-      "leadConversionRate": "Lid konversiya darajasi",
+      "leadConversionRate": "Mijoz konversiya darajasi",
       "orderCompletionRate": "Buyurtma yakunlanish darajasi",
       "averageOrderValue": "O'rtacha buyurtma qiymati"
     },
@@ -293,7 +295,7 @@
       "emptyDescription": "Tanlangan davrda hududlar bo'yicha ma'lumot mavjud emas.",
       "columns": {
         "region": "Hudud",
-        "total": "Lidlar"
+        "total": "Mijozlar"
       }
     },
     "managerPerformance": {

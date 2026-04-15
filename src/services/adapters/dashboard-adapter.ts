@@ -78,10 +78,15 @@ function mapTopProducts(value: unknown): DashboardTopProduct[] {
     const productId =
       readString(itemRecord.product_id) ||
       readString(itemRecord.productId) ||
+      readString(itemRecord.id) ||
       readString(itemRecord.key) ||
       `product-${index}`;
     const quantity = readCount(
-      itemRecord.quantity !== undefined ? itemRecord.quantity : itemRecord.count,
+      itemRecord.total !== undefined
+        ? itemRecord.total
+        : itemRecord.quantity !== undefined
+          ? itemRecord.quantity
+          : itemRecord.count,
     );
     const label = readString(itemRecord.name) || readString(itemRecord.label) || productId;
 
@@ -90,7 +95,9 @@ function mapTopProducts(value: unknown): DashboardTopProduct[] {
       key: productId,
       label,
       count: quantity,
-      revenue: readDecimalString(itemRecord.revenue),
+      revenue: readDecimalString(
+        itemRecord.amount !== undefined ? itemRecord.amount : itemRecord.revenue,
+      ),
     };
   });
 }
@@ -197,18 +204,7 @@ export function mapDashboardOverviewDtoToModel(
   const mappedTopProducts =
     mapTopProducts(breakdowns.top_products).length > 0
       ? mapTopProducts(breakdowns.top_products)
-      : toArray(data.top_products).map((item, index) => {
-          const itemRecord = toRecord(item) ?? {};
-          const productId = readString(itemRecord.id) || `product-${index}`;
-          const label = readString(itemRecord.name) || productId;
-          return {
-            product_id: productId,
-            key: productId,
-            label,
-            count: readCount(itemRecord.total),
-            revenue: '0',
-          };
-        });
+      : mapTopProducts(data.top_products);
 
   const mappedTimeSeries =
     mapTimeSeries(data.time_series).length > 0
