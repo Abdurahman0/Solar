@@ -11,6 +11,25 @@ import { ServiceError as ServiceErrorClass } from '../../contracts'
 import { getAccessToken } from '../../../lib/auth-storage'
 import { requestTokenRefresh } from '../../../lib/api-client'
 
+const NGROK_BYPASS_HEADER_NAME = 'ngrok-skip-browser-warning'
+
+function isNgrokHost(baseUrl: string): boolean {
+	if (!baseUrl) {
+		return false
+	}
+
+	try {
+		const hostname = new URL(baseUrl).hostname.toLowerCase()
+		return (
+			hostname.endsWith('.ngrok-free.dev') ||
+			hostname.endsWith('.ngrok-free.app') ||
+			hostname.endsWith('.ngrok.io')
+		)
+	} catch {
+		return false
+	}
+}
+
 export interface RequestConfig {
 	method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 	headers?: Record<string, string>
@@ -21,7 +40,11 @@ export interface RequestConfig {
 }
 
 export class ApiRequestor {
-	constructor(private baseUrl: string) {}
+	private shouldAttachNgrokBypassHeader: boolean
+
+	constructor(private baseUrl: string) {
+		this.shouldAttachNgrokBypassHeader = isNgrokHost(baseUrl)
+	}
 
 	async request<T>(endpoint: string, config?: RequestConfig): Promise<T> {
 		const url = new URL(endpoint, this.baseUrl)
@@ -37,8 +60,13 @@ export class ApiRequestor {
 
 		const isFormData = config?.body instanceof FormData
 		const headers: Record<string, string> = {
-			'ngrok-skip-browser-warning': 'true',
 			...config?.headers,
+		}
+
+		// Only attach this header when we are actually talking to an ngrok host.
+		// Sending it to non-ngrok APIs may break CORS preflight checks.
+		if (this.shouldAttachNgrokBypassHeader) {
+			headers[NGROK_BYPASS_HEADER_NAME] = 'true'
 		}
 
 		if (!isFormData) {

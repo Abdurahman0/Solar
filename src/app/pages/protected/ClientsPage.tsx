@@ -204,14 +204,18 @@ function ClientsPage() {
     setActionMessage(null);
 
     try {
-      const items = await services.clients.exportClients();
-      const serialized = JSON.stringify(items, null, 2);
-      const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
+      const blob = await services.clients.exportClients();
+
+      if (!blob || blob.size === 0) {
+        setActionMessage({ type: 'error', text: importTx.exportFailed });
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       const date = new Date().toISOString().slice(0, 10);
       anchor.href = url;
-      anchor.download = `clients-export-${date}.json`;
+      anchor.download = `clients-export-${date}.xlsx`;
       document.body.append(anchor);
       anchor.click();
       anchor.remove();
@@ -219,7 +223,9 @@ function ClientsPage() {
 
       setActionMessage({
         type: 'success',
-        text: resolveTemplateMessage(importTx.exportSuccess, { count: items.length }),
+        // We don't know the exact exported row count from the XLSX response.
+        // Use the currently loaded total as a best-effort value for the template.
+        text: resolveTemplateMessage(importTx.exportSuccess, { count: stats.total }),
       });
     } catch {
       setActionMessage({ type: 'error', text: importTx.exportFailed });

@@ -6,7 +6,7 @@ import { StatusBadge } from '../../../components/shared/data';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import { formatLocalizedDate } from '../../../i18n/date-format';
 import { services } from '../../../services';
-import type { Client } from '../../../services/contracts';
+import type { Client, ClientRecentContract, ClientSelectedProduct } from '../../../services/contracts';
 
 export interface ClientsDetailPanelProps {
   clientId: string;
@@ -155,7 +155,7 @@ export function ClientsDetailPanel({
     return <EmptyState title={tx.errorTitle} description={tx.errorDescription} />;
   }
 
-  const client = state.data;
+  const client = state.data as Client;
   const statusKey = (client.status || 'new') as keyof typeof statusLabels;
   const localizedStatusLabel =
     statusLabels[statusKey] || client.status_label || client.status || 'new';
@@ -185,7 +185,7 @@ export function ClientsDetailPanel({
 
         <div className="mt-3">
           <StatusBadge
-            tone={getStatusTone(client.status)}
+            tone={getStatusTone(client.status ?? 'new')}
             status={client.status || 'new'}
             label={localizedStatusLabel}
           />
@@ -283,12 +283,12 @@ export function ClientsDetailPanel({
         <PageCard>
           <div className="flex items-center gap-2 mb-3">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <AppIcon name="package" className="h-4 w-4" />
+              <AppIcon name="products" className="h-4 w-4" />
             </div>
             <p className={`${labelClassName} text-text-primary`}>{tx.fields.selectedProducts}</p>
           </div>
           <div className="grid gap-2.5">
-            {client.selected_products.map((item, i) => (
+            {client.selected_products.map((item: ClientSelectedProduct, i: number) => (
               <div key={item.product_id ?? i} className="group relative flex flex-col gap-1.5 rounded-xl bg-surface-subtle/50 p-3.5 text-sm transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-primary/20">
                 <div className="flex items-start justify-between gap-3">
                   <span className="font-bold leading-tight text-text-primary [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
@@ -328,12 +328,12 @@ export function ClientsDetailPanel({
         <PageCard>
           <div className="flex items-center gap-2 mb-3">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-info-bg text-info">
-              <AppIcon name="document" className="h-4 w-4" />
+              <AppIcon name="contracts" className="h-4 w-4" />
             </div>
             <p className={`${labelClassName} text-text-primary`}>{tx.fields.recentContracts}</p>
           </div>
           <div className="grid gap-2.5">
-            {client.recent_contracts.map((contract, i) => (
+            {client.recent_contracts.map((contract: ClientRecentContract, i: number) => (
               <div key={contract.id ?? i} className="group flex flex-col gap-3 rounded-xl bg-surface-subtle/50 p-3.5 transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-info/20">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

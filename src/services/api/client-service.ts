@@ -119,12 +119,15 @@ export const apiClientService = {
 		await apiClient.delete(`/api/clients/${id}/`)
 	},
 
-	async exportClients(): Promise<Client[]> {
-		const { data } = await apiClient.get<unknown>('/api/clients/export/')
-		if (Array.isArray(data)) {
-			return data as Client[]
-		}
+	async exportClients(): Promise<Blob> {
+		// Backend returns an Excel file. Treat it as a binary Blob, not JSON.
+		const response = await apiClient.get('/api/clients/export/', {
+			responseType: 'blob',
+			headers: {
+				Accept: '*/*',
+			},
+		})
 
-		return data ? [data as Client] : []
+		return response.data as Blob
 	},
 }
