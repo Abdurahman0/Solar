@@ -245,6 +245,8 @@ export function mapDashboardOverviewDtoToModel(
     contracts: readCount(data.contracts),
     unread_messages: readCount(data.unread_messages ?? data.notifications),
     revenue: readDecimalString(data.revenue),
+    collected_amount: readDecimalString(data.collected_amount),
+    pipeline_amount: readDecimalString(data.pipeline_amount),
     date_range: {
       date_from: dateFrom,
       date_to: dateTo,
@@ -277,7 +279,7 @@ export function mapDashboardOverviewDtoToModel(
       total_chat_sessions: readCount(filteredSummary.total_chat_sessions ?? data.chats),
       active_chat_sessions: readCount(filteredSummary.active_chat_sessions ?? data.chats),
       revenue: readDecimalString(filteredSummary.revenue ?? data.revenue),
-      collected_amount: readDecimalString(filteredSummary.collected_amount),
+      collected_amount: readDecimalString(filteredSummary.collected_amount ?? data.collected_amount),
       pending_payment_amount: readDecimalString(filteredSummary.pending_payment_amount),
       average_order_value: readDecimalString(filteredSummary.average_order_value),
       lead_conversion_rate: readDecimalString(filteredSummary.lead_conversion_rate),

@@ -33,7 +33,6 @@ import { formatCurrencyAmount } from '../../../constants'
 import { services } from '../../../services'
 import type {
 	DashboardBreakdownItem,
-	DashboardManagerPerformanceItem,
 	DashboardInterval,
 	DashboardOverview,
 	DashboardOverviewParams,
@@ -660,7 +659,6 @@ function DashboardPage() {
 	}))
 	const topProducts = overview.breakdowns.top_products.slice(0, 15)
 	const regionDemand = overview.region_demand ?? []
-	const managerPerformance = overview.manager_performance ?? []
 	const topProductColumns: DataTableColumn<DashboardTopProduct>[] = [
 		{
 			key: 'product',
@@ -714,83 +712,36 @@ function DashboardPage() {
 			),
 		},
 	]
-	const managerPerformanceColumns: DataTableColumn<DashboardManagerPerformanceItem>[] =
-		[
-			{
-				key: 'manager',
-				label: t('dashboard.managerPerformance.columns.manager'),
-				render: item => (
-					<div className='grid gap-0.5'>
-						<span className={tablePrimaryTextClassName}>
-							{item.manager_username || t('common.na')}
-						</span>
-						<span className={tableSecondaryTextClassName}>
-							{item.manager_id ?? '-'}
-						</span>
-					</div>
-				),
-			},
-			{
-				key: 'total',
-				label: t('dashboard.managerPerformance.columns.total'),
-				align: 'right',
-				render: item => (
-					<span className='block text-right text-sm font-semibold text-text-primary'>
-						{formatCount(item.total, locale)}
-					</span>
-				),
-			},
-			{
-				key: 'won',
-				label: t('dashboard.managerPerformance.columns.won'),
-				align: 'right',
-				render: item => (
-					<span className='block text-right text-sm font-semibold text-success'>
-						{formatCount(item.won, locale)}
-					</span>
-				),
-			},
-			{
-				key: 'lost',
-				label: t('dashboard.managerPerformance.columns.lost'),
-				align: 'right',
-				render: item => (
-					<span className='block text-right text-sm font-semibold text-danger'>
-						{formatCount(item.lost, locale)}
-					</span>
-				),
-			},
-		]
 	const metricCards = [
 		{
 			label: t('routes.clients.title', { defaultValue: 'Clients' }),
 			value: formatCount(overview.clients, locale),
-			hint: `${formatCount(overview.filtered_summary.new_clients, locale)} ${t('dashboard.metrics.newCustomers')}`,
 		},
 		{
 			label: t('routes.products.title', { defaultValue: 'Products' }),
 			value: formatCount(overview.products ?? 0, locale),
-			hint: `${formatCount((overview.breakdowns.top_products ?? []).length, locale)} ${t('products.records')}`,
 		},
 		{
 			label: t('routes.chat.title', { defaultValue: 'Chats' }),
 			value: formatCount(overview.chats ?? 0, locale),
-			hint: `${formatCount(overview.filtered_summary.active_chat_sessions ?? 0, locale)} ${t('dashboard.metrics.activeSessions')}`,
 		},
 		{
 			label: t('routes.contracts.title', { defaultValue: 'Contracts' }),
 			value: formatCount(overview.contracts, locale),
-			hint: `${formatCount(overview.filtered_summary.active_contracts, locale)} ${t('common.active')}`,
 		},
 		{
 			label: t('routes.notifications.title', { defaultValue: 'Notifications' }),
 			value: formatCount(overview.notifications ?? 0, locale),
-			hint: `${formatCount(overview.unread_messages, locale)} ${t('dashboard.metrics.pending')}`,
 		},
 		{
 			label: t('dashboard.metrics.revenue'),
-			value: formatAmount(overview.filtered_summary.collected_amount, locale),
-			hint: `${formatAmount(overview.filtered_summary.pending_payment_amount ?? '0', locale)} ${t('dashboard.metrics.pending')}`,
+			// Big amount: collected. Small amount: pipeline.
+			value: formatAmount(
+				overview.collected_amount ?? overview.filtered_summary.collected_amount,
+				locale,
+			),
+			// Keep the original label ("pending"/"kutilmoqda") but show pipeline amount as requested.
+			hint: `${formatAmount(overview.pipeline_amount ?? '0', locale)} ${t('dashboard.metrics.pending')}`,
 		},
 	]
 
@@ -875,133 +826,13 @@ function DashboardPage() {
 							<p className='mt-1.5 font-display text-[1.85rem] font-extrabold text-text-primary'>
 								{card.value}
 							</p>
-							<p className='mt-2 text-[12px] font-semibold text-text-secondary'>
-								{card.hint}
-							</p>
+							{card.hint ? (
+								<p className='mt-2 text-[12px] font-semibold text-text-secondary'>
+									{card.hint}
+								</p>
+							) : null}
 						</article>
 					))}
-				</section>
-
-				<section className='grid max-w-[900px] gap-3'>
-					<article className='min-w-0 rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
-						<h2 className='m-0 text-[1.08rem] font-semibold text-text-primary'>
-							{publicTx.subsidyTitle}
-						</h2>
-						<p className='mt-1 text-sm text-text-secondary'>
-							{publicTx.subsidyDescription}
-						</p>
-
-						<form className='mt-3 grid gap-2.5' onSubmit={handleCalculateSubsidy}>
-							<label className='grid gap-1.5'>
-								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{publicTx.panelType}
-								</span>
-								<StylishDropdown
-									value={subsidyInput.panel_type}
-									onChange={value =>
-										setSubsidyInput(current => ({
-											...current,
-											panel_type: value,
-										}))
-									}
-									options={panelTypeOptions}
-									ariaLabel={publicTx.panelType}
-								/>
-							</label>
-
-							<label className='grid gap-1.5'>
-								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{publicTx.inverterType}
-								</span>
-								<StylishDropdown
-									value={subsidyInput.inverter_type}
-									onChange={value =>
-										setSubsidyInput(current => ({
-											...current,
-											inverter_type: value,
-										}))
-									}
-									options={inverterTypeOptions}
-									ariaLabel={publicTx.inverterType}
-								/>
-							</label>
-
-							<label className='grid gap-1.5'>
-								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-									{publicTx.requestedPower}
-								</span>
-								<StylishDropdown
-									value={String(subsidyInput.requested_power_kw)}
-									onChange={value =>
-										setSubsidyInput(current => ({
-											...current,
-											requested_power_kw: Number(value),
-										}))
-									}
-									options={requestedPowerOptions}
-									ariaLabel={publicTx.requestedPower}
-								/>
-							</label>
-
-							<button
-								type='submit'
-								className='inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65'
-								disabled={subsidyLoading}
-							>
-								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
-								{subsidyLoading ? publicTx.calculating : publicTx.calculate}
-							</button>
-						</form>
-
-						<div className='mt-3 rounded-lg bg-surface-subtle/70 p-2.5 ring-1 ring-border-soft/35'>
-							{subsidyError ? (
-								<p className='m-0 text-sm font-medium text-danger'>{subsidyError}</p>
-							) : parsedSubsidyResult ? (
-								<div className='grid gap-2 sm:grid-cols-2'>
-									<div className='rounded-lg bg-surface-card p-2.5 ring-1 ring-border-soft/50'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-											{publicTx.basePrice}
-										</p>
-										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-text-primary'>
-											{formatAmount(parsedSubsidyResult.basePrice, locale)}
-										</p>
-									</div>
-									<div className='rounded-lg bg-success-bg/65 p-2.5 ring-1 ring-success/35'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-success'>
-											{publicTx.subsidyAmount}
-										</p>
-										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-success'>
-											{formatAmount(parsedSubsidyResult.subsidyAmount, locale)}
-										</p>
-									</div>
-									<div className='rounded-lg bg-primary/10 p-2.5 ring-1 ring-primary/30 sm:col-span-2'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-primary'>
-											{publicTx.customerAmount}
-										</p>
-										<p className='mt-1 font-display text-[1.4rem] font-extrabold text-text-primary'>
-											{formatAmount(parsedSubsidyResult.customerAmount, locale)}
-										</p>
-									</div>
-									<div className='rounded-lg bg-surface-card p-2.5 ring-1 ring-border-soft/50 sm:col-span-2'>
-										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
-											{publicTx.referencePower}
-										</p>
-										<p className='mt-1 text-sm font-semibold text-text-primary'>
-											{formatCount(parsedSubsidyResult.subsidyReferencePowerKw, locale)} kW
-										</p>
-									</div>
-								</div>
-							) : subsidyResult ? (
-								<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
-									<pre className='m-0 max-h-[220px] overflow-auto text-[12px] leading-5 text-text-primary'>
-										{JSON.stringify(subsidyResult, null, 2)}
-									</pre>
-								</div>
-							) : (
-								<p className='m-0 text-sm text-text-secondary'>{publicTx.subsidyEmpty}</p>
-							)}
-						</div>
-					</article>
 				</section>
 
 				<section className='flex flex-wrap items-stretch justify-start gap-2 min-[480px]:items-center min-[480px]:justify-end'>
@@ -1524,24 +1355,122 @@ function DashboardPage() {
 					</article>
 
 					<article className='min-w-0 overflow-hidden rounded-xl bg-surface-card p-5 shadow-sm ring-1 ring-border-soft/40 transition duration-base hover:shadow-md hover:ring-border-soft/60'>
-						<div className='flex flex-wrap items-center justify-between gap-2'>
-							<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
-								{t('dashboard.sections.managerPerformance')}
-							</h2>
-						</div>
+						<h2 className='m-0 text-[1.14rem] font-semibold text-text-primary'>
+							{publicTx.subsidyTitle}
+						</h2>
 						<p className='mt-1 text-sm text-text-secondary'>
-							{t('dashboard.descriptions.managerPerformance')}
+							{publicTx.subsidyDescription}
 						</p>
-						<div className='mt-4 min-w-0 overflow-x-auto'>
-							<DataTable
-								data={managerPerformance}
-								columns={managerPerformanceColumns}
-								rowKey={(item, index) =>
-									item.manager_id ?? `manager-${index}`
-								}
-								emptyTitle={t('dashboard.managerPerformance.empty')}
-								emptyDescription={t('dashboard.managerPerformance.emptyDescription')}
-							/>
+
+						<form className='mt-4 grid gap-2.5' onSubmit={handleCalculateSubsidy}>
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.panelType}
+								</span>
+								<StylishDropdown
+									value={subsidyInput.panel_type}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											panel_type: value,
+										}))
+									}
+									options={panelTypeOptions}
+									ariaLabel={publicTx.panelType}
+								/>
+							</label>
+
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.inverterType}
+								</span>
+								<StylishDropdown
+									value={subsidyInput.inverter_type}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											inverter_type: value,
+										}))
+									}
+									options={inverterTypeOptions}
+									ariaLabel={publicTx.inverterType}
+								/>
+							</label>
+
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.requestedPower}
+								</span>
+								<StylishDropdown
+									value={String(subsidyInput.requested_power_kw)}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											requested_power_kw: Number(value),
+										}))
+									}
+									options={requestedPowerOptions}
+									ariaLabel={publicTx.requestedPower}
+								/>
+							</label>
+
+							<button
+								type='submit'
+								className='inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-65'
+								disabled={subsidyLoading}
+							>
+								<AppIcon name='activity' className='h-4 w-4' aria-hidden='true' />
+								{subsidyLoading ? publicTx.calculating : publicTx.calculate}
+							</button>
+						</form>
+
+						<div className='mt-4 rounded-lg bg-surface-subtle/70 p-2.5 ring-1 ring-border-soft/35'>
+							{subsidyError ? (
+								<p className='m-0 text-sm font-medium text-danger'>{subsidyError}</p>
+							) : parsedSubsidyResult ? (
+								<div className='grid gap-2 sm:grid-cols-2'>
+									<div className='rounded-lg bg-surface-card p-2.5 ring-1 ring-border-soft/50'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+											{publicTx.basePrice}
+										</p>
+										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-text-primary'>
+											{formatAmount(parsedSubsidyResult.basePrice, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-success-bg/65 p-2.5 ring-1 ring-success/35'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-success'>
+											{publicTx.subsidyAmount}
+										</p>
+										<p className='mt-1 font-display text-[1.25rem] font-extrabold text-success'>
+											{formatAmount(parsedSubsidyResult.subsidyAmount, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-primary/10 p-2.5 ring-1 ring-primary/30 sm:col-span-2'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-primary'>
+											{publicTx.customerAmount}
+										</p>
+										<p className='mt-1 font-display text-[1.4rem] font-extrabold text-text-primary'>
+											{formatAmount(parsedSubsidyResult.customerAmount, locale)}
+										</p>
+									</div>
+									<div className='rounded-lg bg-surface-card p-2.5 ring-1 ring-border-soft/50 sm:col-span-2'>
+										<p className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+											{publicTx.referencePower}
+										</p>
+										<p className='mt-1 text-sm font-semibold text-text-primary'>
+											{formatCount(parsedSubsidyResult.subsidyReferencePowerKw, locale)} kW
+										</p>
+									</div>
+								</div>
+							) : subsidyResult ? (
+								<div className='rounded-lg bg-surface-card p-3 ring-1 ring-border-soft/50'>
+									<pre className='m-0 max-h-[220px] overflow-auto text-[12px] leading-5 text-text-primary'>
+										{JSON.stringify(subsidyResult, null, 2)}
+									</pre>
+								</div>
+							) : (
+								<p className='m-0 text-sm text-text-secondary'>{publicTx.subsidyEmpty}</p>
+							)}
 						</div>
 					</article>
 				</section>

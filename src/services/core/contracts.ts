@@ -142,6 +142,8 @@ export interface DashboardOverview {
   contracts: number;
   unread_messages: number;
   revenue: string;
+  collected_amount?: string;
+  pipeline_amount?: string;
   date_range: DashboardDateRange;
   filtered_summary: DashboardFilteredSummary;
   breakdowns: DashboardBreakdowns;
