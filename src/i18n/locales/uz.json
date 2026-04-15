@@ -2101,7 +2101,7 @@
     }
   },
   "contractsPage": {
-    "eyebrow": "Shartnoma voronkasi",
+    "eyebrow": "Shartnoma",
     "title": "Shartnomalar",
     "subtitle": "Shartnomalar holatini, panel va yetkazishni bitta oynada boshqaring.",
     "newContract": "Yangi shartnoma",
@@ -2183,7 +2183,7 @@
       "importResult": "Import yakunlandi. Muvaffaqiyatli: {{success}}, xatolik: {{failed}}."
     },
     "page": {
-      "eyebrow": "Mijoz voronkasi",
+      "eyebrow": "Mijoz",
       "title": "Mijozlar",
       "subtitle": "Mijozlarni boshqaring, holatlarni kuzating va kartochkalar bilan yagona oynada ishlang.",
       "newClient": "Yangi mijoz",
