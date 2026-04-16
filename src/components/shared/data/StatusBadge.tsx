@@ -30,6 +30,7 @@ const SUCCESS_STATUSES = new Set([
   'converted',
   'success',
   'read',
+  'in-stock',
 ]);
 
 const WARNING_STATUSES = new Set([
@@ -48,6 +49,7 @@ const DANGER_STATUSES = new Set([
   'cancelled',
   'lost',
   'out-of-stock',
+  'low-stock',
   'danger',
   'refunded',
   'returned',
@@ -71,7 +73,7 @@ function formatStatusLabel(status: string): string {
 }
 
 export function getStatusBadgeTone(status: string): StatusBadgeTone {
-  const normalizedStatus = status.toLowerCase();
+  const normalizedStatus = status.toLowerCase().replace(/_/g, '-');
 
   if (SUCCESS_STATUSES.has(normalizedStatus)) {
     return 'success';

@@ -151,6 +151,20 @@ export async function login(username: string, password: string): Promise<Authent
     try {
       // Ensure sidebar/route permissions always use fully resolved backend user data.
       effectiveUser = await authService.getMe();
+
+      // Some backends don't include permissions on `/me`. In that case, keep the permissions
+      // we received from the login payload so we don't incorrectly show Access Denied.
+      if (
+        Array.isArray(result.user.permissionKeys) &&
+        result.user.permissionKeys.length > 0 &&
+        Array.isArray(effectiveUser.permissionKeys) &&
+        effectiveUser.permissionKeys.length === 0
+      ) {
+        effectiveUser = {
+          ...effectiveUser,
+          permissionKeys: result.user.permissionKeys,
+        };
+      }
     } catch {
       // Fall back to login payload if /me is temporarily unavailable.
     }
@@ -187,7 +201,20 @@ export function logout(options?: LogoutOptions): void {
 }
 
 export async function fetchMe(): Promise<AuthenticatedUser> {
-  const user = await authService.getMe();
+  const fetched = await authService.getMe();
+
+  // Same defensive merge as in `login`: if the backend doesn't return permissions on `/me`,
+  // keep the previously known permission list so route guards don't break on refresh.
+  const existing = authState.user ?? readPersistedUser();
+  const user =
+    existing &&
+    Array.isArray(existing.permissionKeys) &&
+    existing.permissionKeys.length > 0 &&
+    Array.isArray(fetched.permissionKeys) &&
+    fetched.permissionKeys.length === 0
+      ? { ...fetched, permissionKeys: existing.permissionKeys }
+      : fetched;
+
   setState({
     user,
     isAuthenticated: true,

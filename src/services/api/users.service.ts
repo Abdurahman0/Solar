@@ -223,23 +223,37 @@ export async function toggleUserActive(id: EntityId): Promise<ManagedUser | null
 }
 
 export async function listPermissions(): Promise<UserPermission[]> {
-  const { data } = await apiClient.get<unknown>('/api/users/permissions/');
-  return mapPermissionListDtoToItems(data);
+  // Preferred backend endpoint (Solar API): /api/auth/all-permissions/
+  // Fallbacks are kept for older deployments.
+  const candidates = [
+    '/api/auth/all-permissions/',
+    '/api/auth/permissions/catalog/',
+    '/api/auth/permissions/',
+    '/api/users/permissions/',
+  ] as const;
+
+  for (const path of candidates) {
+    try {
+      const { data } = await apiClient.get<unknown>(path);
+      const items = mapPermissionListDtoToItems(data);
+      if (items.length > 0) {
+        return items;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+
+  return [];
 }
 
 export async function getPermissionById(id: EntityId): Promise<UserPermission | null> {
-  try {
-    const { data } = await apiClient.get<unknown>(`/api/users/permissions/${id}/`);
-    const mapped = mapSinglePermission(data);
-    if (mapped) {
-      return mapped;
-    }
-  } catch {
-    // Some backends do not expose permission detail endpoint.
-  }
-
   const allPermissions = await listPermissions();
-  return allPermissions.find((permission) => permission.id === id) ?? null;
+  return (
+    allPermissions.find((permission) => permission.id === id) ??
+    allPermissions.find((permission) => permission.code === id) ??
+    null
+  );
 }
 
 export const apiUserService: UserService = {

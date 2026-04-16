@@ -1,6 +1,7 @@
 import type { AuditInfo, CurrencyCode, EntityId } from './common';
 
 export type ProductStatus = 'draft' | 'active' | 'out-of-stock' | 'archived';
+export type ProductStockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export interface ProductCategory extends AuditInfo {
   id: EntityId;
@@ -61,6 +62,8 @@ export interface Product extends AuditInfo {
   currency: CurrencyCode;
   stockQuantity?: number;
   minimalStock?: number;
+  isLowStock?: boolean;
+  stockStatus?: ProductStockStatus;
   reviewsEnabled: boolean;
   isActive: boolean;
   embedding?: number[] | null;

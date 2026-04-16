@@ -736,6 +736,11 @@
       "updated": "Yangilangan sana",
       "actions": "Amallar"
     },
+    "stockStatus": {
+      "in_stock": "Mavjud",
+      "low_stock": "Kam qoldi",
+      "out_of_stock": "Tugagan"
+    },
     "categoryColumns": {
       "name": "Kategoriya",
       "code": "Kod",
@@ -760,7 +765,7 @@
       "createSubtitle": "Mahsulotlar uchun yangi kategoriya qo'shing.",
       "editSubtitle": "Kategoriya ma'lumotlarini yangilang.",
       "name": "Kategoriya nomi",
-      "namePlaceholder": "Masalan: sutli aralashma",
+      "namePlaceholder": "Masalan: quyosh panellari",
       "code": "Kod",
       "description": "Tavsif",
       "descriptionPlaceholder": "Kategoriya bo'yicha qisqa tavsif",
@@ -800,7 +805,7 @@
       "sectionLifecycleDesc": "Yaratilish va yangilanish tarixi.",
       "sectionMetadata": "Metadata",
       "price": "Narx",
-      "stockQuantity": "Zaxira soni",
+      "stockQuantity": "Mahsulotlar soni",
       "description": "Tavsif",
       "created": "Qo'shilgan",
       "updated": "Yangilangan",
@@ -823,7 +828,7 @@
       "category": "Kategoriya",
       "categoryPlaceholder": "Masalan: care",
       "price": "Narx",
-      "stockQuantity": "Zaxira soni",
+      "stockQuantity": "Mahsulotlar soni",
       "currency": "Valyuta",
         "activeProduct": "Faol mahsulot",
         "activeProductHint": "Mahsulot operatsiyalarda ko'rinishini yoqing yoki o'chiring.",
@@ -848,7 +853,7 @@
       "requiredError": "Majburiy maydonlarni to'ldiring.",
       "metadataError": "Metadata faqat JSON obyekt ko'rinishida bo'lishi kerak.",
       "priceError": "Narx musbat yoki nol son bo'lishi kerak.",
-      "stockError": "Zaxira soni musbat yoki nol butun son bo'lishi kerak.",
+      "stockError": "Soni musbat yoki nol butun son bo'lishi kerak.",
       "saveError": "Mahsulotni saqlab bo'lmadi."
     },
     "deleteDialog": {

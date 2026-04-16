@@ -15,6 +15,25 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function unwrapNotificationPayload(dto: NotificationDto): NotificationDto {
+  const nestedData = toRecord(dto.data);
+  if (nestedData) {
+    return nestedData;
+  }
+
+  const nestedResult = toRecord(dto.result);
+  if (nestedResult) {
+    return nestedResult;
+  }
+
+  const nestedNotification = toRecord(dto.notification);
+  if (nestedNotification) {
+    return nestedNotification;
+  }
+
+  return dto;
+}
+
 function readString(value: unknown, fallback = ''): string {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -205,27 +224,28 @@ function mapMetadata(value: unknown): AppNotification['metadata'] {
 }
 
 export function mapNotificationDtoToModel(dto: NotificationDto): AppNotification {
+  const payload = unwrapNotificationPayload(dto);
   const nowIso = new Date().toISOString();
-  const id = readString(dto.id);
-  const title = readString(dto.title);
-  const message = readString(dto.body) || readString(dto.message);
-  const category = readString(dto.category);
-  const channel = resolveChannel(dto.channel || category);
+  const id = readString(payload.id);
+  const title = readString(payload.title);
+  const message = readString(payload.body) || readString(payload.message);
+  const category = readString(payload.category);
+  const channel = resolveChannel(payload.channel || category);
   const user =
-    mapUser(dto.user) ||
-    mapUser(dto.actor) ||
-    mapUser(dto.created_by) ||
-    mapUser(dto.updated_by);
+    mapUser(payload.user) ||
+    mapUser(payload.actor) ||
+    mapUser(payload.created_by) ||
+    mapUser(payload.updated_by);
 
   return {
     id: id || `notification-${nowIso}`,
-    created_at: readString(dto.created_at, nowIso),
-    updated_at: readString(dto.updated_at, nowIso),
+    created_at: readString(payload.created_at, nowIso),
+    updated_at: readString(payload.updated_at, nowIso),
     title: title || "Bildirishnoma",
     message: message || '',
     channel,
-    is_read: readBoolean(dto.is_read),
-    metadata: mapMetadata(dto.metadata),
+    is_read: readBoolean(payload.is_read),
+    metadata: mapMetadata(payload.metadata),
     user,
   };
 }
@@ -243,13 +263,16 @@ export function mapNotificationListDtoToItems(value: unknown): AppNotification[]
     return [];
   }
 
-  const results = Array.isArray(payload.results)
-    ? payload.results
-    : Array.isArray(payload.items)
-      ? payload.items
-      : Array.isArray(payload.data)
-        ? payload.data
-      : [];
+  const nestedData = toRecord(payload.data);
+  const container = nestedData ?? payload;
+
+  const results = Array.isArray(container.results)
+    ? container.results
+    : Array.isArray(container.items)
+      ? container.items
+      : Array.isArray(container.data)
+        ? container.data
+        : [];
 
   return results
     .map((item) => toRecord(item))

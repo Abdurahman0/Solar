@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import AppIcon from '../components/shared/icons/AppIcon'
 import { useAuth } from '../auth'
@@ -52,7 +52,6 @@ function AppTopbar({
 	onRefreshCurrentPage,
 	showRouteMeta = false,
 }: AppTopbarProps) {
-	const navigate = useNavigate()
 	const location = useLocation()
 	const { t } = useTranslation()
 	const [isDarkTheme, setIsDarkTheme] = useState(getInitialIsDarkTheme)
@@ -138,11 +137,6 @@ function AppTopbar({
 			isMounted = false
 		}
 	}, [location.pathname, showRouteMeta])
-
-	function handleOpenProfile() {
-		setIsProfileMenuOpen(false)
-		navigate(routePaths.profile)
-	}
 
 	function handleLogout() {
 		setIsProfileMenuOpen(false)
@@ -263,20 +257,6 @@ function AppTopbar({
 							</div>
 
 							<div className='mt-1 grid gap-1'>
-								<button
-									type='button'
-									className='inline-flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium text-text-secondary transition duration-fast hover:bg-surface-subtle hover:text-text-primary'
-									role='menuitem'
-									onClick={handleOpenProfile}
-								>
-									<AppIcon
-										name='profile'
-										className='h-4 w-4'
-										aria-hidden='true'
-									/>
-									{t('topbar.profile')}
-								</button>
-
 								<button
 									type='button'
 									className='inline-flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium text-danger transition duration-fast hover:bg-danger-bg'

@@ -261,13 +261,19 @@ function normalizePermissionResponse(data: unknown): UserPermission[] {
 		return []
 	}
 
-	const listSource = Array.isArray(payload.data)
-		? payload.data
-		: Array.isArray(payload.results)
-			? payload.results
-			: Array.isArray(payload.items)
-				? payload.items
-				: []
+	// Backends often wrap lists as `{ status, data: { count, results: [...] } }`.
+	const nestedData = toRecord(payload.data)
+	const listContainer = nestedData ?? payload
+
+	const listSource = Array.isArray(listContainer.data)
+		? listContainer.data
+		: Array.isArray(listContainer.results)
+			? listContainer.results
+			: Array.isArray(listContainer.items)
+				? listContainer.items
+				: Array.isArray(listContainer.permissions)
+					? listContainer.permissions
+					: []
 
 	return listSource
 		.map(entry => {
@@ -308,6 +314,40 @@ function normalizePermissionResponse(data: unknown): UserPermission[] {
 }
 
 function normalizeCatalogPermissionsResponse(data: unknown): UserPermission[] {
+	if (Array.isArray(data)) {
+		return data
+			.map(entry => {
+				const record = toRecord(entry)
+				if (!record) {
+					return null
+				}
+
+				const key = toStringValue(record.key)
+				if (!key) {
+					return null
+				}
+
+				const label = toStringValue(record.label) || key
+				const description = toStringValue(record.description)
+				const module = toStringValue(record.module)
+				const normalizedDescription = description || module
+
+				return normalizedDescription
+					? {
+						id: key,
+						code: key,
+						name: label,
+						description: normalizedDescription,
+					}
+					: {
+						id: key,
+						code: key,
+						name: label,
+					}
+			})
+			.filter((entry): entry is UserPermission => entry !== null)
+	}
+
 	const payload = toRecord(data)
 	if (!payload) {
 		return []
@@ -348,6 +388,29 @@ function normalizeCatalogPermissionsResponse(data: unknown): UserPermission[] {
 }
 
 function normalizeRolesCatalogResponse(data: unknown): UserRoleCatalogItem[] {
+	if (Array.isArray(data)) {
+		return data
+			.map(entry => {
+				const record = toRecord(entry)
+				if (!record) {
+					return null
+				}
+
+				const role = toUserRole(record.key)
+				const label = toStringValue(record.label) || role
+				const defaultPermissions = normalizePermissionCodes(
+					record.default_permissions,
+				)
+
+				return {
+					key: role,
+					label,
+					default_permissions: defaultPermissions,
+				}
+			})
+			.filter((entry): entry is UserRoleCatalogItem => entry !== null)
+	}
+
 	const payload = toRecord(data)
 	if (!payload) {
 		return []
@@ -452,6 +515,7 @@ export class UsersAdapter
 	// Permission operations
 	async listPermissions(): Promise<UserPermission[]> {
 		const authCatalogEndpoints = [
+			'/api/auth/all-permissions/',
 			'/api/auth/permissions/catalog/',
 			'/api/auth/permissions/',
 		]

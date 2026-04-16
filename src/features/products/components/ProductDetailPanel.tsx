@@ -90,6 +90,16 @@ function ProductDetailPanel({
     setPreviewImageAlt('');
   }
 
+  const resolvedStockStatus = product
+    ? (product.stockStatus ?? (
+        (product.stockQuantity ?? 0) <= 0
+          ? 'out_of_stock'
+          : (product.stockQuantity ?? 0) <= (product.minimalStock ?? 0)
+            ? 'low_stock'
+            : 'in_stock'
+      ))
+    : null;
+
   return (
     <div
       className="fixed inset-0 z-40 flex justify-end bg-background-overlay/72 backdrop-blur-[3px]"
@@ -129,6 +139,13 @@ function ProductDetailPanel({
                 label={product.isActive ? t('common.active') : t('common.inactive')}
                 tone={product.isActive ? 'success' : 'neutral'}
               />
+              {resolvedStockStatus ? (
+                <StatusBadge
+                  status={resolvedStockStatus}
+                  label={t(`products.stockStatus.${resolvedStockStatus}`)}
+                  tone={resolvedStockStatus === 'in_stock' ? 'success' : 'danger'}
+                />
+              ) : null}
             </div>
           ) : null}
         </header>

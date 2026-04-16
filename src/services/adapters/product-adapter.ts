@@ -1,7 +1,7 @@
 ﻿// @ts-nocheck
 
 
-import type { Product, ProductCategory, ProductImage } from '../../types/domain';
+import type { Product, ProductCategory, ProductImage, ProductStockStatus } from '../../types/domain';
 
 export type ProductDto = Record<string, unknown>;
 export type ProductImageDto = Record<string, unknown>;
@@ -128,6 +128,26 @@ function resolveProductStatus(
   return 'active';
 }
 
+function resolveStockStatus(
+  stockQuantity: number,
+  minimalStock: number,
+  rawStatus?: string,
+): ProductStockStatus {
+  if (rawStatus === 'in_stock' || rawStatus === 'low_stock' || rawStatus === 'out_of_stock') {
+    return rawStatus;
+  }
+
+  if (stockQuantity <= 0) {
+    return 'out_of_stock';
+  }
+
+  if (stockQuantity <= minimalStock) {
+    return 'low_stock';
+  }
+
+  return 'in_stock';
+}
+
 export function mapProductImageDtoToModel(
   dto: ProductImageDto,
   index = 0,
@@ -164,6 +184,13 @@ export function mapProductDtoToModel(dto: ProductDto): Product {
   const price = readNumber(dto.price, 0);
   const stockQuantity = readInteger(dto.stock_quantity, 0);
   const minimalStock = readInteger(dto.minimal_stock, 0);
+  const stockStatus = resolveStockStatus(
+    stockQuantity,
+    minimalStock,
+    readString(dto.stock_status) || undefined,
+  );
+  const isLowStock =
+    readBoolean(dto.is_low_stock, stockStatus === 'low_stock');
   const isActive = readBoolean(dto.is_active);
   const reviewsEnabled = readBoolean(dto.reviews_enabled ?? dto.reviewsEnabled);
   const metadata = mapMetadata(dto.metadata);
@@ -208,6 +235,8 @@ export function mapProductDtoToModel(dto: ProductDto): Product {
     currency: readString(dto.currency, 'UZS'),
     stockQuantity,
     minimalStock,
+    stockStatus,
+    isLowStock,
     reviewsEnabled,
     isActive,
     embedding: null,

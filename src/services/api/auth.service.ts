@@ -35,6 +35,30 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function unwrapUserPayload(value: unknown): Record<string, unknown> {
+  const record = toRecord(value);
+  if (!record) {
+    return {};
+  }
+
+  const nestedUser = toRecord(record.user);
+  if (nestedUser) {
+    return nestedUser;
+  }
+
+  const nestedData = toRecord(record.data);
+  if (nestedData) {
+    return nestedData;
+  }
+
+  const nestedResult = toRecord(record.result);
+  if (nestedResult) {
+    return nestedResult;
+  }
+
+  return record;
+}
+
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
@@ -56,6 +80,107 @@ function toPermissionCode(value: unknown): PermissionCode | null {
   return PERMISSION_CODE_SET.has(raw) ? (raw as PermissionCode) : null;
 }
 
+function mapBackendPermissionToken(token: string): PermissionCode[] {
+  const normalized = token.trim().toLowerCase();
+  if (!normalized) {
+    return [];
+  }
+
+  const alias: Record<string, PermissionCode[]> = {
+    'dashboard.view': ['can_view_dashboard'],
+
+    'clients.view': ['can_view_clients'],
+    'clients.manage': ['can_manage_clients'],
+
+    'products.view': ['can_view_products'],
+    'products.manage': ['can_manage_products'],
+
+    'contracts.view': ['can_view_contracts'],
+    'contracts.manage': ['can_manage_contracts'],
+
+    'leads.view': ['can_view_leads'],
+    'leads.manage': ['can_manage_leads'],
+
+    // Some backends scope audit requests under contracts or expose separate permissions.
+    'audit_requests.view': ['can_view_contracts'],
+    'audit-requests.view': ['can_view_contracts'],
+    'audit_requests.manage': ['can_manage_contracts'],
+    'audit-requests.manage': ['can_manage_contracts'],
+
+    // Chats can be exposed as `chat.*` or `chats.*`.
+    'chat.view': ['can_access_chats'],
+    'chat.manage': ['can_access_chats'],
+    'chats.view': ['can_access_chats'],
+    'chats.manage': ['can_access_chats'],
+
+    'notifications.view': ['can_view_notifications'],
+    'notifications.manage': ['can_view_notifications'],
+
+    'users.view': ['can_manage_users'],
+    'users.manage': ['can_manage_users'],
+
+    'logs.view': ['can_view_logs'],
+
+    'integrations.manage': ['can_manage_integrations'],
+
+    'ai_settings.manage': ['can_manage_ai_settings'],
+    'ai-settings.manage': ['can_manage_ai_settings'],
+    'ai_settings.view': ['can_manage_ai_settings'],
+    'ai-settings.view': ['can_manage_ai_settings'],
+  };
+
+  const direct = alias[normalized];
+  if (direct?.length) {
+    return direct.filter((code) => PERMISSION_CODE_SET.has(code));
+  }
+
+  const parts = normalized.split('.').filter(Boolean);
+  if (parts.length !== 2) {
+    return [];
+  }
+
+  const [scopeRaw, actionRaw] = parts;
+  const scope = scopeRaw.replace(/-/g, '_');
+  const action = actionRaw.replace(/-/g, '_');
+
+  if (scope === 'chat' || scope === 'chats') {
+    return ['can_access_chats'];
+  }
+
+  if (scope === 'notifications') {
+    return ['can_view_notifications'];
+  }
+
+  if (scope === 'users') {
+    return ['can_manage_users'];
+  }
+
+  if (scope === 'ai_settings') {
+    return ['can_manage_ai_settings'];
+  }
+
+  if (scope === 'integrations') {
+    return ['can_manage_integrations'];
+  }
+
+  if (scope === 'logs') {
+    return ['can_view_logs'];
+  }
+
+  const viewCode = `can_view_${scope}`;
+  const manageCode = `can_manage_${scope}`;
+
+  if (action === 'view' && PERMISSION_CODE_SET.has(viewCode)) {
+    return [viewCode as PermissionCode];
+  }
+
+  if (action === 'manage' && PERMISSION_CODE_SET.has(manageCode)) {
+    return [manageCode as PermissionCode];
+  }
+
+  return [];
+}
+
 function pushPermissionCode(value: unknown, bucket: Set<PermissionCode>): void {
   const directCode = toPermissionCode(value);
   if (directCode) {
@@ -65,6 +190,11 @@ function pushPermissionCode(value: unknown, bucket: Set<PermissionCode>): void {
 
   const raw = readString(value);
   if (!raw || (!raw.includes(',') && !raw.includes(' '))) {
+    if (!raw) {
+      return;
+    }
+
+    mapBackendPermissionToken(raw).forEach((code) => bucket.add(code));
     return;
   }
 
@@ -75,7 +205,10 @@ function pushPermissionCode(value: unknown, bucket: Set<PermissionCode>): void {
     .forEach((token) => {
       if (PERMISSION_CODE_SET.has(token)) {
         bucket.add(token as PermissionCode);
+        return;
       }
+
+      mapBackendPermissionToken(token).forEach((code) => bucket.add(code));
     });
 }
 
@@ -141,7 +274,7 @@ function resolvePermissionCodes(userRecord: Record<string, unknown>, role: AppRo
 }
 
 function normalizeUser(rawUser: unknown): AuthenticatedUser {
-  const userRecord = toRecord(rawUser) ?? {};
+  const userRecord = unwrapUserPayload(rawUser);
   const role = resolveRole(userRecord.role);
   const email = readString(userRecord.email) ?? '';
   const fullName =
@@ -209,7 +342,8 @@ export const authService = {
   async getMe(): Promise<AuthenticatedUser> {
     const { data } = await apiClient.get<any>('/api/auth/me/');
     // Handle both response formats
-    const userData = data.data || data;
+    const responseData = data.data || data;
+    const userData = responseData?.user ?? responseData;
     return normalizeUser(userData);
   },
 

@@ -5,7 +5,6 @@ import {
   FilterBar,
   FilterSelect,
   Pagination,
-  SearchInput,
 } from '../../../components/shared/data';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import {
@@ -20,7 +19,6 @@ import ConfirmDialog from '../../../components/shared/dialogs/ConfirmDialog';
 import NotificationDetailPanel from '../../../features/notifications/components/NotificationDetailPanel';
 import NotificationList from '../../../features/notifications/components/NotificationList';
 import { getNotificationChannelLabel } from '../../../features/notifications/utils/notification-format';
-import { usePersistentState } from '../../../lib/persistent-state';
 import { services } from '../../../services';
 import type {
   AppNotification,
@@ -63,10 +61,8 @@ function NotificationsPage() {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const [search, setSearch] = usePersistentState('notifications:search', '');
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
   const [readFilter, setReadFilter] = useState<ReadFilter>('all');
-  const [ordering, setOrdering] = useState<NotificationOrdering>(DEFAULT_ORDERING);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -98,7 +94,7 @@ function NotificationsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, channelFilter, readFilter, ordering]);
+  }, [channelFilter, readFilter]);
 
   useEffect(() => {
     let isActive = true;
@@ -111,10 +107,10 @@ function NotificationsPage() {
         const result = await services.notifications.listNotifications({
           page: currentPage,
           pageSize: PAGE_SIZE,
-          search: search.trim() || undefined,
+          search: undefined,
           channel: channelFilter === 'all' ? undefined : channelFilter,
           is_read: toBooleanReadFilter(readFilter),
-          ordering,
+          ordering: DEFAULT_ORDERING,
         });
 
         if (!isActive) {
@@ -128,6 +124,7 @@ function NotificationsPage() {
 
         setNotifications(result.items);
         setPaginationMeta(result.meta);
+
       } catch {
         if (!isActive) {
           return;
@@ -149,7 +146,7 @@ function NotificationsPage() {
     return () => {
       isActive = false;
     };
-  }, [channelFilter, currentPage, ordering, readFilter, reloadCursor, search]);
+  }, [channelFilter, currentPage, readFilter, reloadCursor]);
 
   const channelOptions = useMemo<SelectOption[]>(
     () => [
@@ -166,16 +163,6 @@ function NotificationsPage() {
       { value: 'all', label: t('notifications.filters.all') },
       { value: 'read', label: t('notifications.filters.read') },
       { value: 'unread', label: t('notifications.filters.unread') },
-    ],
-    [t],
-  );
-
-  const orderingOptions = useMemo<SelectOption[]>(
-    () => [
-      { value: '-created_at', label: t('notifications.ordering.createdNewest') },
-      { value: 'created_at', label: t('notifications.ordering.createdOldest') },
-      { value: '-updated_at', label: t('notifications.ordering.updatedNewest') },
-      { value: 'updated_at', label: t('notifications.ordering.updatedOldest') },
     ],
     [t],
   );
@@ -234,10 +221,8 @@ function NotificationsPage() {
   }
 
   const activeFilterCount =
-    Number(search.trim().length > 0) +
     Number(channelFilter !== 'all') +
-    Number(readFilter !== 'all') +
-    Number(ordering !== DEFAULT_ORDERING);
+    Number(readFilter !== 'all');
   const hasNotifications = paginationMeta.totalItems > 0;
 
   const header = (
@@ -330,12 +315,6 @@ function NotificationsPage() {
             </div>
           }
         >
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder={t('notifications.searchPlaceholder')}
-          />
-
           <label className="grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_180px]">
             <span className={labelClassName}>{t('notifications.filters.channel')}</span>
             <FilterSelect
@@ -353,18 +332,9 @@ function NotificationsPage() {
               options={readOptions}
               onChange={(value) => setReadFilter(value as ReadFilter)}
               disabled={isLoading}
-            />
-          </label>
+              />
+            </label>
 
-          <label className="grid min-w-[min(220px,100%)] flex-[1_1_220px] gap-1.5 min-[640px]:flex-[0_1_240px]">
-            <span className={labelClassName}>{t('notifications.filters.ordering')}</span>
-            <FilterSelect
-              value={ordering}
-              options={orderingOptions}
-              onChange={(value) => setOrdering(value as NotificationOrdering)}
-              disabled={isLoading}
-            />
-          </label>
         </FilterBar>
 
         <PageCard>
@@ -384,7 +354,7 @@ function NotificationsPage() {
               isLoading={isLoading}
               hasError={false}
               isFiltered={
-                search.trim().length > 0 || channelFilter !== 'all' || readFilter !== 'all'
+                channelFilter !== 'all' || readFilter !== 'all'
               }
               onSelectNotification={setSelectedNotificationId}
             />

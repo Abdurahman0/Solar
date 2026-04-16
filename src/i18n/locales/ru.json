@@ -731,10 +731,15 @@
       "sku": "SKU",
       "price": "Цена",
       "currency": "Валюта",
-      "stock": "Количество на складе",
+      "stock": "Минимальный запас",
       "status": "Статус",
       "updated": "Дата обновления",
       "actions": "Действия"
+    },
+    "stockStatus": {
+      "in_stock": "В наличии",
+      "low_stock": "Мало",
+      "out_of_stock": "Нет в наличии"
     },
     "categoryColumns": {
       "name": "Категория",
@@ -760,7 +765,7 @@
       "createSubtitle": "Добавьте новую категорию для товаров.",
       "editSubtitle": "Обновите данные категории.",
       "name": "Название категории",
-      "namePlaceholder": "Например: молочная смесь",
+      "namePlaceholder": "Например: солнечные панели",
       "code": "Код",
       "description": "Описание",
       "descriptionPlaceholder": "Краткое описание категории",
@@ -800,7 +805,7 @@
       "sectionLifecycleDesc": "История создания и обновлений.",
       "sectionMetadata": "Метаданные",
       "price": "Цена",
-      "stockQuantity": "Количество на складе",
+      "stockQuantity": "Количество товаров",
       "description": "Описание",
       "created": "Добавлен",
       "updated": "Обновлён",
@@ -823,7 +828,7 @@
       "category": "Категория",
       "categoryPlaceholder": "Например: care",
       "price": "Цена",
-      "stockQuantity": "Количество на складе",
+      "stockQuantity": "Количество товаров",
       "currency": "Валюта",
       "activeProduct": "Активный товар",
       "activeProductHint": "Включите или выключите отображение товара в операциях.",
@@ -848,7 +853,7 @@
       "requiredError": "Заполните обязательные поля.",
       "metadataError": "Метаданные должны быть только в формате JSON object.",
       "priceError": "Цена должна быть положительным числом или нулём.",
-      "stockError": "Количество на складе должно быть целым положительным числом или нулём.",
+      "stockError": "Количество товаров должно быть целым положительным числом или нулём.",
       "saveError": "Не удалось сохранить товар."
     },
     "deleteDialog": {
@@ -2203,7 +2208,7 @@
     "searchPlaceholder": "Поиск уведомления",
     "listTitle": "Список уведомлений",
     "listHint": "Непрочитанные выделяются отдельно",
-    "countSuffix": "??.",
+      "countSuffix": "шт.",
     "filters": {
       "allChannels": "Все каналы",
       "all": "Все",
@@ -2261,7 +2266,7 @@
       "aiPause": "Не удалось приостановить AI.",
       "aiResume": "Не удалось включить AI.",
       "sessionDelete": "Не удалось удалить чат.",
-      "requestOperator": "?? ??????? ????????? ?????? ?????????."
+        "requestOperator": "Запрос оператора не отправлен."
     },
     "confirmations": {
       "deleteSession": "Удалить этот чат и всю его историю?"
@@ -2338,8 +2343,8 @@
         "system": "Система"
       },
       "timeUnavailable": "Недоступно",
-      "requestOperator": "??????? ?????????",
-      "operatorRequested": "?????? ????????? ?????????"
+      "requestOperator": "Вызвать оператора",
+      "operatorRequested": "Запрос оператора отправлен"
     }
   }
 }

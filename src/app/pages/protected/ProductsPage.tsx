@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import {
@@ -41,6 +41,7 @@ import type {
 type ActiveFilter = 'all' | 'active' | 'inactive';
 type ProductOrdering = '-created_at' | 'created_at' | 'name' | '-name' | 'price' | '-price';
 type CatalogView = 'products' | 'categories';
+type StockStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 
 const PAGE_SIZE = 10;
 const CATEGORY_FETCH_SIZE = 500;
@@ -77,10 +78,54 @@ function parseOrdering(ordering: ProductOrdering): Pick<TableQueryParams, 'sortB
   };
 }
 
+function resolveStockStatus(product: Product): StockStatus {
+  const raw = product.stockStatus;
+  if (raw === 'in_stock' || raw === 'low_stock' || raw === 'out_of_stock') {
+    return raw;
+  }
+
+  const stockQuantity = product.stockQuantity ?? 0;
+  const minimalStock = product.minimalStock ?? 0;
+
+  if (stockQuantity <= 0) {
+    return 'out_of_stock';
+  }
+
+  if (stockQuantity <= minimalStock) {
+    return 'low_stock';
+  }
+
+  return 'in_stock';
+}
+
+function stockSeverity(product: Product): number {
+  const status = resolveStockStatus(product);
+  // UX rule: show low-stock items first, then out-of-stock, then everything else.
+  // We keep the backend ordering stable inside each group.
+  if (status === 'low_stock' || product.isLowStock) {
+    return 0;
+  }
+  if (status === 'out_of_stock') {
+    return 1;
+  }
+  return 2;
+}
+
+function sortProductsByStockStatus(items: Product[]): Product[] {
+  return items
+    .map((item, index) => ({ item, index }))
+    .sort((left, right) => {
+      const delta = stockSeverity(left.item) - stockSeverity(right.item);
+      return delta !== 0 ? delta : left.index - right.index;
+    })
+    .map(({ item }) => item);
+}
+
 function ProductsPage() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ';
   const [search, setSearch] = usePersistentState('products:search', '');
+  const productsCacheRef = useRef<{ key: string; items: Product[] } | null>(null);
   const [catalogView, setCatalogView] = usePersistentState<CatalogView>(
     'products:catalog-view',
     'products',
@@ -219,39 +264,52 @@ function ProductsPage() {
         return;
       }
 
+      const sortConfig = parseOrdering(ordering);
+      const normalizedSearch = search.trim() || undefined;
+      const cacheKey = JSON.stringify({
+        search: normalizedSearch ?? '',
+        categoryFilter,
+        activeFilter,
+        ordering,
+        reloadCursor,
+      });
+
+      const cached = productsCacheRef.current;
+      if (cached?.key === cacheKey) {
+        const totalItems = cached.items.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+        const page = Math.min(currentPage, totalPages);
+
+        if (currentPage > totalPages) {
+          setCurrentPage(totalPages);
+          return;
+        }
+
+        const start = (page - 1) * PAGE_SIZE;
+        const pageItems = cached.items.slice(start, start + PAGE_SIZE);
+
+        setHasError(false);
+        setProducts(pageItems);
+        setPaginationMeta({
+          page,
+          pageSize: PAGE_SIZE,
+          totalItems,
+          totalPages,
+        });
+        setHasLoadedOnce(true);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setHasError(false);
 
       try {
-        const sortConfig = parseOrdering(ordering);
         const shouldClientFilter = categoryFilter !== 'all' || activeFilter !== 'all';
-        const normalizedSearch = search.trim() || undefined;
-
-        if (!shouldClientFilter) {
-          const result = await services.products.listProducts({
-            page: currentPage,
-            pageSize: PAGE_SIZE,
-            search: normalizedSearch,
-            ordering,
-            ...sortConfig,
-          });
-
-          if (!isActive) {
-            return;
-          }
-
-          if (currentPage > result.meta.totalPages) {
-            setCurrentPage(result.meta.totalPages);
-            return;
-          }
-
-          setProducts(result.items);
-          setPaginationMeta(result.meta);
-          return;
-        }
 
         // Backend schema doesn't expose category/is_active filters for products.
-        // When those filters are used, we load multiple pages and filter client-side.
+        // Also: we want low-stock products to bubble to the top of the full list (not only within the current page),
+        // so we prefer fetching multiple pages and sorting client-side when the dataset size is reasonable.
         const firstPage = await services.products.listProducts({
           page: 1,
           pageSize: PRODUCTS_FILTER_FETCH_PAGE_SIZE,
@@ -264,7 +322,10 @@ function ProductsPage() {
           return;
         }
 
-        const totalPagesToFetch = Math.min(firstPage.meta.totalPages, PRODUCTS_FILTER_FETCH_MAX_PAGES);
+        const totalPagesToFetch = Math.min(
+          firstPage.meta.totalPages,
+          PRODUCTS_FILTER_FETCH_MAX_PAGES,
+        );
         const collected: Product[] = [...firstPage.items];
 
         for (let page = 2; page <= totalPagesToFetch; page += 1) {
@@ -283,7 +344,34 @@ function ProductsPage() {
           collected.push(...next.items);
         }
 
-        const filtered = collected.filter((product) => {
+        // If the dataset is larger than our safety cap, we fall back to server pagination to avoid
+        // issuing an unbounded number of requests. In that case, we still keep the "danger" styling,
+        // and only promote low-stock items within the current page.
+        if (!shouldClientFilter && firstPage.meta.totalPages > PRODUCTS_FILTER_FETCH_MAX_PAGES) {
+          productsCacheRef.current = null;
+          const result = await services.products.listProducts({
+            page: currentPage,
+            pageSize: PAGE_SIZE,
+            search: normalizedSearch,
+            ordering,
+            ...sortConfig,
+          });
+
+          if (!isActive) {
+            return;
+          }
+
+          if (currentPage > result.meta.totalPages) {
+            setCurrentPage(result.meta.totalPages);
+            return;
+          }
+
+          setProducts(sortProductsByStockStatus(result.items));
+          setPaginationMeta(result.meta);
+          return;
+        }
+
+        const filtered = sortProductsByStockStatus(collected.filter((product) => {
           if (categoryFilter !== 'all') {
             const productCategoryId = product.categoryId || product.category?.id;
             if (productCategoryId !== categoryFilter) {
@@ -299,7 +387,7 @@ function ProductsPage() {
           }
 
           return true;
-        });
+        }));
 
         const totalItems = filtered.length;
         const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -314,6 +402,7 @@ function ProductsPage() {
         const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
         setProducts(pageItems);
+        productsCacheRef.current = { key: cacheKey, items: filtered };
         setPaginationMeta({
           page,
           pageSize: PAGE_SIZE,
@@ -542,7 +631,16 @@ function ProductsPage() {
               </span>
             )}
             <div className="min-w-0 grid gap-0.5">
-              <span className={tablePrimaryTextClassName}>{product.name}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={tablePrimaryTextClassName}>{product.name}</span>
+                {resolveStockStatus(product) !== 'in_stock' ? (
+                  <StatusBadge
+                    status={resolveStockStatus(product)}
+                    tone="danger"
+                    label={t(`products.stockStatus.${resolveStockStatus(product)}`)}
+                  />
+                ) : null}
+              </div>
               <span className={tableSecondaryTextClassName}>
                 {product.description || t('products.noDescription')}
               </span>
@@ -565,10 +663,17 @@ function ProductsPage() {
         ),
       },
       {
+        key: 'productCount',
+        label: t('products.form.stockQuantity'),
+        render: (product) => (
+          <span className={tablePrimaryTextClassName}>{product.stockQuantity ?? 0}</span>
+        ),
+      },
+      {
         key: 'stock',
         label: t('products.columns.stock'),
         render: (product) => (
-          <span className={tablePrimaryTextClassName}>{product.stockQuantity ?? 0}</span>
+          <span className={tablePrimaryTextClassName}>{product.minimalStock ?? 0}</span>
         ),
       },
       {
@@ -867,6 +972,18 @@ function ProductsPage() {
               rowKey="id"
               selectedRowKey={selectedProductId}
               loading={isLoading}
+              getRowClassName={(product) => {
+                const status = resolveStockStatus(product);
+                if (status === 'in_stock') {
+                  return '';
+                }
+
+                return [
+                  'bg-danger-bg/55',
+                  'shadow-[inset_0_0_0_1px_rgb(var(--color-danger)/0.16)]',
+                  'hover:bg-danger-bg/70',
+                ].join(' ');
+              }}
               onRowClick={(product) => setSelectedProductId(product.id)}
               emptyTitle={t('products.emptyTitle')}
               emptyDescription={t('products.emptyDescription')}

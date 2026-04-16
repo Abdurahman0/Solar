@@ -156,15 +156,24 @@ function mapCreatedBy(value: unknown): {
 export function mapUserPermissionDtoToModel(
   dto: UserPermissionDto,
 ): UserPermission | null {
-  const id = readString(dto.id);
+  // Backend variants:
+  // - { id, code, name, description }
+  // - { key, label, module, description } (e.g. /api/auth/all-permissions/)
+  const id = readString(dto.id) || readString(dto.key) || readString(dto.code);
   if (!id) {
     return null;
   }
 
+  const codeCandidate =
+    readString(dto.code) ||
+    readString(dto.key) ||
+    readString(dto.permission) ||
+    readString(dto.permission_code);
+
   const name =
     readString(dto.name) ||
     readString(dto.label) ||
-    readString(dto.code) ||
+    codeCandidate ||
     DEFAULT_PERMISSION_NAME;
   const description =
     readString(dto.description) ||
@@ -172,7 +181,7 @@ export function mapUserPermissionDtoToModel(
 
   return {
     id,
-    code: normalizePermissionCode(dto.code),
+    code: normalizePermissionCode(codeCandidate),
     name,
     description,
   };
@@ -201,6 +210,8 @@ export function mapPermissionListDtoToItems(value: unknown): UserPermission[] {
       ? payload.items
       : Array.isArray(payload.permissions)
         ? payload.permissions
+        : Array.isArray(payload.data)
+          ? payload.data
         : [];
 
   return fromArray(items);

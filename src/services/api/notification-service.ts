@@ -29,6 +29,14 @@ function readNumber(value: unknown): number | null {
   return null;
 }
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const userFullNameCache = new Map<EntityId, string | null>();
@@ -214,6 +222,8 @@ export const apiNotificationService: NotificationService = {
         page_size: params?.pageSize,
         search: params?.search,
         ordering: params?.ordering,
+        channel: params?.channel,
+        is_read: params?.is_read,
       },
     });
 
@@ -230,11 +240,10 @@ export const apiNotificationService: NotificationService = {
       return true;
     });
     const items = await hydrateNotificationUsers(filteredItems);
-    const payload =
-      data && typeof data === 'object' && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : null;
-    const totalItemsHint = readNumber(payload?.count);
+    const payload = toRecord(data);
+    const nestedData = toRecord(payload?.data);
+    const container = nestedData ?? payload;
+    const totalItemsHint = readNumber(container?.count);
 
     return toPaginatedResult(items, params, totalItemsHint);
   },
