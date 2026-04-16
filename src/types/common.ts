@@ -58,8 +58,6 @@ export interface TableQueryParams extends BaseFilterParams {
   source?: string;
   aiGenerated?: boolean;
   ai_generated?: boolean;
-  isPromoted?: boolean;
-  is_promoted?: boolean;
   reviewsEnabled?: boolean;
   reviews_enabled?: boolean;
   ordering?: string;

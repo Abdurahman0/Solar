@@ -40,12 +40,13 @@ import type {
 
 type ActiveFilter = 'all' | 'active' | 'inactive';
 type ProductOrdering = '-created_at' | 'created_at' | 'name' | '-name' | 'price' | '-price';
-type CatalogView = 'products' | 'categories' | 'promoted';
+type CatalogView = 'products' | 'categories';
 
 const PAGE_SIZE = 10;
 const CATEGORY_FETCH_SIZE = 500;
-const PROMOTED_FETCH_SIZE = 500;
 const DEFAULT_ORDERING: ProductOrdering = '-created_at';
+const PRODUCTS_FILTER_FETCH_PAGE_SIZE = 200;
+const PRODUCTS_FILTER_FETCH_MAX_PAGES = 20;
 
 const DEFAULT_PAGINATION_META: PaginationMeta = {
   page: 1,
@@ -86,7 +87,7 @@ function ProductsPage() {
     {
       deserialize: (value) => {
         const parsed = JSON.parse(value);
-        return parsed === 'categories' || parsed === 'promoted' ? parsed : 'products';
+        return parsed === 'categories' ? parsed : 'products';
       },
     },
   );
@@ -223,14 +224,38 @@ function ProductsPage() {
 
       try {
         const sortConfig = parseOrdering(ordering);
-        const isPromotedView = catalogView === 'promoted';
-        const result = await services.products.listProducts({
-          page: isPromotedView ? 1 : currentPage,
-          pageSize: isPromotedView ? PROMOTED_FETCH_SIZE : PAGE_SIZE,
-          search: search.trim() || undefined,
-          category: categoryFilter === 'all' ? undefined : categoryFilter,
-          isActive: activeFilter === 'all' ? undefined : activeFilter === 'active',
-          isPromoted: isPromotedView ? true : undefined,
+        const shouldClientFilter = categoryFilter !== 'all' || activeFilter !== 'all';
+        const normalizedSearch = search.trim() || undefined;
+
+        if (!shouldClientFilter) {
+          const result = await services.products.listProducts({
+            page: currentPage,
+            pageSize: PAGE_SIZE,
+            search: normalizedSearch,
+            ordering,
+            ...sortConfig,
+          });
+
+          if (!isActive) {
+            return;
+          }
+
+          if (currentPage > result.meta.totalPages) {
+            setCurrentPage(result.meta.totalPages);
+            return;
+          }
+
+          setProducts(result.items);
+          setPaginationMeta(result.meta);
+          return;
+        }
+
+        // Backend schema doesn't expose category/is_active filters for products.
+        // When those filters are used, we load multiple pages and filter client-side.
+        const firstPage = await services.products.listProducts({
+          page: 1,
+          pageSize: PRODUCTS_FILTER_FETCH_PAGE_SIZE,
+          search: normalizedSearch,
           ordering,
           ...sortConfig,
         });
@@ -239,36 +264,62 @@ function ProductsPage() {
           return;
         }
 
-        if (isPromotedView) {
-          const promotedOnly = result.items.filter((item: Product) => item.isPromoted);
-          const totalItems = promotedOnly.length;
-          const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-          const page = Math.min(currentPage, totalPages);
-          const start = (page - 1) * PAGE_SIZE;
-          const pageItems = promotedOnly.slice(start, start + PAGE_SIZE);
+        const totalPagesToFetch = Math.min(firstPage.meta.totalPages, PRODUCTS_FILTER_FETCH_MAX_PAGES);
+        const collected: Product[] = [...firstPage.items];
 
-          if (currentPage > totalPages) {
-            setCurrentPage(totalPages);
+        for (let page = 2; page <= totalPagesToFetch; page += 1) {
+          const next = await services.products.listProducts({
+            page,
+            pageSize: PRODUCTS_FILTER_FETCH_PAGE_SIZE,
+            search: normalizedSearch,
+            ordering,
+            ...sortConfig,
+          });
+
+          if (!isActive) {
             return;
           }
 
-          setProducts(pageItems);
-          setPaginationMeta({
-            page,
-            pageSize: PAGE_SIZE,
-            totalItems,
-            totalPages,
-          });
+          collected.push(...next.items);
+        }
+
+        const filtered = collected.filter((product) => {
+          if (categoryFilter !== 'all') {
+            const productCategoryId = product.categoryId || product.category?.id;
+            if (productCategoryId !== categoryFilter) {
+              return false;
+            }
+          }
+
+          if (activeFilter !== 'all') {
+            const mustBeActive = activeFilter === 'active';
+            if (Boolean(product.isActive) !== mustBeActive) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+
+        const totalItems = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+        const page = Math.min(currentPage, totalPages);
+
+        if (currentPage > totalPages) {
+          setCurrentPage(totalPages);
           return;
         }
 
-        if (currentPage > result.meta.totalPages) {
-          setCurrentPage(result.meta.totalPages);
-          return;
-        }
+        const start = (page - 1) * PAGE_SIZE;
+        const pageItems = filtered.slice(start, start + PAGE_SIZE);
 
-        setProducts(result.items);
-        setPaginationMeta(result.meta);
+        setProducts(pageItems);
+        setPaginationMeta({
+          page,
+          pageSize: PAGE_SIZE,
+          totalItems,
+          totalPages,
+        });
       } catch {
         if (!isActive) {
           return;
@@ -495,11 +546,6 @@ function ProductsPage() {
               <span className={tableSecondaryTextClassName}>
                 {product.description || t('products.noDescription')}
               </span>
-              {product.isPromoted ? (
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
-                  {t('products.promotedBadge')}
-                </span>
-              ) : null}
             </div>
           </div>
         ),
@@ -740,18 +786,6 @@ function ProductsPage() {
           />
 
           {!isCategoriesView ? (
-            <label className="grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_200px]">
-              <span className={labelClassName}>{t('products.form.category')}</span>
-              <FilterSelect
-                value={categoryFilter}
-                options={[{ value: 'all', label: t('common.all') }, ...categoryOptions]}
-                onChange={setCategoryFilter}
-                disabled={isLoading || isCategoryOptionsLoading}
-              />
-            </label>
-          ) : null}
-
-          {!isCategoriesView ? (
             <label className="grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_180px]">
               <span className={labelClassName}>{t('products.status')}</span>
               <FilterSelect
@@ -774,6 +808,18 @@ function ProductsPage() {
               />
             </label>
           ) : null}
+
+          {!isCategoriesView ? (
+            <label className="grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_200px]">
+              <span className={labelClassName}>{t('products.form.category')}</span>
+              <FilterSelect
+                value={categoryFilter}
+                options={[{ value: 'all', label: t('common.all') }, ...categoryOptions]}
+                onChange={setCategoryFilter}
+                disabled={isLoading || isCategoryOptionsLoading}
+              />
+            </label>
+          ) : null}
         </FilterBar>
 
         <PageCard>
@@ -783,7 +829,6 @@ function ProductsPage() {
               {[
                 { id: 'products' as const, label: t('products.catalogTitle') },
                 { id: 'categories' as const, label: t('products.categoriesCatalogTitle') },
-                { id: 'promoted' as const, label: t('products.promotedCatalogTitle') },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -823,7 +868,7 @@ function ProductsPage() {
               selectedRowKey={selectedProductId}
               loading={isLoading}
               onRowClick={(product) => setSelectedProductId(product.id)}
-              emptyTitle={catalogView === 'promoted' ? t('products.emptyTitle') : t('products.emptyTitle')}
+              emptyTitle={t('products.emptyTitle')}
               emptyDescription={t('products.emptyDescription')}
             />
           )}

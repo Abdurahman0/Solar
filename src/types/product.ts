@@ -61,7 +61,6 @@ export interface Product extends AuditInfo {
   currency: CurrencyCode;
   stockQuantity?: number;
   minimalStock?: number;
-  isPromoted: boolean;
   reviewsEnabled: boolean;
   isActive: boolean;
   embedding?: number[] | null;
@@ -80,7 +79,6 @@ export interface ProductMutationInput {
   currency?: CurrencyCode;
   stockQuantity: number;
   minimalStock: number;
-  isPromoted?: boolean;
   reviewsEnabled?: boolean;
   isActive: boolean;
   // Image update via PATCH /api/products/{id}/ with multipart/form-data.

@@ -1,5 +1,5 @@
 ﻿import { useMemo, useState } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -103,6 +103,7 @@ function ContractsPage() {
 		errorDescription: t('contractsPage.errorDescription'),
 		columns: {
 			title: t('contractsPage.columns.title'),
+			amount: t('contractsPage.columns.amount'),
 			panel: t('contractsPage.columns.panel'),
 			inverter: t('contractsPage.columns.inverter'),
 			power: t('contractsPage.columns.power'),
@@ -149,6 +150,7 @@ function ContractsPage() {
 	const [panelFilter, setPanelFilter] = useState<string>('all')
 	const [inverterFilter, setInverterFilter] = useState<string>('all')
 	const [requestedPowerFilter, setRequestedPowerFilter] = useState('')
+	const requestedPowerDebounceRef = useRef<number | null>(null)
 	const [filters, setFilters] = useState<ContractsListParams>({
 		page: 1,
 		page_size: 20,
@@ -223,37 +225,31 @@ function ContractsPage() {
 						<span className={tableSecondaryTextClassName}>
 							{contract.client_name || '-'}
 						</span>
+						{contract.customer_phone ? (
+							<span className={tableSecondaryTextClassName}>{contract.customer_phone}</span>
+						) : null}
 					</div>
 				),
 			},
 			{
-				key: 'panel_type',
-				label: tx.columns.panel,
-				render: contract => (
-					<span className={tablePrimaryTextClassName}>
-						{contract.panel_type_label || contract.panel_type || '-'}
-					</span>
-				),
-			},
-			{
-				key: 'inverter_type',
-				label: tx.columns.inverter,
-				render: contract => (
-					<span className={tablePrimaryTextClassName}>
-						{contract.inverter_type_label || contract.inverter_type || '-'}
-					</span>
-				),
-			},
-			{
-				key: 'requested_power_kw',
-				label: tx.columns.power,
-				render: contract => (
-					<span className={tablePrimaryTextClassName}>
-						{contract.requested_power_kw
-							? `${contract.requested_power_kw} kW`
-							: '-'}
-					</span>
-				),
+				key: 'total_amount',
+				label: tx.columns.amount,
+				render: contract => {
+					const customerAmount = contract.customer_amount ?? null
+					const totalAmount = contract.total_amount ?? null
+					const resolved =
+						Number(customerAmount) > 0 ? customerAmount : totalAmount
+
+					return (
+						<span className={tablePrimaryTextClassName}>
+							{formatPricingAmount(
+								resolved ?? undefined,
+								locale,
+								tx.pricing.currency,
+							)}
+						</span>
+					)
+				},
 			},
 			{
 				key: 'status',
@@ -325,6 +321,14 @@ function ContractsPage() {
 		setFilters(current => ({ ...current, page: 1, ...next }))
 		actions.setPage(1)
 	}
+
+	useEffect(() => {
+		return () => {
+			if (requestedPowerDebounceRef.current !== null) {
+				window.clearTimeout(requestedPowerDebounceRef.current)
+			}
+		}
+	}, [])
 
 	async function handleConfirmDelete() {
 		if (!contractToDelete) {
@@ -514,12 +518,65 @@ function ContractsPage() {
 									onChange={event => {
 										const value = event.target.value
 										setRequestedPowerFilter(value)
+
+										if (requestedPowerDebounceRef.current !== null) {
+											window.clearTimeout(requestedPowerDebounceRef.current)
+										}
+
+										requestedPowerDebounceRef.current = window.setTimeout(() => {
+											requestedPowerDebounceRef.current = null
+											const normalized = value.trim()
+											const parsed =
+												normalized === '' ? undefined : Number(normalized)
+
+											applyFilters({
+												requested_power_kw:
+													parsed === undefined || Number.isFinite(parsed)
+														? parsed
+												: undefined,
+											})
+										}, 450)
+									}}
+									onKeyDown={event => {
+										if (event.key !== 'Enter') {
+											return
+										}
+
+										if (requestedPowerDebounceRef.current !== null) {
+											window.clearTimeout(requestedPowerDebounceRef.current)
+											requestedPowerDebounceRef.current = null
+										}
+
+										const normalized = event.currentTarget.value.trim()
+										const parsed =
+											normalized === '' ? undefined : Number(normalized)
+
 										applyFilters({
 											requested_power_kw:
-												value.trim() === '' ? undefined : Number(value),
+												parsed === undefined || Number.isFinite(parsed)
+													? parsed
+													: undefined,
 										})
 									}}
-									disabled={state.isLoading}
+									onBlur={() => {
+										if (requestedPowerDebounceRef.current === null) {
+											return
+										}
+
+										window.clearTimeout(requestedPowerDebounceRef.current)
+										requestedPowerDebounceRef.current = null
+
+										const normalized = requestedPowerFilter.trim()
+										const parsed =
+											normalized === '' ? undefined : Number(normalized)
+
+										applyFilters({
+											requested_power_kw:
+												parsed === undefined || Number.isFinite(parsed)
+													? parsed
+													: undefined,
+										})
+									}}
 								/>
 							</label>
 						</FilterBar>

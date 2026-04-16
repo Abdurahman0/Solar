@@ -110,9 +110,6 @@ function toMutationPayload(input: ProductMutationInput | ProductPatchInput): Rec
   if (input.isActive !== undefined) {
     payload.is_active = input.isActive;
   }
-  if (input.isPromoted !== undefined) {
-    payload.is_promoted = input.isPromoted;
-  }
   if (input.categoryId !== undefined) {
     const normalizedCategoryId =
       typeof input.categoryId === 'string' ? input.categoryId.trim() : input.categoryId;
@@ -181,7 +178,6 @@ export const apiProductService: ProductService = {
         page: params?.page ?? 1,
         page_size: params?.pageSize ?? params?.page_size,
         search: params?.search,
-        is_promoted: params?.isPromoted ?? params?.is_promoted,
         ordering:
           params?.ordering ??
           (params?.sortBy ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}` : undefined),

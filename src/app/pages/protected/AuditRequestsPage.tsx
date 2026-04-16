@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import {
@@ -59,6 +59,10 @@ function AuditRequestsPage() {
 	const [statusFilter, setStatusFilter] = useState<string>('all')
 	const [clientFilter, setClientFilter] = useState('')
 	const [requestedPowerFilter, setRequestedPowerFilter] = useState('')
+	const searchQueryRef = useRef('')
+	const clientFilterRef = useRef('')
+	const clientDebounceRef = useRef<number | null>(null)
+	const requestedPowerDebounceRef = useRef<number | null>(null)
 	const [ordering, setOrdering] = useState('-updated_at')
 	const [filters, setFilters] = useState<AuditRequestsListParams>({
 		page: 1,
@@ -210,6 +214,21 @@ function AuditRequestsPage() {
 		actions.setPage(1)
 	}
 
+	function composeSearch(query: string, client: string) {
+		return [query.trim(), client.trim()].filter(Boolean).join(' ')
+	}
+
+	useEffect(() => {
+		return () => {
+			if (clientDebounceRef.current !== null) {
+				window.clearTimeout(clientDebounceRef.current)
+			}
+			if (requestedPowerDebounceRef.current !== null) {
+				window.clearTimeout(requestedPowerDebounceRef.current)
+			}
+		}
+	}, [])
+
 	async function handleConfirmDelete() {
 		if (!auditRequestToDelete) {
 			return
@@ -225,25 +244,6 @@ function AuditRequestsPage() {
 		} finally {
 			setIsDeleting(false)
 		}
-	}
-
-	if (state.error) {
-		return (
-			<PageLayout
-				header={
-					<PageHeader
-						eyebrow={t('auditRequests.eyebrow')}
-						title={t('auditRequests.title')}
-						subtitle={t('auditRequests.subtitle')}
-					/>
-				}
-			>
-				<EmptyState
-					title={t('auditRequests.errorTitle')}
-					description={t('auditRequests.errorDescription')}
-				/>
-			</PageLayout>
-		)
 	}
 
 	return (
@@ -291,7 +291,10 @@ function AuditRequestsPage() {
 								value={searchQuery}
 								onChange={value => {
 									setSearchQuery(value)
-									applyFilters({ search: value || undefined })
+									searchQueryRef.current = value
+									applyFilters({
+										search: composeSearch(value, clientFilterRef.current) || undefined,
+									})
 								}}
 								placeholder={t('auditRequests.searchPlaceholder')}
 							/>
@@ -321,10 +324,54 @@ function AuditRequestsPage() {
 									onChange={event => {
 										const value = event.target.value
 										setClientFilter(value)
-										applyFilters({ client: value.trim() || undefined })
+										clientFilterRef.current = value
+
+										if (clientDebounceRef.current !== null) {
+											window.clearTimeout(clientDebounceRef.current)
+										}
+
+										clientDebounceRef.current = window.setTimeout(() => {
+											clientDebounceRef.current = null
+											applyFilters({
+												search:
+													composeSearch(searchQueryRef.current, value) ||
+													undefined,
+											})
+										}, 450)
+									}}
+									onKeyDown={event => {
+										if (event.key !== 'Enter') {
+											return
+										}
+
+										if (clientDebounceRef.current !== null) {
+											window.clearTimeout(clientDebounceRef.current)
+											clientDebounceRef.current = null
+										}
+
+										const normalized = event.currentTarget.value.trim()
+										applyFilters({
+											search:
+												composeSearch(searchQueryRef.current, normalized) ||
+												undefined,
+										})
+									}}
+									onBlur={() => {
+										if (clientDebounceRef.current === null) {
+											return
+										}
+
+										window.clearTimeout(clientDebounceRef.current)
+										clientDebounceRef.current = null
+
+										const normalized = clientFilterRef.current.trim()
+										applyFilters({
+											search:
+												composeSearch(searchQueryRef.current, normalized) ||
+												undefined,
+										})
 									}}
 									placeholder={t('auditRequests.filters.clientPlaceholder')}
-									disabled={state.isLoading}
 								/>
 							</label>
 							<label className='grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_180px]'>
@@ -339,12 +386,65 @@ function AuditRequestsPage() {
 									onChange={event => {
 										const value = event.target.value
 										setRequestedPowerFilter(value)
+
+										if (requestedPowerDebounceRef.current !== null) {
+											window.clearTimeout(requestedPowerDebounceRef.current)
+										}
+
+										requestedPowerDebounceRef.current = window.setTimeout(() => {
+											requestedPowerDebounceRef.current = null
+											const normalized = value.trim()
+											const parsed =
+												normalized === '' ? undefined : Number(normalized)
+
+											applyFilters({
+												requested_power_kw:
+													parsed === undefined || Number.isFinite(parsed)
+														? parsed
+														: undefined,
+											})
+										}, 450)
+									}}
+									onKeyDown={event => {
+										if (event.key !== 'Enter') {
+											return
+										}
+
+										if (requestedPowerDebounceRef.current !== null) {
+											window.clearTimeout(requestedPowerDebounceRef.current)
+											requestedPowerDebounceRef.current = null
+										}
+
+										const normalized = event.currentTarget.value.trim()
+										const parsed =
+											normalized === '' ? undefined : Number(normalized)
+
 										applyFilters({
 											requested_power_kw:
-												value.trim() === '' ? undefined : Number(value),
+												parsed === undefined || Number.isFinite(parsed)
+													? parsed
+													: undefined,
 										})
 									}}
-									disabled={state.isLoading}
+									onBlur={() => {
+										if (requestedPowerDebounceRef.current === null) {
+											return
+										}
+
+										window.clearTimeout(requestedPowerDebounceRef.current)
+										requestedPowerDebounceRef.current = null
+
+										const normalized = requestedPowerFilter.trim()
+										const parsed =
+											normalized === '' ? undefined : Number(normalized)
+
+										applyFilters({
+											requested_power_kw:
+												parsed === undefined || Number.isFinite(parsed)
+													? parsed
+													: undefined,
+										})
+									}}
 								/>
 							</label>
 							<label className='grid min-w-[min(180px,100%)] flex-[1_1_180px] gap-1.5 min-[640px]:flex-[0_1_220px]'>
@@ -371,19 +471,28 @@ function AuditRequestsPage() {
 								</span>
 							</div>
 
-							<DataTable
-								data={state.items}
-								columns={columns}
-								rowKey='id'
-								selectedRowKey={selectedAuditRequestId ?? null}
-								loading={state.isLoading}
-								onRowClick={auditRequest => setSelectedAuditRequestId(auditRequest.id)}
-								emptyTitle={t('auditRequests.emptyTitle')}
-								emptyDescription={t('auditRequests.emptyDescription')}
-							/>
+							{state.error ? (
+								<div className='rounded-xl bg-surface-card p-6 shadow-sm ring-1 ring-border-soft/40'>
+									<EmptyState
+										title={t('auditRequests.errorTitle')}
+										description={t('auditRequests.errorDescription')}
+									/>
+								</div>
+							) : (
+								<DataTable
+									data={state.items}
+									columns={columns}
+									rowKey='id'
+									selectedRowKey={selectedAuditRequestId ?? null}
+									loading={state.isLoading}
+									onRowClick={auditRequest => setSelectedAuditRequestId(auditRequest.id)}
+									emptyTitle={t('auditRequests.emptyTitle')}
+									emptyDescription={t('auditRequests.emptyDescription')}
+								/>
+							)}
 						</div>
 
-						{state.total > 0 ? (
+						{!state.error && state.total > 0 ? (
 							<Pagination
 								currentPage={filters.page ?? 1}
 								totalPages={Math.max(1, Math.ceil(state.total / (filters.page_size ?? 20)))}

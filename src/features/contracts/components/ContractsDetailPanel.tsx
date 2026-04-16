@@ -179,6 +179,36 @@ function formatSmartValue(
 	return String(value)
 }
 
+function isImageUrl(url: string): boolean {
+	if (!url) {
+		return false
+	}
+
+	try {
+		const { pathname } = new URL(url)
+		const ext = pathname.split('.').pop()?.toLowerCase() ?? ''
+		return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'].includes(ext)
+	} catch {
+		return false
+	}
+}
+
+function getAttachmentFilename(url: string): string {
+	if (!url) {
+		return '-'
+	}
+
+	try {
+		const { pathname } = new URL(url)
+		const raw = pathname.split('/').filter(Boolean).pop() ?? ''
+		return decodeURIComponent(raw) || url
+	} catch {
+		const fallback = url.split('?')[0] ?? url
+		const raw = fallback.split('/').filter(Boolean).pop() ?? ''
+		return raw || url
+	}
+}
+
 function getDetailsLabel(key: string, isRu: boolean): string {
 	const ru: Record<string, string> = {
 		pricing_breakdown: '\u0420\u0430\u0441\u0447\u0435\u0442 \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u0438',
@@ -347,12 +377,19 @@ export function ContractsDetailPanel({
 					power: 'Мощность (кВт)',
 					auditPower: 'Аудит мощность (кВт)',
 					subsidy: 'Субсидия (%)',
+					subsidyAmount: 'Сумма субсидии',
+					customerAmount: 'Сумма к оплате',
 					phone: 'Телефон',
 					address: 'Адрес установки',
 					deliveryStatus: 'Статус доставки',
 					deliveryNotes: 'Примечание доставки',
 					total: 'Итоговая сумма',
 					details: 'Детали',
+					attachments: 'Файлы и фото',
+					contractFile: 'Файл договора',
+					cadastreFile: 'Кадастр',
+					houseImage: 'Фото дома',
+					open: 'Открыть',
 					created: 'Создан',
 					updated: 'Обновлен',
 					items: 'Позиции договора',
@@ -373,11 +410,19 @@ export function ContractsDetailPanel({
 					power: 'Quvvat (kW)',
 					auditPower: 'Audit quvvati (kW)',
 					subsidy: 'Subsidiya (%)',
+					subsidyAmount: 'Subsidiya summasi',
+					customerAmount: 'Mijoz summasi',
 					phone: 'Telefon',
 					address: "O'rnatish manzili",
 					deliveryStatus: 'Yetkazib berish holati',
 					deliveryNotes: 'Yetkazish izohi',
 					total: 'Jami summa',
+					details: 'Tafsilotlar',
+					attachments: 'Fayllar va rasmlar',
+					contractFile: 'Shartnoma fayli',
+					cadastreFile: 'Kadastr fayli',
+					houseImage: 'Uy rasmi',
+					open: "Ko'rish",
 					created: 'Yaratilgan',
 					updated: 'Yangilangan',
 					items: 'Shartnoma pozitsiyalari',
@@ -407,6 +452,17 @@ export function ContractsDetailPanel({
 
 	const contract = state.data
 	const recalculateLabel = isRu ? "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c" : 'Qayta hisoblash'
+	const currencyLabel = isRu ? '\u0441\u0443\u043c' : "so'm"
+	const contractFileUrl = contract.file_url || (typeof contract.file === 'string' ? contract.file : '') || ''
+	const cadastreFileUrl =
+		contract.cadastre_file_url || (typeof contract.cadastre_file === 'string' ? contract.cadastre_file : '') || ''
+	const houseImageUrl =
+		contract.house_image_url || (typeof contract.house_image === 'string' ? contract.house_image : '') || ''
+	const attachments = [
+		{ key: 'contract', label: tx.fields.contractFile, url: contractFileUrl },
+		{ key: 'cadastre', label: tx.fields.cadastreFile, url: cadastreFileUrl },
+		{ key: 'house', label: tx.fields.houseImage, url: houseImageUrl },
+	].filter(item => Boolean(item.url))
 	return (
 		<div className='grid gap-3'>
 			<header className='mb-1 rounded-xl bg-surface-card p-4 shadow-sm ring-1 ring-border-soft/40'>
@@ -491,6 +547,18 @@ export function ContractsDetailPanel({
 						<p className={`mt-1 ${valueClassName}`}>{String(contract.subsidy_percent ?? '-')}</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.subsidyAmount}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{formatSmartValue('subsidy_amount', contract.subsidy_amount, locale, currencyLabel)}
+						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.customerAmount}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{formatSmartValue('customer_amount', contract.customer_amount, locale, currencyLabel)}
+						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.phone}</p>
 						<p className={`mt-1 ${valueClassName}`}>{contract.customer_phone || '-'}</p>
 					</div>
@@ -513,9 +581,83 @@ export function ContractsDetailPanel({
 				</div>
 				<div className='rounded-lg bg-surface-subtle/80 p-3'>
 					<p className={labelClassName}>{tx.fields.total}</p>
-					<p className={`mt-1 ${valueClassName}`}>{String(contract.total_amount ?? '-')}</p>
+					<p className={`mt-1 ${valueClassName}`}>
+						{formatSmartValue('total_amount', contract.total_amount, locale, currencyLabel)}
+					</p>
 				</div>
 			</div>
+		</PageCard>
+
+		<PageCard>
+			<div className='flex items-start justify-between gap-3'>
+				<div>
+					<p className={labelClassName}>{tx.fields.attachments}</p>
+					<p className='mt-1 text-sm font-semibold text-text-secondary'>
+						{attachments.length ? `${attachments.length}` : '-'}
+					</p>
+				</div>
+			</div>
+
+			{attachments.length ? (
+				<div className='mt-2 grid gap-2 sm:grid-cols-2'>
+					{attachments.map(item => {
+						const previewable = isImageUrl(item.url)
+						return (
+							<div
+								key={item.key}
+								className='rounded-xl bg-surface-subtle/60 p-3 ring-1 ring-border-soft/25'
+							>
+								<div className='flex items-start justify-between gap-3'>
+									<div className='min-w-0'>
+										<p className={labelClassName}>{item.label}</p>
+										<p className={`mt-1 ${valueClassName}`}>
+											{getAttachmentFilename(item.url)}
+										</p>
+									</div>
+									<a
+										className='inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-surface-card px-3 text-sm font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/35 transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'
+										href={item.url}
+										target='_blank'
+										rel='noreferrer'
+									>
+										<AppIcon
+											name={previewable ? 'search' : 'download'}
+											className='h-4 w-4'
+											aria-hidden='true'
+										/>
+										{tx.fields.open}
+									</a>
+								</div>
+
+								{previewable ? (
+									<a
+										href={item.url}
+										target='_blank'
+										rel='noreferrer'
+										className='mt-3 block overflow-hidden rounded-lg ring-1 ring-border-soft/35'
+									>
+										<img
+											src={item.url}
+											alt={item.label}
+											loading='lazy'
+											className='h-44 w-full bg-surface-card object-cover'
+										/>
+									</a>
+								) : null}
+							</div>
+						)
+					})}
+				</div>
+			) : (
+				<div className='mt-2 rounded-lg bg-surface-subtle/70 p-3 text-sm font-semibold text-text-secondary'>
+					-
+				</div>
+			)}
+		</PageCard>
+
+		<PageCard>
+			<p className={labelClassName}>{tx.fields.details}</p>
+			<ContractsDetailsView details={contract.details} isRu={isRu} locale={locale} />
 		</PageCard>
 
 		<PageCard>

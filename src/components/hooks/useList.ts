@@ -51,13 +51,18 @@ export function useList<T, P extends ListParams = ListParams>(
 		pageInfo: { page: 1, pageSize: 20, total: 0 },
 	})
 
-	const [params, setParams] = useState<P>(options?.params || ({} as P))
+	// When `options.params` is provided, treat it as the source of truth (controlled mode).
+	// Otherwise, fall back to internal params state (uncontrolled mode via actions.setPage, etc.).
+	const [internalParams, setInternalParams] = useState<P>(
+		options?.params || ({} as P),
+	)
+	const effectiveParams = options?.params ?? internalParams
 
 	const fetch = useCallback(
 		async (fetchParams?: P) => {
 			setState(prev => ({ ...prev, isLoading: true, error: null }))
 			try {
-				const response = await fetcher(fetchParams || params)
+				const response = await fetcher(fetchParams || effectiveParams)
 				setState(prev => ({
 					...prev,
 					items: response.items,
@@ -78,18 +83,18 @@ export function useList<T, P extends ListParams = ListParams>(
 				setState(prev => ({ ...prev, isLoading: false }))
 			}
 		},
-		[fetcher, params],
+		[fetcher, effectiveParams],
 	)
 
 	const setPage = useCallback((page: number) => {
-		setParams(prev => ({ ...prev, page }) as P)
+		setInternalParams(prev => ({ ...prev, page }) as P)
 	}, [])
 
 	const setPageSize = useCallback((pageSize: number) => {
-		setParams(prev => ({ ...prev, page_size: pageSize, page: 1 }) as P)
+		setInternalParams(prev => ({ ...prev, page_size: pageSize, page: 1 }) as P)
 	}, [])
 
-	const refresh = useCallback(() => fetch(params), [fetch, params])
+	const refresh = useCallback(() => fetch(effectiveParams), [fetch, effectiveParams])
 
 	const reset = useCallback(() => {
 		setState({
@@ -100,7 +105,7 @@ export function useList<T, P extends ListParams = ListParams>(
 			hasMore: false,
 			pageInfo: { page: 1, pageSize: 20, total: 0 },
 		})
-		setParams(options?.params || ({} as P))
+		setInternalParams(options?.params || ({} as P))
 	}, [options?.params])
 
 	const append = useCallback((items: T[]) => {
@@ -121,22 +126,22 @@ export function useList<T, P extends ListParams = ListParams>(
 	// Auto-fetch on mount or param change - prevent infinite loops
 	useEffect(() => {
 		if (options?.autoFetch !== false) {
-			fetch(params)
+			fetch(effectiveParams)
 		}
 		// Only trigger on params change, not on fetch function change
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params, options?.autoFetch])
+	}, [effectiveParams, options?.autoFetch])
 
 	// Setup polling if requested
 	useEffect(() => {
 		if (!options?.pollInterval) return
 
 		const interval = setInterval(() => {
-			fetch(params)
+			fetch(effectiveParams)
 		}, options.pollInterval)
 
 		return () => clearInterval(interval)
-	}, [fetch, params, options?.pollInterval])
+	}, [fetch, effectiveParams, options?.pollInterval])
 
 	return [
 		state,

@@ -713,9 +713,6 @@
     "activeFilters": "faol",
     "catalogTitle": "Mahsulotlar katalogi",
     "catalogHint": "Tafsilotlarni ko'rish uchun satrni bosing",
-    "promotedCatalogTitle": "Reklamadagi mahsulotlar",
-    "promotedCatalogHint": "Reklamada ko'rsatilayotgan mahsulotlar ro'yxati",
-    "promotedCountLabel": "reklamadagi mahsulotlar",
     "categoriesCatalogTitle": "Categoriyalar katalogi",
     "categoriesCatalogHint": "Kategoriyani tahrirlash uchun amallarni tanlang",
     "loadingTitle": "Mahsulotlar yuklanmoqda",
@@ -747,7 +744,6 @@
       "actions": "Amallar"
     },
     "noDescription": "Tavsif yo'q",
-    "promotedBadge": "Reklama",
     "actions": {
       "edit": "Tahrirlash",
       "delete": "O'chirish"
@@ -829,12 +825,10 @@
       "price": "Narx",
       "stockQuantity": "Zaxira soni",
       "currency": "Valyuta",
-      "activeProduct": "Faol mahsulot",
-      "activeProductHint": "Mahsulot operatsiyalarda ko'rinishini yoqing yoki o'chiring.",
-      "promotedProduct": "Reklamadagi mahsulot",
-      "promotedProductHint": "Reklama blokida ko'rsatish uchun yoqing.",
-      "reviewsEnabled": "Sharhlarni qabul qilish",
-      "reviewsEnabledHint": "Ushbu mahsulot uchun sharhlarni yoqing yoki o'chiring.",
+        "activeProduct": "Faol mahsulot",
+        "activeProductHint": "Mahsulot operatsiyalarda ko'rinishini yoqing yoki o'chiring.",
+        "reviewsEnabled": "Sharhlarni qabul qilish",
+        "reviewsEnabledHint": "Ushbu mahsulot uchun sharhlarni yoqing yoki o'chiring.",
       "currentImages": "Joriy rasmlar",
       "images": "Rasmlar",
       "primaryImage": "Asosiy rasm",
@@ -2123,6 +2117,7 @@
     "errorDescription": "Shartnomalar ro'yxatini yuklab bo'lmadi.",
     "columns": {
       "title": "Shartnoma",
+      "amount": "Summa",
       "panel": "Panel",
       "inverter": "Invertor",
       "power": "Quvvat",
