@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   DataTable,
   FilterBar,
@@ -124,6 +125,8 @@ function sortProductsByStockStatus(items: Product[]): Product[] {
 function ProductsPage() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'ru' ? 'ru-RU' : 'uz-UZ';
+  const location = useLocation();
+  const navigate = useNavigate();
   const [search, setSearch] = usePersistentState('products:search', '');
   const productsCacheRef = useRef<{ key: string; items: Product[] } | null>(null);
   const [catalogView, setCatalogView] = usePersistentState<CatalogView>(
@@ -205,6 +208,18 @@ function ProductsPage() {
       setSelectedCategoryId(null);
     }
   }, [catalogView]);
+
+  useEffect(() => {
+    const state = location.state as { productId?: EntityId } | null;
+    const requestedProductId = state?.productId;
+    if (!requestedProductId || typeof requestedProductId !== 'string') {
+      return;
+    }
+
+    setCatalogView('products');
+    setSelectedProductId(requestedProductId);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate, setCatalogView]);
 
   useEffect(() => {
     let isActive = true;

@@ -1,11 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import { useDetail } from '../../../components/hooks';
 import { EmptyState, LoadingState, PageCard } from '../../../components/shared/page';
 import { StatusBadge } from '../../../components/shared/data';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import { formatLocalizedDate } from '../../../i18n/date-format';
 import { services } from '../../../services';
+import { routePaths } from '../../../config/routes';
 import type { Client, ClientRecentContract, ClientSelectedProduct } from '../../../services/contracts';
 
 export interface ClientsDetailPanelProps {
@@ -40,6 +42,7 @@ export function ClientsDetailPanel({
   onRequestDelete,
 }: ClientsDetailPanelProps) {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
   const isRu = i18n.language === 'ru';
   const locale = isRu ? 'ru-RU' : 'uz-UZ';
   const tx = isRu
@@ -289,7 +292,20 @@ export function ClientsDetailPanel({
           </div>
           <div className="grid gap-2.5">
             {client.selected_products.map((item: ClientSelectedProduct, i: number) => (
-              <div key={item.product_id ?? i} className="group relative flex flex-col gap-1.5 rounded-xl bg-surface-subtle/50 p-3.5 text-sm transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-primary/20">
+              <button
+                key={item.product_id ?? i}
+                type="button"
+                className="group relative flex w-full flex-col gap-1.5 rounded-xl bg-surface-subtle/50 p-3.5 text-left text-sm transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={!item.product_id}
+                onClick={() => {
+                  if (!item.product_id) {
+                    return;
+                  }
+
+                  navigate(routePaths.products, { state: { productId: item.product_id } });
+                  onClose?.();
+                }}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <span className="font-bold leading-tight text-text-primary [overflow-wrap:anywhere] group-hover:text-primary transition-colors">
                     {item.product_name}
@@ -318,7 +334,7 @@ export function ClientsDetailPanel({
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </PageCard>
@@ -334,7 +350,20 @@ export function ClientsDetailPanel({
           </div>
           <div className="grid gap-2.5">
             {client.recent_contracts.map((contract: ClientRecentContract, i: number) => (
-              <div key={contract.id ?? i} className="group flex flex-col gap-3 rounded-xl bg-surface-subtle/50 p-3.5 transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-info/20">
+              <button
+                key={contract.id ?? i}
+                type="button"
+                className="group flex w-full flex-col gap-3 rounded-xl bg-surface-subtle/50 p-3.5 text-left transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-info/20 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={!contract.id}
+                onClick={() => {
+                  if (!contract.id) {
+                    return;
+                  }
+
+                  navigate(routePaths.contracts, { state: { contractId: contract.id } });
+                  onClose?.();
+                }}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[13.5px] font-bold text-text-primary group-hover:text-info transition-colors [overflow-wrap:anywhere]">
@@ -364,7 +393,7 @@ export function ClientsDetailPanel({
                     </p>
                   </div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </PageCard>
