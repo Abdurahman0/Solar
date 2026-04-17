@@ -112,6 +112,53 @@ function applyClientFilters(
   );
 }
 
+function sortSessionsByOrdering(
+  items: Conversation[],
+  ordering: SessionOrdering,
+): Conversation[] {
+  const parseIso = (value: string | null) => {
+    if (!value) {
+      return null;
+    }
+
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const getKey = (session: Conversation) => {
+    if (ordering === '-last_message_at' || ordering === 'last_message_at') {
+      return parseIso(session.last_message_at);
+    }
+
+    return parseIso(session.created_at);
+  };
+
+  const isDesc = ordering.startsWith('-');
+
+  return [...items].sort((left, right) => {
+    const leftKey = getKey(left);
+    const rightKey = getKey(right);
+
+    if (leftKey == null && rightKey == null) {
+      return String(left.id).localeCompare(String(right.id));
+    }
+
+    if (leftKey == null) {
+      return 1;
+    }
+
+    if (rightKey == null) {
+      return -1;
+    }
+
+    if (leftKey === rightKey) {
+      return String(left.id).localeCompare(String(right.id));
+    }
+
+    return isDesc ? rightKey - leftKey : leftKey - rightKey;
+  });
+}
+
 function ChatPage() {
   const { t } = useTranslation();
   const copy = useMemo(
@@ -218,13 +265,19 @@ function ChatPage() {
           channelFilter,
           operatorFilter,
         );
-        setSessions((current) =>
-          mergeServerSessionsPreservingActivePosition(
-            current,
-            filteredItems,
-            activeSessionIdRef.current,
-          ),
-        );
+        const sortedItems = sortSessionsByOrdering(filteredItems, ordering);
+
+        setSessions((current) => {
+          if (options?.silent) {
+            return mergeServerSessionsPreservingActivePosition(
+              current,
+              sortedItems,
+              activeSessionIdRef.current,
+            );
+          }
+
+          return sortedItems;
+        });
       } catch {
         if (requestId !== sessionsRequestRef.current) {
           return;
@@ -477,8 +530,9 @@ function ChatPage() {
       );
 
       setSessions((current) =>
-        applyClientFilters(
-          applySessionUpdate(current, {
+        sortSessionsByOrdering(
+          applyClientFilters(
+            applySessionUpdate(current, {
             ...(current.find((session) => session.id === activeSessionId) ?? {
               id: activeSessionId,
               channel: 'manual',
@@ -500,8 +554,10 @@ function ChatPage() {
             last_message_at: createdMessage.created_at,
             updated_at: createdMessage.updated_at,
           }),
-          channelFilter,
-          operatorFilter,
+            channelFilter,
+            operatorFilter,
+          ),
+          ordering,
         ),
       );
       setActiveSession((current) =>

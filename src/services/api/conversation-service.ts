@@ -51,6 +51,70 @@ function unwrapResponseData(value: unknown): Record<string, unknown> | null {
   return nestedData ?? record;
 }
 
+function looksLikeMessageRecord(record: Record<string, unknown> | null): boolean {
+  if (!record) {
+    return false;
+  }
+
+  return (
+    typeof record.content === 'string' ||
+    typeof record.text === 'string' ||
+    typeof record.body === 'string' ||
+    typeof record.sender_type === 'string' ||
+    typeof record.direction === 'string'
+  );
+}
+
+function extractMessageRecord(
+  payload: Record<string, unknown> | null,
+): Record<string, unknown> | null {
+  if (!payload) {
+    return null;
+  }
+
+  const messages = Array.isArray(payload.messages) ? payload.messages : [];
+  const lastMessageCandidate =
+    messages.length > 0 ? asRecord(messages[messages.length - 1]) : null;
+  const directLastMessage = asRecord(payload.last_message);
+
+  const nestedMessage =
+    asRecord(payload.message) ??
+    asRecord(payload.outgoing) ??
+    asRecord(payload.incoming) ??
+    asRecord(payload.result) ??
+    asRecord(payload.data);
+
+  const candidate =
+    lastMessageCandidate ??
+    directLastMessage ??
+    nestedMessage ??
+    (looksLikeMessageRecord(payload) ? payload : null);
+
+  return candidate && looksLikeMessageRecord(candidate) ? candidate : candidate;
+}
+
+function createFallbackOperatorMessage(sessionId: string, content: string): ChatMessage {
+  const nowIso = new Date().toISOString();
+
+  return mapChatMessageDtoToModel(
+    {
+      id: `local-${sessionId}-${Date.now()}`,
+      created_at: nowIso,
+      updated_at: nowIso,
+      sender_type: 'operator',
+      direction: 'outgoing',
+      content,
+      image_urls: [],
+      external_message_id: null,
+      metadata: null,
+      is_read: true,
+      session: sessionId,
+      sent_by: null,
+    } as unknown as ChatMessageDto,
+    sessionId,
+  );
+}
+
 function toPaginatedResult<T>(
   allItems: T[],
   params: { page?: number; pageSize?: number } | undefined,
@@ -171,20 +235,26 @@ export const apiConversationService: ConversationService = {
 
       const sessionRecord = unwrapResponseData(data);
       if (sessionRecord) {
-        const messages = Array.isArray(sessionRecord.messages)
-          ? sessionRecord.messages
-          : [];
-        const lastMessageCandidate =
-          messages.length > 0 ? asRecord(messages[messages.length - 1]) : null;
-        const directLastMessage = asRecord(sessionRecord.last_message);
-        const candidateMessage = lastMessageCandidate ?? directLastMessage;
-
+        const candidateMessage = extractMessageRecord(sessionRecord);
         if (candidateMessage) {
           return mapChatMessageDtoToModel(candidateMessage, sessionId);
         }
       }
-    } catch {
-      // Try alternate operator endpoint, then legacy fallback.
+
+      // Request succeeded but payload shape is unexpected. Preserve optimistic UX.
+      return createFallbackOperatorMessage(sessionId, payload.content);
+    } catch (error) {
+      const status =
+        typeof (error as any)?.response?.status === 'number'
+          ? (error as any).response.status
+          : typeof (error as any)?.statusCode === 'number'
+            ? (error as any).statusCode
+            : null;
+
+      // Only fall back when the endpoint is missing/not allowed.
+      if (status !== 404 && status !== 405) {
+        throw error;
+      }
     }
 
     try {
@@ -197,58 +267,16 @@ export const apiConversationService: ConversationService = {
 
       const sessionRecord = unwrapResponseData(data);
       if (sessionRecord) {
-        const messages = Array.isArray(sessionRecord.messages)
-          ? sessionRecord.messages
-          : [];
-        const lastMessageCandidate =
-          messages.length > 0 ? asRecord(messages[messages.length - 1]) : null;
-        const directLastMessage = asRecord(sessionRecord.last_message);
-        const candidateMessage = lastMessageCandidate ?? directLastMessage;
-
+        const candidateMessage = extractMessageRecord(sessionRecord);
         if (candidateMessage) {
           return mapChatMessageDtoToModel(candidateMessage, sessionId);
         }
       }
-    } catch {
-      // Fall back to legacy endpoint for compatibility with older backends.
+
+      return createFallbackOperatorMessage(sessionId, payload.content);
+    } catch (error) {
+      throw error ?? new Error('Failed to send operator message');
     }
-
-    const payloadMetadata = asRecord(payload.metadata);
-    const explicitPlatform = payloadMetadata?.platform;
-    const explicitPlatformUserId = payloadMetadata?.platform_user_id;
-    const explicitRawPayload = payloadMetadata?.raw_payload;
-    const platform =
-      explicitPlatform === 'telegram' || explicitPlatform === 'instagram' || explicitPlatform === 'manual'
-        ? explicitPlatform
-        : 'telegram';
-    const platformUserId =
-      typeof explicitPlatformUserId === 'string' && explicitPlatformUserId.trim()
-        ? explicitPlatformUserId.trim()
-        : sessionId;
-
-    const { data } = await apiClient.post<unknown>(
-      '/api/chat/messages/inbound/',
-      {
-        platform,
-        platform_user_id: platformUserId,
-        message: payload.content,
-        raw_payload:
-          typeof explicitRawPayload === 'string'
-            ? explicitRawPayload
-            : payload.metadata
-              ? JSON.stringify(payload.metadata)
-              : null,
-      },
-    );
-
-    const responseRecord = asRecord(data);
-    const wrappedData = asRecord(responseRecord?.data);
-    const outgoingRecord = asRecord(wrappedData?.outgoing);
-    const incomingRecord = asRecord(wrappedData?.incoming);
-    const fallbackRecord = asRecord(data);
-    const messageRecord = outgoingRecord ?? incomingRecord ?? fallbackRecord;
-
-    return mapChatMessageDtoToModel(messageRecord ?? {}, sessionId);
   },
 
   async markSessionRead(sessionId) {

@@ -13,6 +13,65 @@ import type {
 	PaginatedResponse,
 } from '../../contracts'
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return null
+	}
+
+	return value as Record<string, unknown>
+}
+
+function extractLastMessage(
+	payload: unknown,
+	sessionId: string,
+): Record<string, unknown> | null {
+	const record = asRecord(payload)
+	if (!record) {
+		return null
+	}
+
+	const messages = Array.isArray(record.messages) ? record.messages : []
+	const lastFromList =
+		messages.length > 0 ? asRecord(messages[messages.length - 1]) : null
+	const lastDirect = asRecord(record.last_message)
+	const candidate = lastFromList ?? lastDirect
+
+	if (candidate) {
+		return {
+			...candidate,
+			session_id: sessionId,
+		}
+	}
+
+	// Some backends may return the message directly.
+	if (typeof record.content === 'string') {
+		return {
+			...record,
+			session_id: sessionId,
+		}
+	}
+
+	return null
+}
+
+function createFallbackOperatorMessage(
+	sessionId: string,
+	content: string,
+	metadata?: Record<string, unknown>,
+): ChatMessage {
+	const nowIso = new Date().toISOString()
+
+	return {
+		id: `local-${sessionId}-${Date.now()}`,
+		created_at: nowIso,
+		updated_at: nowIso,
+		session_id: sessionId,
+		sender_type: 'operator',
+		content,
+		metadata: (metadata as Record<string, unknown>) ?? undefined,
+	} as ChatMessage
+}
+
 export class ChatAdapter implements IChatService {
 	private requestor: ApiRequestor
 
@@ -52,10 +111,53 @@ export class ChatAdapter implements IChatService {
 		sessionId: string,
 		input: CreateMessageInput,
 	): Promise<ChatMessage> {
-		return this.requestor.post<ChatMessage>(`/api/chat/messages/inbound/`, {
-			...input,
-			session_id: sessionId,
-		})
+		try {
+			const data = await this.requestor.post<unknown>(
+				`/api/chat/sessions/${sessionId}/send-message/`,
+				{ content: input.content },
+			)
+
+			const message = extractLastMessage(data, sessionId)
+			if (message) {
+				return message as unknown as ChatMessage
+			}
+
+			return createFallbackOperatorMessage(
+				sessionId,
+				input.content,
+				input.metadata as Record<string, unknown> | undefined,
+			)
+		} catch (error) {
+			const statusCode =
+				typeof (error as any)?.statusCode === 'number'
+					? ((error as any).statusCode as number)
+					: null
+
+			// Only fall back when the endpoint is missing/not allowed.
+			if (statusCode !== 404 && statusCode !== 405) {
+				throw error
+			}
+		}
+
+		try {
+			const data = await this.requestor.post<unknown>(
+				`/api/chat/sessions/${sessionId}/operator-message/`,
+				{ content: input.content },
+			)
+
+			const message = extractLastMessage(data, sessionId)
+			if (message) {
+				return message as unknown as ChatMessage
+			}
+
+			return createFallbackOperatorMessage(
+				sessionId,
+				input.content,
+				input.metadata as Record<string, unknown> | undefined,
+			)
+		} catch (error) {
+			throw error ?? new Error('Failed to send operator message')
+		}
 	}
 
 	subscribeToSession(
