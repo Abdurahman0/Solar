@@ -2161,6 +2161,15 @@
       "customerPrice": "Цена для клиента",
       "audit": "Аудит",
       "currency": "сум"
+    },
+    "form": {
+      "newClient": "Новый клиент",
+      "newClientName": "Имя клиента",
+      "newClientNamePlaceholder": "Например: Иван Петров",
+      "newClientPhone": "Телефон клиента",
+      "newClientPhonePlaceholder": "Например: +998901234567",
+      "newClientRequiredError": "Для нового клиента заполните имя, телефон и название договора.",
+      "subsidyRequiredError": "Заполните поле «Субсидия (%)»."
     }
   },
   "clients": {

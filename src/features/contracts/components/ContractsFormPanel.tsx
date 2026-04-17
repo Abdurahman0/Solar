@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import AppIcon from '../../../components/shared/icons/AppIcon'
-import { FilterSelect } from '../../../components/shared/data'
+import { FilterSelect, Switch } from '../../../components/shared/data'
 import { services } from '../../../services'
 import type {
 	Contract,
@@ -328,6 +328,9 @@ export function ContractsFormPanel({
 			}
 
 	const [form, setForm] = useState<ContractFormState>(() => toInitialState(contract))
+	const [isNewClient, setIsNewClient] = useState(false)
+	const [newClientName, setNewClientName] = useState('')
+	const [newClientPhone, setNewClientPhone] = useState('')
 	const existingContractFileUrl =
 		contract?.file_url || (typeof contract?.file === 'string' ? contract.file : '') || ''
 	const existingCadastreFileUrl =
@@ -345,7 +348,23 @@ export function ContractsFormPanel({
 	const [isLoadingReferences, setIsLoadingReferences] = useState(true)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
-	const canSubmit = Boolean(form.client && form.title.trim().length > 0)
+	const hasSubsidyPercent = form.subsidy_percent.trim().length > 0
+	const canSubmit = isEditing
+		? Boolean(form.client && form.title.trim().length > 0 && hasSubsidyPercent)
+		: isNewClient
+			? Boolean(
+					newClientName.trim().length > 0 &&
+						newClientPhone.trim().length > 0 &&
+						form.title.trim().length > 0 &&
+						hasSubsidyPercent,
+				)
+			: Boolean(form.client && form.title.trim().length > 0 && hasSubsidyPercent)
+
+	useEffect(() => {
+		if (isEditing) {
+			setIsNewClient(false)
+		}
+	}, [isEditing])
 
 	useEffect(() => {
 		let isActive = true
@@ -432,16 +451,61 @@ export function ContractsFormPanel({
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
 		setErrorMessage(null)
-		if (!form.client || !form.title.trim()) {
+
+		const title = form.title.trim()
+		const subsidyPercent = form.subsidy_percent.trim()
+
+		if (!subsidyPercent) {
+			setErrorMessage(t('contractsPage.form.subsidyRequiredError'))
+			return
+		}
+
+		if (!isEditing && isNewClient) {
+			if (!newClientName.trim() || !newClientPhone.trim() || !title) {
+				setErrorMessage(t('contractsPage.form.newClientRequiredError'))
+				return
+			}
+		} else if (!form.client || !title) {
 			setErrorMessage(tx.requiredError)
 			return
 		}
 
 		const parsedDetails: Record<string, unknown> | null = null
 
-		const payload: CreateContractInput | UpdateContractInput = {
-			client: form.client,
-			title: form.title.trim(),
+		setIsSubmitting(true)
+		try {
+			let clientId = form.client
+			let resolvedCustomerPhone = form.customer_phone || ''
+
+			if (!isEditing && isNewClient) {
+				const createdClientResponse = await services.clients.createClient({
+					full_name: newClientName.trim(),
+					phone: newClientPhone.trim(),
+				} as any)
+
+				// Some endpoints return `{ status: 'success', data: {...} }` while others return the entity directly.
+				const createdClient =
+					createdClientResponse &&
+					typeof createdClientResponse === 'object' &&
+					'data' in (createdClientResponse as Record<string, unknown>)
+						? (createdClientResponse as { data?: any }).data ?? createdClientResponse
+						: createdClientResponse
+
+				clientId =
+					createdClient?.id ??
+					createdClient?.client?.id ??
+					createdClient?.data?.id ??
+					''
+
+				if (!clientId || typeof clientId !== 'string') {
+					throw new Error('Failed to create client.')
+				}
+				resolvedCustomerPhone = newClientPhone.trim()
+			}
+
+			const payload: CreateContractInput | UpdateContractInput = {
+				client: clientId,
+				title,
 			status: form.status,
 			panel_type: form.panel_type,
 			inverter_type: form.inverter_type,
@@ -449,8 +513,8 @@ export function ContractsFormPanel({
 				form.requested_power_kw === '' ? null : Number(form.requested_power_kw),
 			audit_power_kw:
 				form.audit_power_kw === '' ? null : Number(form.audit_power_kw),
-			subsidy_percent: form.subsidy_percent || null,
-			customer_phone: form.customer_phone || '',
+			subsidy_percent: subsidyPercent,
+			customer_phone: resolvedCustomerPhone,
 			installation_address: form.installation_address || '',
 			delivery_status: form.delivery_status || 'pending',
 			delivery_notes: form.delivery_notes || '',
@@ -465,10 +529,8 @@ export function ContractsFormPanel({
 			file: form.file,
 			cadastre_file: form.cadastre_file,
 			house_image: form.house_image,
-		}
+			}
 
-		setIsSubmitting(true)
-		try {
 			const saved = isEditing
 				? await services.contracts.updateContract(
 						contract!.id,
@@ -476,8 +538,8 @@ export function ContractsFormPanel({
 					)
 				: await services.contracts.createContract(payload as CreateContractInput)
 			onSuccess?.(saved)
-		} catch {
-			setErrorMessage(tx.saveError)
+		} catch (error) {
+			setErrorMessage(error instanceof Error ? error.message : tx.saveError)
 		} finally {
 			setIsSubmitting(false)
 		}
@@ -495,44 +557,115 @@ export function ContractsFormPanel({
 							{isEditing ? tx.editTitle : tx.createTitle}
 						</h2>
 					</div>
-					<button
-						type='button'
-						className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-60'
-						onClick={onClose}
-						disabled={isSubmitting}
-						aria-label={tx.close}
-					>
-						<AppIcon name='close' className='h-4.5 w-4.5' aria-hidden='true' />
-					</button>
+
+					<div className='flex shrink-0 items-center gap-3'>
+						{!isEditing ? (
+							<div className='flex items-center gap-2'>
+								<span className='text-[12px] font-semibold text-text-secondary'>
+									{t('contractsPage.form.newClient')}
+								</span>
+								<Switch
+									checked={isNewClient}
+									onChange={nextValue => {
+										setIsNewClient(nextValue)
+										if (nextValue) {
+											updateField('client', '')
+										}
+									}}
+									disabled={isSubmitting}
+									ariaLabel={t('contractsPage.form.newClient')}
+								/>
+							</div>
+						) : null}
+
+						<button
+							type='button'
+							className='inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-text-primary shadow-sm transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-60'
+							onClick={onClose}
+							disabled={isSubmitting}
+							aria-label={tx.close}
+						>
+							<AppIcon
+								name='close'
+								className='h-4.5 w-4.5'
+								aria-hidden='true'
+							/>
+						</button>
+					</div>
 				</div>
 			</header>
 
 			<form className='grid gap-3' onSubmit={handleSubmit} noValidate>
-				<div className='grid gap-3 sm:grid-cols-2'>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.client}</label>
-						<FilterSelect
-							value={form.client}
-							options={[
-								{ value: '', label: t('shared.filterSelect.select'), disabled: true },
-								...clients.map(client => ({
-									value: client.id,
-									label: client.full_name,
-								})),
-							]}
-							onChange={value => updateField('client', value)}
-							disabled={isSubmitting || isLoadingReferences}
-						/>
-					</div>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.title}</label>
-						<input
-							className={inputClassName}
-							value={form.title}
-							onChange={event => updateField('title', event.target.value)}
-							disabled={isSubmitting}
-						/>
-					</div>
+				<div className='grid items-start gap-3 sm:grid-cols-2'>
+					{!isEditing && isNewClient ? (
+						<>
+							<div className='grid gap-3 sm:col-span-2 sm:grid-cols-2'>
+								<div className='grid gap-1.5'>
+									<label className={labelClassName}>
+										{t('contractsPage.form.newClientName')}
+									</label>
+									<input
+										className={inputClassName}
+										value={newClientName}
+										onChange={event => setNewClientName(event.target.value)}
+										placeholder={t('contractsPage.form.newClientNamePlaceholder')}
+										disabled={isSubmitting}
+									/>
+								</div>
+
+								<div className='grid gap-1.5'>
+									<label className={labelClassName}>
+										{t('contractsPage.form.newClientPhone')}
+									</label>
+									<input
+										className={inputClassName}
+										value={newClientPhone}
+										onChange={event => setNewClientPhone(event.target.value)}
+										placeholder={t('contractsPage.form.newClientPhonePlaceholder')}
+										disabled={isSubmitting}
+									/>
+								</div>
+							</div>
+
+							<div className='grid gap-1.5 sm:col-span-2'>
+								<label className={labelClassName}>{tx.labels.title}</label>
+								<input
+									className={inputClassName}
+									value={form.title}
+									onChange={event => updateField('title', event.target.value)}
+									disabled={isSubmitting}
+								/>
+							</div>
+						</>
+					) : (
+						<>
+							<div className='grid gap-1.5'>
+								<label className={labelClassName}>{tx.labels.client}</label>
+								<FilterSelect
+									value={form.client}
+									options={[
+										{ value: '', label: t('shared.filterSelect.select'), disabled: true },
+										...clients.map(client => ({
+											value: client.id,
+											label: client.full_name,
+										})),
+									]}
+									onChange={value => updateField('client', value)}
+									disabled={isSubmitting || isLoadingReferences}
+								/>
+							</div>
+
+							<div className='grid gap-1.5'>
+								<label className={labelClassName}>{tx.labels.title}</label>
+								<input
+									className={inputClassName}
+									value={form.title}
+									onChange={event => updateField('title', event.target.value)}
+									disabled={isSubmitting}
+								/>
+							</div>
+						</>
+					)}
 					<div className='grid gap-1.5'>
 						<label className={labelClassName}>{tx.labels.status}</label>
 						<FilterSelect
@@ -616,21 +749,28 @@ export function ContractsFormPanel({
 					<div className='grid gap-1.5'>
 						<label className={labelClassName}>{tx.labels.subsidyPercent}</label>
 						<input
+							type='number'
+							min={0}
+							step='0.01'
 							className={inputClassName}
 							value={form.subsidy_percent}
 							onChange={event => updateField('subsidy_percent', event.target.value)}
 							disabled={isSubmitting}
 						/>
 					</div>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.customerPhone}</label>
-						<input
-							className={inputClassName}
-							value={form.customer_phone}
-							onChange={event => updateField('customer_phone', event.target.value)}
-							disabled={isSubmitting}
-						/>
-					</div>
+					{!isEditing && isNewClient ? null : (
+						<div className='grid gap-1.5'>
+							<label className={labelClassName}>{tx.labels.customerPhone}</label>
+							<input
+								className={inputClassName}
+								value={form.customer_phone}
+								onChange={event =>
+									updateField('customer_phone', event.target.value)
+								}
+								disabled={isSubmitting}
+							/>
+						</div>
+					)}
 					<div className='grid gap-1.5 sm:col-span-2'>
 						<label className={labelClassName}>{tx.labels.address}</label>
 						<input
