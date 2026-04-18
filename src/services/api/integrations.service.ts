@@ -92,6 +92,8 @@ function toConfigPayload(
   }
   if (input.label !== undefined) {
     payload.label = input.label;
+    // Newer API schema uses `description` instead of `label`.
+    payload.description = input.label;
   }
   if (input.value !== undefined) {
     payload.value = input.value;

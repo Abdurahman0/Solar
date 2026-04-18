@@ -272,7 +272,11 @@ export function mapIntegrationConfigDtoToModel(dto: IntegrationConfigDto): Integ
     updated_at: readString(dto.updated_at, nowIso) || readString(dto.updatedAt, nowIso),
     provider: normalizeProvider(dto.provider),
     key: readString(dto.key),
-    label: readString(dto.label) || readString(dto.name) || readString(dto.key),
+    label:
+      readString(dto.label) ||
+      readString(dto.description) ||
+      readString(dto.name) ||
+      readString(dto.key),
     value: readString(dto.value),
     is_secret: readBoolean(dto.is_secret ?? dto.isSecret, false),
     is_active: readBoolean(dto.is_active ?? dto.isActive, false),

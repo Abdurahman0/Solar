@@ -225,26 +225,40 @@ function IntegrationsPage() {
     setSelectedConfigId(null);
   }
 
+  function openCreateForm() {
+    if (!canManageIntegrations) {
+      return;
+    }
+
+    setFormMode('create');
+    setEditingConfig(null);
+    setFormErrorMessage(null);
+    setIsFormOpen(true);
+    setSelectedConfigId(null);
+  }
+
   function requestDelete(config: IntegrationConfig) {
     setConfigToDelete(config);
     setSelectedConfigId(null);
   }
 
   async function handleSaveConfig(payload: IntegrationConfigMutationInput) {
-    if (formMode !== 'edit' || !editingConfig?.id) {
-      return;
-    }
-
     setIsSaving(true);
     setFormErrorMessage(null);
 
     try {
-      const updated = await services.integrations.patchConfig(editingConfig.id, payload);
-      if (updated) {
-        setConfigs((current) =>
-          current.map((item) => (item.id === updated.id ? updated : item)),
-        );
+      if (formMode === 'create') {
+        await services.integrations.createConfig(payload);
+        setCurrentPage(1);
+      } else if (editingConfig?.id) {
+        const updated = await services.integrations.patchConfig(editingConfig.id, payload);
+        if (updated) {
+          setConfigs((current) =>
+            current.map((item) => (item.id === updated.id ? updated : item)),
+          );
+        }
       }
+
       setIsFormOpen(false);
       setEditingConfig(null);
       setRefreshToken((current) => current + 1);
@@ -441,10 +455,22 @@ function IntegrationsPage() {
       title={t('integrations.title')}
       subtitle={t('integrations.subtitle')}
       actions={
-        <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-primary/12 px-3 text-[12px] font-semibold text-text-accent">
-          <AppIcon name="integrations" className="h-3.5 w-3.5" aria-hidden="true" />
-          {paginationMeta.totalItems} {t('integrations.configRecords')}
-        </span>
+        <div className="flex w-full flex-wrap items-center gap-2 min-[768px]:w-auto">
+          {canManageIntegrations ? (
+            <button
+              type="button"
+              className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition duration-fast hover:bg-primary-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+              onClick={openCreateForm}
+            >
+              <AppIcon name="plus" className="h-4 w-4" aria-hidden="true" />
+              {t('integrations.configForm.createSubmit')}
+            </button>
+          ) : null}
+          <span className="inline-flex min-h-8 items-center gap-2 rounded-pill bg-primary/12 px-3 text-[12px] font-semibold text-text-accent">
+            <AppIcon name="integrations" className="h-3.5 w-3.5" aria-hidden="true" />
+            {paginationMeta.totalItems} {t('integrations.configRecords')}
+          </span>
+        </div>
       }
     />
   );
