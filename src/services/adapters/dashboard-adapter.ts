@@ -188,6 +188,16 @@ export function mapDashboardOverviewDtoToModel(
   const mappedContractsByStatus =
     mapBreakdownItems(breakdowns.contracts_by_status).length > 0
       ? mapBreakdownItems(breakdowns.contracts_by_status)
+      : toArray(data.contract_status_distribution).length > 0
+        ? toArray(data.contract_status_distribution).map((item, index) => {
+            const itemRecord = toRecord(item) ?? {};
+            const status = readString(itemRecord.status) || `status-${index}`;
+            return {
+              key: status,
+              label: status,
+              count: readCount(itemRecord.total),
+            };
+          })
       : [
           {
             key: 'all',

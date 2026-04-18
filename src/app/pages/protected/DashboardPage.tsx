@@ -65,6 +65,20 @@ const STATUS_COLORS: Record<string, string> = {
 	converted: '#059669',
 	lost: '#EF4444',
 }
+
+const CONTRACT_STATUS_COLORS: Record<string, string> = {
+	draft: '#3B82F6',
+	audit_pending: '#F59E0B',
+	audit_paid: '#10B981',
+	moderation: '#8B5CF6',
+	contract_ready: '#059669',
+	payment_pending: '#F97316',
+	paid: '#22C55E',
+	delivered: '#0EA5E9',
+	sent: '#6366F1',
+	signed: '#16A34A',
+	canceled: '#EF4444',
+}
 const STATUS_COLORS_FALLBACK = [
 	'#3B82F6',
 	'#8B5CF6',
@@ -562,16 +576,30 @@ function DashboardPage() {
 		share: (item.count / displaySourceTotal) * 100,
 	}))
 
-	const leadStatusData = pickForDisplay(
-		overview.breakdowns.contracts_by_status,
-		6,
-	).map(item => ({
+	const contractStatusDistribution = (overview as any)
+		?.contract_status_distribution as
+		| Array<{ status: string; total: number }>
+		| undefined
+
+	const contractStatusItems: DashboardBreakdownItem[] =
+		Array.isArray(contractStatusDistribution) &&
+		contractStatusDistribution.length > 0
+			? contractStatusDistribution.map(item => ({
+					key: String(item.status ?? ''),
+					label: String(item.status ?? ''),
+					count: Number(item.total ?? 0),
+				}))
+			: overview.breakdowns.contracts_by_status
+
+	const leadStatusData = pickForDisplay(contractStatusItems, 6).map(item => ({
 		...item,
 		label:
 			['all', 'contract', 'contracts'].includes(item.key) ||
 			['contract', 'contracts'].includes(item.label.trim().toLowerCase())
 				? t('routes.contracts.title', { defaultValue: item.label })
-				: getOrderStatusLabel(t, item.key, item.label),
+				: t(`contractsPage.statuses.${item.key}`, {
+						defaultValue: getOrderStatusLabel(t, item.key, item.label),
+					}),
 	}))
 	const leadStatusTotal = leadStatusData.reduce(
 		(sum, item) => sum + item.count,
@@ -580,7 +608,7 @@ function DashboardPage() {
 	const leadStatusPieData: PieSlice[] = leadStatusData.map((item, index) => ({
 		...item,
 		color:
-			STATUS_COLORS[item.key] ??
+			CONTRACT_STATUS_COLORS[item.key] ??
 			STATUS_COLORS_FALLBACK[
 				index % STATUS_COLORS_FALLBACK.length
 			]!,
