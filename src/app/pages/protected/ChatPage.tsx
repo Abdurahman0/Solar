@@ -43,13 +43,27 @@ function applySessionUpdate(
         ? session.operator_needed
         : nextSession.operator_needed;
 
-    return {
+    const merged: Conversation = {
       ...session,
       ...nextSession,
       operator_needed: resolvedOperatorNeeded,
       operator_needed_defined:
         session.operator_needed_defined === true || nextSession.operator_needed_defined === true,
     };
+
+    // Some endpoints (e.g. mark-read) may omit preview fields; keep the existing ones
+    // so list items don't temporarily show "no message/time".
+    if (nextSession.last_message == null || nextSession.last_message === '') {
+      merged.last_message = session.last_message;
+    }
+    if (nextSession.last_message_at == null || nextSession.last_message_at === '') {
+      merged.last_message_at = session.last_message_at;
+    }
+    if (nextSession.last_message_payload == null) {
+      merged.last_message_payload = session.last_message_payload;
+    }
+
+    return merged;
   });
 
   if (matched) {
@@ -74,7 +88,26 @@ function mergeServerSessionsPreservingActivePosition(
     return incoming;
   }
 
-  const activeSession = incoming[incomingIndex];
+  const currentActive = current[currentIndex];
+  const incomingActive = incoming[incomingIndex];
+
+  // Some list endpoints may omit last message fields; preserve previously known values
+  // so the session list doesn't temporarily lose preview/time for the active session.
+  const activeSession: Conversation = {
+    ...incomingActive,
+    last_message:
+      incomingActive.last_message == null || incomingActive.last_message === ''
+        ? currentActive.last_message
+        : incomingActive.last_message,
+    last_message_at:
+      incomingActive.last_message_at == null || incomingActive.last_message_at === ''
+        ? currentActive.last_message_at
+        : incomingActive.last_message_at,
+    last_message_payload:
+      incomingActive.last_message_payload == null
+        ? currentActive.last_message_payload
+        : incomingActive.last_message_payload,
+  };
   const withoutActive = incoming.filter((session) => session.id !== activeSessionId);
   const insertIndex = Math.min(Math.max(currentIndex, 0), withoutActive.length);
 
@@ -371,9 +404,28 @@ function ChatPage() {
         }
 
         sessionCacheRef.current[updatedSession.id] = updatedSession;
-        setActiveSession((current) =>
-          current && current.id === sessionId ? updatedSession : current,
-        );
+        setActiveSession((current) => {
+          if (!current || current.id !== sessionId) {
+            return current;
+          }
+
+          return {
+            ...current,
+            ...updatedSession,
+            last_message:
+              updatedSession.last_message == null || updatedSession.last_message === ''
+                ? current.last_message
+                : updatedSession.last_message,
+            last_message_at:
+              updatedSession.last_message_at == null || updatedSession.last_message_at === ''
+                ? current.last_message_at
+                : updatedSession.last_message_at,
+            last_message_payload:
+              updatedSession.last_message_payload == null
+                ? current.last_message_payload
+                : updatedSession.last_message_payload,
+          };
+        });
         setSessions((current) =>
           applyClientFilters(
             applySessionUpdate(current, updatedSession),
