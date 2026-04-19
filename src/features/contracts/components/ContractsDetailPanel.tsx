@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
@@ -442,12 +442,60 @@ export function ContractsDetailPanel({
 	const [state, { fetch: fetchContractDetail }] = useDetail(fetchContract, {
 		autoFetch: true,
 	})
+	const [clientAuditFallback, setClientAuditFallback] = useState<{
+		audit_conclusion_kw: number | null
+		eligible_subsidy_kw: number | null
+		estimated_subsidy_amount: string | number | null
+	} | null>(null)
 
 	useEffect(() => {
 		if (refreshToken > 0) {
 			void fetchContractDetail()
 		}
 	}, [fetchContractDetail, refreshToken])
+
+	useEffect(() => {
+		const contract = state.data
+		if (!contract?.client) {
+			setClientAuditFallback(null)
+			return
+		}
+
+		const needsFallback =
+			contract.audit_conclusion_kw == null ||
+			contract.eligible_subsidy_kw == null ||
+			contract.estimated_subsidy_amount == null ||
+			(typeof contract.estimated_subsidy_amount === 'string' &&
+				contract.estimated_subsidy_amount.trim().length === 0)
+
+		if (!needsFallback) {
+			setClientAuditFallback(null)
+			return
+		}
+
+		let isActive = true
+		void (async () => {
+			try {
+				const client = await services.clients.getClient(contract.client)
+				if (!isActive) {
+					return
+				}
+				setClientAuditFallback({
+					audit_conclusion_kw: client.audit_conclusion_kw ?? null,
+					eligible_subsidy_kw: client.eligible_subsidy_kw ?? null,
+					estimated_subsidy_amount: client.estimated_subsidy_amount ?? null,
+				})
+			} catch {
+				if (isActive) {
+					setClientAuditFallback(null)
+				}
+			}
+		})()
+
+		return () => {
+			isActive = false
+		}
+	}, [state.data])
 
 	if (state.isLoading) {
 		return <LoadingState title={tx.loadingTitle} description={tx.loadingDescription} />
@@ -457,6 +505,15 @@ export function ContractsDetailPanel({
 	}
 
 	const contract = state.data
+	const resolvedAuditConclusionKw =
+		contract.audit_conclusion_kw ?? clientAuditFallback?.audit_conclusion_kw ?? null
+	const resolvedEligibleSubsidyKw =
+		contract.eligible_subsidy_kw ?? clientAuditFallback?.eligible_subsidy_kw ?? null
+	const resolvedEstimatedSubsidyAmount =
+		contract.estimated_subsidy_amount != null &&
+		!(typeof contract.estimated_subsidy_amount === 'string' && contract.estimated_subsidy_amount.trim().length === 0)
+			? contract.estimated_subsidy_amount
+			: (clientAuditFallback?.estimated_subsidy_amount ?? null)
 	const recalculateLabel = isRu ? "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c" : 'Qayta hisoblash'
 	const currencyLabel = isRu ? '\u0441\u0443\u043c' : "so'm"
 	const contractFileUrl = contract.file_url || (typeof contract.file === 'string' ? contract.file : '') || ''
@@ -550,18 +607,18 @@ export function ContractsDetailPanel({
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.auditConclusionPower}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.audit_conclusion_kw ?? '-'}</p>
+						<p className={`mt-1 ${valueClassName}`}>{resolvedAuditConclusionKw ?? '-'}</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.eligibleSubsidyPower}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.eligible_subsidy_kw ?? '-'}</p>
+						<p className={`mt-1 ${valueClassName}`}>{resolvedEligibleSubsidyKw ?? '-'}</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.estimatedSubsidyAmount}</p>
 						<p className={`mt-1 ${valueClassName}`}>
 							{formatSmartValue(
 								'estimated_subsidy_amount',
-								contract.estimated_subsidy_amount,
+								resolvedEstimatedSubsidyAmount,
 								locale,
 								currencyLabel,
 							)}

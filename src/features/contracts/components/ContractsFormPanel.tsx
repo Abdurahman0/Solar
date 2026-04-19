@@ -419,6 +419,80 @@ export function ContractsFormPanel({
 		}
 	}, [])
 
+	useEffect(() => {
+		if (!form.client || isNewClient) {
+			return
+		}
+
+		const needsAuditFallback =
+			form.audit_conclusion_kw === '' ||
+			form.eligible_subsidy_kw === '' ||
+			form.estimated_subsidy_amount.trim().length === 0
+
+		if (!needsAuditFallback) {
+			return
+		}
+
+		let isActive = true
+		const selectedClientId = form.client
+
+		void (async () => {
+			try {
+				const client = await services.clients.getClient(selectedClientId)
+				if (!isActive) {
+					return
+				}
+
+				setForm(current => {
+					if (current.client !== selectedClientId) {
+						return current
+					}
+
+					let didChange = false
+					const next = { ...current }
+
+					if (
+						next.audit_conclusion_kw === '' &&
+						typeof client.audit_conclusion_kw === 'number'
+					) {
+						next.audit_conclusion_kw = client.audit_conclusion_kw
+						didChange = true
+					}
+
+					if (
+						next.eligible_subsidy_kw === '' &&
+						typeof client.eligible_subsidy_kw === 'number'
+					) {
+						next.eligible_subsidy_kw = client.eligible_subsidy_kw
+						didChange = true
+					}
+
+					if (
+						next.estimated_subsidy_amount.trim().length === 0 &&
+						client.estimated_subsidy_amount != null
+					) {
+						next.estimated_subsidy_amount = String(client.estimated_subsidy_amount)
+						didChange = true
+					}
+
+					return didChange ? next : current
+				})
+			} catch {
+				// Keep form usable even when client lookup fails.
+			}
+		})()
+
+		return () => {
+			isActive = false
+		}
+	}, [
+		form.client,
+		form.audit_conclusion_kw,
+		form.eligible_subsidy_kw,
+		form.estimated_subsidy_amount,
+		isNewClient,
+	])
+
 	const statusOptions = useMemo(
 		() => [
 			{ value: 'draft', label: isRu ? 'Черновик' : 'Qoralama' },
