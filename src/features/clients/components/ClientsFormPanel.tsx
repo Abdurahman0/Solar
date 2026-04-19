@@ -95,6 +95,10 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
     object_type: client?.object_type || '',
     customer_segment: client?.customer_segment || '',
     electricity_consumption: client?.electricity_consumption || '',
+    desired_power_kw: client?.desired_power_kw ?? null,
+    audit_conclusion_kw: client?.audit_conclusion_kw ?? null,
+    eligible_subsidy_kw: client?.eligible_subsidy_kw ?? null,
+    estimated_subsidy_amount: client?.estimated_subsidy_amount ?? '',
     monthly_bill: client?.monthly_bill || '',
     solution_type: client?.solution_type || '',
     budget_range: client?.budget_range || '',
@@ -261,6 +265,45 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
               value={form.desired_power_kw ?? ''} 
               onChange={(e) => updateField('desired_power_kw', e.target.value ? Number(e.target.value) : null)} 
               disabled={isSubmitting} 
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>
+              {isRu ? 'Мощность по аудиту (кВт)' : 'Audit xulosasi quvvati (kVt)'}
+            </label>
+            <input
+              type="number"
+              className={inputClassName}
+              value={form.audit_conclusion_kw ?? ''}
+              onChange={(e) =>
+                updateField('audit_conclusion_kw', e.target.value ? Number(e.target.value) : null)
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>
+              {isRu ? 'Субсидируемая мощность (кВт)' : 'Subsidiya uchun quvvat (kVt)'}
+            </label>
+            <input
+              type="number"
+              className={inputClassName}
+              value={form.eligible_subsidy_kw ?? ''}
+              onChange={(e) =>
+                updateField('eligible_subsidy_kw', e.target.value ? Number(e.target.value) : null)
+              }
+              disabled={isSubmitting}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label className={labelClassName}>
+              {isRu ? 'Оценочная сумма субсидии' : 'Taxminiy subsidiya summasi'}
+            </label>
+            <input
+              className={inputClassName}
+              value={String(form.estimated_subsidy_amount ?? '')}
+              onChange={(e) => updateField('estimated_subsidy_amount', e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
           <div className="grid gap-1.5">

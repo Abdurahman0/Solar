@@ -41,6 +41,9 @@ export interface Client extends BaseEntity {
 	customer_segment?: string
 	electricity_consumption?: string
 	desired_power_kw?: number | null
+	audit_conclusion_kw?: number | null
+	eligible_subsidy_kw?: number | null
+	estimated_subsidy_amount?: string | number
 	monthly_bill?: string | number
 	solution_type?: string
 	budget_range?: string

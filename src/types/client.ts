@@ -26,6 +26,10 @@ export interface Client {
 	objectType?: string
 	customerSegment?: string
 	electricityConsumption?: string
+	desiredPowerKw?: number | null
+	auditConclusionKw?: number | null
+	eligibleSubsidyKw?: number | null
+	estimatedSubsidyAmount?: string | number
 	monthlyBill?: string | number
 	solutionType?: string
 	budgetRange?: string
@@ -57,6 +61,10 @@ export interface ClientMutationInput {
 	object_type?: string
 	customer_segment?: string
 	electricity_consumption?: string
+	desired_power_kw?: number | null
+	audit_conclusion_kw?: number | null
+	eligible_subsidy_kw?: number | null
+	estimated_subsidy_amount?: string | number
 	monthly_bill?: string | number
 	solution_type?: string
 	budget_range?: string
@@ -77,6 +85,10 @@ export interface ClientPatchInput {
 	object_type?: string
 	customer_segment?: string
 	electricity_consumption?: string
+	desired_power_kw?: number | null
+	audit_conclusion_kw?: number | null
+	eligible_subsidy_kw?: number | null
+	estimated_subsidy_amount?: string | number
 	monthly_bill?: string | number
 	solution_type?: string
 	budget_range?: string

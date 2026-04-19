@@ -226,6 +226,35 @@ export function ClientsDetailPanel({
             <p className={`mt-1 ${valueClassName}`}>{client.desired_power_kw ? `${client.desired_power_kw} kVt` : '-'}</p>
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
+            <p className={labelClassName}>
+              {isRu ? 'Мощность по аудиту' : 'Audit xulosasi quvvati'}
+            </p>
+            <p className={`mt-1 ${valueClassName}`}>
+              {client.audit_conclusion_kw ? `${client.audit_conclusion_kw} kVt` : '-'}
+            </p>
+          </div>
+          <div className="rounded-lg bg-surface-subtle/80 p-3">
+            <p className={labelClassName}>
+              {isRu ? 'Субсидируемая мощность' : 'Subsidiya uchun quvvat'}
+            </p>
+            <p className={`mt-1 ${valueClassName}`}>
+              {client.eligible_subsidy_kw ? `${client.eligible_subsidy_kw} kVt` : '-'}
+            </p>
+          </div>
+          <div className="rounded-lg bg-surface-subtle/80 p-3">
+            <p className={labelClassName}>
+              {isRu ? 'Оценочная сумма субсидии' : 'Taxminiy subsidiya summasi'}
+            </p>
+            <p className={`mt-1 ${valueClassName}`}>
+              {client.estimated_subsidy_amount
+                ? (typeof client.estimated_subsidy_amount === 'number' ||
+                   !isNaN(Number(client.estimated_subsidy_amount))
+                    ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(Number(client.estimated_subsidy_amount))} UZS`
+                    : client.estimated_subsidy_amount)
+                : '-'}
+            </p>
+          </div>
+          <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.monthlyBill}</p>
             <p className={`mt-1 ${valueClassName}`}>
               {client.monthly_bill 
