@@ -29,7 +29,7 @@ function FilterSelect({
   );
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
       if (!rootRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -42,13 +42,19 @@ function FilterSelect({
     }
 
     window.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('touchstart', handlePointerDown);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('touchstart', handlePointerDown);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [value]);
 
   useEffect(() => {
     if (!isOpen) {

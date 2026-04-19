@@ -8,7 +8,6 @@ import { ClientsAdapter } from './adapters/implementations/clients.adapter'
 import { ProductsAdapter } from './adapters/implementations/products.adapter'
 import { ChatAdapter } from './adapters/implementations/chat.adapter'
 import { ContractsAdapter } from './adapters/implementations/contracts.adapter'
-import { AuditRequestsAdapter } from './adapters/implementations/audit-requests.adapter'
 import { NotificationsAdapter } from './adapters/implementations/notifications.adapter'
 import { IntegrationsAdapter } from './adapters/implementations/integrations.adapter'
 import { AISettingsAdapter } from './adapters/implementations/ai-settings.adapter'
@@ -22,7 +21,6 @@ import type {
 	IProductsService,
 	IChatService,
 	IContractsService,
-	IAuditRequestsService,
 	INotificationsService,
 	IIntegrationsService,
 	IAISettingsService,
@@ -37,7 +35,6 @@ export interface ServiceRegistry {
 	products: IProductsService
 	chat: IChatService
 	contracts: IContractsService
-	auditRequests: IAuditRequestsService
 	notifications: INotificationsService
 	integrations: IIntegrationsService
 	aiSettings: IAISettingsService
@@ -60,7 +57,6 @@ export function createServiceRegistry(baseUrl: string): ServiceRegistry {
 		products: new ProductsAdapter(cleanBaseUrl),
 		chat: new ChatAdapter(cleanBaseUrl),
 		contracts: new ContractsAdapter(cleanBaseUrl),
-		auditRequests: new AuditRequestsAdapter(cleanBaseUrl),
 		notifications: new NotificationsAdapter(cleanBaseUrl),
 		integrations: new IntegrationsAdapter(cleanBaseUrl),
 		aiSettings: new AISettingsAdapter(cleanBaseUrl),

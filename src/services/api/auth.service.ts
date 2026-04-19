@@ -101,12 +101,6 @@ function mapBackendPermissionToken(token: string): PermissionCode[] {
     'leads.view': ['can_view_leads'],
     'leads.manage': ['can_manage_leads'],
 
-    // Some backends scope audit requests under contracts or expose separate permissions.
-    'audit_requests.view': ['can_view_contracts'],
-    'audit-requests.view': ['can_view_contracts'],
-    'audit_requests.manage': ['can_manage_contracts'],
-    'audit-requests.manage': ['can_manage_contracts'],
-
     // Chats can be exposed as `chat.*` or `chats.*`.
     'chat.view': ['can_access_chats'],
     'chat.manage': ['can_access_chats'],
