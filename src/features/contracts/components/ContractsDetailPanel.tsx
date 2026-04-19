@@ -376,6 +376,9 @@ export function ContractsDetailPanel({
 					inverter: 'Тип инвертора',
 					power: 'Мощность (кВт)',
 					auditPower: 'Аудит мощность (кВт)',
+					auditConclusionPower: 'Мощность по аудиту (кВт)',
+					eligibleSubsidyPower: 'Субсидируемая мощность (кВт)',
+					estimatedSubsidyAmount: 'Оценочная сумма субсидии',
 					subsidy: 'Субсидия (%)',
 					subsidyAmount: 'Сумма субсидии',
 					customerAmount: 'Сумма к оплате',
@@ -409,6 +412,9 @@ export function ContractsDetailPanel({
 					inverter: 'Invertor turi',
 					power: 'Quvvat (kW)',
 					auditPower: 'Audit quvvati (kW)',
+					auditConclusionPower: 'Audit xulosasi quvvati (kW)',
+					eligibleSubsidyPower: 'Subsidiya uchun quvvat (kW)',
+					estimatedSubsidyAmount: 'Taxminiy subsidiya summasi',
 					subsidy: 'Subsidiya (%)',
 					subsidyAmount: 'Subsidiya summasi',
 					customerAmount: 'Mijoz summasi',
@@ -541,6 +547,25 @@ export function ContractsDetailPanel({
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.auditPower}</p>
 						<p className={`mt-1 ${valueClassName}`}>{contract.audit_power_kw ?? '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.auditConclusionPower}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.audit_conclusion_kw ?? '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.eligibleSubsidyPower}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.eligible_subsidy_kw ?? '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.estimatedSubsidyAmount}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{formatSmartValue(
+								'estimated_subsidy_amount',
+								contract.estimated_subsidy_amount,
+								locale,
+								currencyLabel,
+							)}
+						</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.subsidy}</p>

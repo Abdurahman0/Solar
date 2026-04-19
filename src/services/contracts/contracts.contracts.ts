@@ -30,6 +30,9 @@ export interface Contract extends BaseEntity {
 	inverter_type_label?: string
 	requested_power_kw: number | null
 	audit_power_kw?: number | null
+	audit_conclusion_kw?: number | null
+	eligible_subsidy_kw?: number | null
+	estimated_subsidy_amount?: string | number | null
 	subsidy_percent?: string | number | null
 	subsidy_amount?: string | number | null
 	customer_amount?: string | number | null
@@ -66,6 +69,9 @@ export interface CreateContractInput {
 	inverter_type?: Contract['inverter_type']
 	requested_power_kw?: number
 	audit_power_kw?: number | null
+	audit_conclusion_kw?: number | null
+	eligible_subsidy_kw?: number | null
+	estimated_subsidy_amount?: string | number | null
 	subsidy_percent?: string | number | null
 	customer_phone?: string
 	installation_address?: string
@@ -90,6 +96,9 @@ export interface UpdateContractInput {
 	inverter_type?: Contract['inverter_type'] | null
 	requested_power_kw?: number | null
 	audit_power_kw?: number | null
+	audit_conclusion_kw?: number | null
+	eligible_subsidy_kw?: number | null
+	estimated_subsidy_amount?: string | number | null
 	subsidy_percent?: string | number | null
 	customer_phone?: string
 	installation_address?: string

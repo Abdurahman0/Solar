@@ -23,6 +23,9 @@ type ContractFormState = {
 	inverter_type: Contract['inverter_type']
 	requested_power_kw: number | ''
 	audit_power_kw: number | ''
+	audit_conclusion_kw: number | ''
+	eligible_subsidy_kw: number | ''
+	estimated_subsidy_amount: string
 	subsidy_percent: string
 	customer_phone: string
 	installation_address: string
@@ -215,6 +218,15 @@ function toInitialState(contract?: Contract): ContractFormState {
 			typeof contract?.audit_power_kw === 'number'
 				? contract.audit_power_kw
 				: '',
+		audit_conclusion_kw:
+			typeof contract?.audit_conclusion_kw === 'number'
+				? contract.audit_conclusion_kw
+				: '',
+		eligible_subsidy_kw:
+			typeof contract?.eligible_subsidy_kw === 'number'
+				? contract.eligible_subsidy_kw
+				: '',
+		estimated_subsidy_amount: String(contract?.estimated_subsidy_amount ?? ''),
 		subsidy_percent: String(contract?.subsidy_percent ?? ''),
 		customer_phone: contract?.customer_phone ?? '',
 		installation_address: contract?.installation_address ?? '',
@@ -271,6 +283,9 @@ export function ContractsFormPanel({
 					inverterType: 'Тип инвертора',
 					requestedPower: 'Запрошенная мощность (кВт)',
 					auditPower: 'Аудит мощность (кВт)',
+					auditConclusionPower: 'Мощность по аудиту (кВт)',
+					eligibleSubsidyPower: 'Субсидируемая мощность (кВт)',
+					estimatedSubsidyAmount: 'Оценочная сумма субсидии',
 					subsidyPercent: 'Субсидия (%)',
 					customerPhone: 'Телефон клиента',
 					address: 'Адрес установки',
@@ -312,6 +327,9 @@ export function ContractsFormPanel({
 					inverterType: 'Invertor turi',
 					requestedPower: 'So\'ralgan quvvat (kW)',
 					auditPower: 'Audit quvvati (kW)',
+					auditConclusionPower: 'Audit xulosasi quvvati (kW)',
+					eligibleSubsidyPower: 'Subsidiya uchun quvvat (kW)',
+					estimatedSubsidyAmount: 'Taxminiy subsidiya summasi',
 					subsidyPercent: 'Subsidiya (%)',
 					customerPhone: 'Mijoz telefoni',
 					address: "O'rnatish manzili",
@@ -513,6 +531,11 @@ export function ContractsFormPanel({
 				form.requested_power_kw === '' ? null : Number(form.requested_power_kw),
 			audit_power_kw:
 				form.audit_power_kw === '' ? null : Number(form.audit_power_kw),
+			audit_conclusion_kw:
+				form.audit_conclusion_kw === '' ? null : Number(form.audit_conclusion_kw),
+			eligible_subsidy_kw:
+				form.eligible_subsidy_kw === '' ? null : Number(form.eligible_subsidy_kw),
+			estimated_subsidy_amount: form.estimated_subsidy_amount || null,
 			subsidy_percent: subsidyPercent,
 			customer_phone: resolvedCustomerPhone,
 			installation_address: form.installation_address || '',
@@ -742,6 +765,50 @@ export function ContractsFormPanel({
 									'audit_power_kw',
 									event.target.value === '' ? '' : Number(event.target.value),
 								)
+							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.auditConclusionPower}</label>
+						<input
+							type='number'
+							min={0}
+							className={inputClassName}
+							value={form.audit_conclusion_kw}
+							onChange={event =>
+								updateField(
+									'audit_conclusion_kw',
+									event.target.value === '' ? '' : Number(event.target.value),
+								)
+							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.eligibleSubsidyPower}</label>
+						<input
+							type='number'
+							min={0}
+							className={inputClassName}
+							value={form.eligible_subsidy_kw}
+							onChange={event =>
+								updateField(
+									'eligible_subsidy_kw',
+									event.target.value === '' ? '' : Number(event.target.value),
+								)
+							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.estimatedSubsidyAmount}</label>
+						<input
+							type='text'
+							className={inputClassName}
+							value={form.estimated_subsidy_amount}
+							onChange={event =>
+								updateField('estimated_subsidy_amount', event.target.value)
 							}
 							disabled={isSubmitting}
 						/>
