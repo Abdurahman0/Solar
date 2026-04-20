@@ -2201,6 +2201,37 @@
     },
     "actions": {
       "view": "Посмотреть KPI"
+    },
+    "detail": {
+      "ariaLabel": "Детали KPI оператора",
+      "eyebrow": "KPI оператора",
+      "close": "Закрыть",
+      "loadingTitle": "Загрузка KPI",
+      "loadingDescription": "Получение статистики оператора.",
+      "errorTitle": "Не удалось загрузить KPI",
+      "errorDescription": "Не удалось получить данные по оператору."
+    },
+    "metrics": {
+      "contactedClients": "Связались с клиентами",
+      "messagesSent": "Отправлено сообщений",
+      "contracts": "Договоры"
+    },
+    "distributions": {
+      "contractStatus": "Статус договоров",
+      "clientStatus": "Статус клиентов",
+      "sources": "Источники"
+    },
+    "recentClients": {
+      "title": "Недавние клиенты",
+      "subtitle": "Последние контакты за выбранный период.",
+      "emptyTitle": "Нет клиентов",
+      "emptyDescription": "Недавние контакты не найдены.",
+      "columns": {
+        "client": "Клиент",
+        "status": "Статус",
+        "source": "Источник",
+        "lastContact": "Последний контакт"
+      }
     }
   },
   "clients": {

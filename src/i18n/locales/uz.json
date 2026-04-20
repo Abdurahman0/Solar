@@ -2201,6 +2201,37 @@
     },
     "actions": {
       "view": "KPI ko'rish"
+    },
+    "detail": {
+      "ariaLabel": "Operator KPI tafsilotlari",
+      "eyebrow": "Operator KPI",
+      "close": "Yopish",
+      "loadingTitle": "KPI yuklanmoqda",
+      "loadingDescription": "Operator statistikasi olinmoqda.",
+      "errorTitle": "KPI yuklanmadi",
+      "errorDescription": "Operator ma'lumotlarini yuklab bo'lmadi."
+    },
+    "metrics": {
+      "contactedClients": "Aloqaga chiqqan mijozlar",
+      "messagesSent": "Yuborilgan xabarlar",
+      "contracts": "Shartnomalar"
+    },
+    "distributions": {
+      "contractStatus": "Shartnoma holati",
+      "clientStatus": "Mijoz holati",
+      "sources": "Manbalar"
+    },
+    "recentClients": {
+      "title": "So'nggi mijozlar",
+      "subtitle": "Tanlangan sana oralig'ida oxirgi aloqa qilingan mijozlar.",
+      "emptyTitle": "Mijozlar yo'q",
+      "emptyDescription": "So'nggi aloqalar topilmadi.",
+      "columns": {
+        "client": "Mijoz",
+        "status": "Holat",
+        "source": "Manba",
+        "lastContact": "So'nggi aloqa"
+      }
     }
   },
   "clients": {

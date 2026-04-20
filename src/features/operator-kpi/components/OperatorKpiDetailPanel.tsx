@@ -194,7 +194,7 @@ function OperatorKpiDetailPanel({
     return [
       {
         key: 'full_name',
-        label: t('clientsPage.columns.fullName', { defaultValue: 'Client' }),
+        label: t('operatorKpi.recentClients.columns.client', { defaultValue: 'Client' }),
         render: (item) => (
           <div className="grid gap-0.5">
             <span className="text-sm font-semibold text-text-primary">{item.full_name}</span>
@@ -204,21 +204,21 @@ function OperatorKpiDetailPanel({
       },
       {
         key: 'status',
-        label: t('clientsPage.columns.status', { defaultValue: 'Status' }),
+        label: t('operatorKpi.recentClients.columns.status', { defaultValue: 'Status' }),
         render: (item) => (
           <span className="text-sm font-semibold text-text-secondary">{item.status}</span>
         ),
       },
       {
         key: 'source',
-        label: t('dashboard.sections.source', { defaultValue: 'Source' }),
+        label: t('operatorKpi.recentClients.columns.source', { defaultValue: 'Source' }),
         render: (item) => (
           <span className="text-sm font-semibold text-text-secondary">{item.source_platform}</span>
         ),
       },
       {
         key: 'last_contact_at',
-        label: t('chatPage.columns.updated', { defaultValue: 'Last Contact' }),
+        label: t('operatorKpi.recentClients.columns.lastContact', { defaultValue: 'Last Contact' }),
         align: 'right',
         render: (item) => (
           <span className="block text-right text-[12px] font-semibold text-text-muted">
@@ -434,4 +434,3 @@ function OperatorKpiDetailPanel({
 }
 
 export default OperatorKpiDetailPanel;
-
