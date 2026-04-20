@@ -247,6 +247,25 @@ export const moduleMap: AppModule[] = [
     ],
     notes: 'Admin and developer only - user management.',
   },
+  {
+    id: 'operator-kpi',
+    label: 'Operator KPI',
+    description: 'Operator performance metrics and distributions.',
+    category: 'system',
+    priority: 'low',
+    priorityOrder: 11,
+    allowedRoles: ['developer', 'admin', 'operator'],
+    accessStrategy: 'permission-based',
+    pages: [
+      {
+        id: 'operator-kpi-overview',
+        label: 'Operator KPI',
+        kind: 'overview',
+        path: '/operator-kpi',
+      },
+    ],
+    notes: 'Operator KPI page based on operator statistics API.',
+  },
 ];
 
 export const crossSystemCapabilities = [

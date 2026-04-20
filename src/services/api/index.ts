@@ -11,4 +11,5 @@ export * from './notification-service'
 export * from './users.service'
 export * from './integrations.service'
 export * from './ai-settings.service'
+export * from './operator-statistics.service'
 

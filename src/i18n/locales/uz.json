@@ -95,6 +95,10 @@
       "title": "Foydalanuvchilar",
       "description": "Jamoa a'zolari va ruxsatlar boshqaruvi."
     },
+    "operator-kpi": {
+      "title": "Operator KPI",
+      "description": "Operatorlar samaradorligi va ko'rsatkichlari."
+    },
     "integrations": {
       "title": "Integratsiyalar",
       "description": "Tashqi xizmatlar ulanishlari."
@@ -2170,6 +2174,33 @@
       "newClientPhonePlaceholder": "Masalan: +998901234567",
       "newClientRequiredError": "Yangi mijoz uchun ism, telefon va shartnoma nomini to'ldiring.",
       "subsidyRequiredError": "Subsidiya (%) maydonini to'ldiring."
+    }
+  },
+  "operatorKpi": {
+    "eyebrow": "Samaradorlik",
+    "title": "Operator KPI",
+    "subtitle": "Tanlangan sana oralig'i uchun operator ko'rsatkichlari.",
+    "records": "operator",
+    "loadingTitle": "Operator statistikasi yuklanmoqda",
+    "loadingDescription": "KPI ma'lumotlari olinmoqda...",
+    "errorTitle": "KPI yuklanmadi",
+    "errorDescription": "Xizmat mavjud emas yoki ruxsat yo'q.",
+    "emptyTitle": "Operatorlar topilmadi",
+    "emptyDescription": "Sana oralig'ini o'zgartirib ko'ring.",
+    "filters": {
+      "dateFrom": "Boshlanish sanasi",
+      "dateTo": "Tugash sanasi"
+    },
+    "columns": {
+      "operator": "Operator",
+      "contactedClients": "Mijozlar",
+      "messagesSent": "Xabarlar",
+      "contractClients": "Shartnomalar",
+      "lostClients": "Yo'qotilgan",
+      "actions": "Amallar"
+    },
+    "actions": {
+      "view": "KPI ko'rish"
     }
   },
   "clients": {

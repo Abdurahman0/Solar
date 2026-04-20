@@ -95,6 +95,10 @@
       "title": "Пользователи",
       "description": "Управление участниками команды и разрешениями."
     },
+    "operator-kpi": {
+      "title": "KPI операторов",
+      "description": "Показатели эффективности операторов и распределения."
+    },
     "integrations": {
       "title": "Интеграции",
       "description": "Подключения внешних сервисов."
@@ -2170,6 +2174,33 @@
       "newClientPhonePlaceholder": "Например: +998901234567",
       "newClientRequiredError": "Для нового клиента заполните имя, телефон и название договора.",
       "subsidyRequiredError": "Заполните поле «Субсидия (%)»."
+    }
+  },
+  "operatorKpi": {
+    "eyebrow": "Эффективность",
+    "title": "KPI операторов",
+    "subtitle": "Показатели операторов за выбранный период.",
+    "records": "операторов",
+    "loadingTitle": "Загрузка статистики операторов",
+    "loadingDescription": "Получение KPI данных...",
+    "errorTitle": "Не удалось загрузить KPI",
+    "errorDescription": "Нет доступа или сервис недоступен.",
+    "emptyTitle": "Операторы не найдены",
+    "emptyDescription": "Попробуйте изменить диапазон дат.",
+    "filters": {
+      "dateFrom": "Дата с",
+      "dateTo": "Дата по"
+    },
+    "columns": {
+      "operator": "Оператор",
+      "contactedClients": "Клиенты",
+      "messagesSent": "Сообщения",
+      "contractClients": "Договоры",
+      "lostClients": "Потеряно",
+      "actions": "Действия"
+    },
+    "actions": {
+      "view": "Посмотреть KPI"
     }
   },
   "clients": {

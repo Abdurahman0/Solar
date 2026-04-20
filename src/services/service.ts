@@ -13,6 +13,10 @@ import { apiLogsService } from './api/common.service'
 import { apiLeadService } from './api/lead-service'
 import { apiClientService } from './api/client-service'
 import { apiNotificationService } from './api/notification-service'
+import {
+	listOperatorStatistics,
+	getOperatorStatisticsById,
+} from './api/operator-statistics.service'
 
 const coreServices = getServices()
 const conversationApi = apiConversationService as any
@@ -58,6 +62,10 @@ export const services = {
 		updateConfig: integrationsApi.updateIntegrationConfig.bind(integrationsApi),
 		patchConfig: integrationsApi.patchIntegrationConfig.bind(integrationsApi),
 		deleteConfig: integrationsApi.deleteIntegrationConfig.bind(integrationsApi),
+	} as any,
+	operatorStatistics: {
+		listOperatorStatistics,
+		getOperatorStatisticsById,
 	} as any,
 	aiSettings: {
 		listSettings: aiSettingsApi.listAISettings.bind(aiSettingsApi),

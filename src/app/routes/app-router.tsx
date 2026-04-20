@@ -29,6 +29,7 @@ import LogsPage from '../pages/protected/LogsPage'
 import NotFoundPage from '../pages/public/NotFoundPage'
 import NotificationsPage from '../pages/protected/NotificationsPage'
 import ProductsPage from '../pages/protected/ProductsPage'
+import OperatorKpiPage from '../pages/protected/OperatorKpiPage'
 import UsersPage from '../pages/protected/UsersPage'
 
 type RoutedPageId = Exclude<AppRouteId, 'home'>
@@ -46,6 +47,7 @@ const pageRegistry: Record<RoutedPageId, ComponentType> = {
 	'not-found': NotFoundPage,
 	notifications: NotificationsPage,
 	products: ProductsPage,
+	'operator-kpi': OperatorKpiPage,
 	users: UsersPage,
 }
 

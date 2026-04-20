@@ -11,6 +11,7 @@ export type NavigationIconKey =
   | 'contracts'
   | 'notifications'
   | 'users'
+  | 'activity'
   | 'integrations'
   | 'ai-settings'
   | 'logs';
@@ -130,13 +131,23 @@ export const navigationConfig: NavigationGroupConfig[] = [
         allowedRoles: ['developer', 'admin'],
       },
       {
+        id: 'operator-kpi',
+        label: 'Operator KPI',
+        path: '/operator-kpi',
+        moduleId: 'operator-kpi',
+        iconKey: 'activity',
+        group: 'system',
+        sortOrder: 2,
+        allowedRoles: ['developer', 'admin', 'operator'],
+      },
+      {
         id: 'integrations',
         label: 'Integrations',
         path: '/integrations',
         moduleId: 'integrations',
         iconKey: 'integrations',
         group: 'system',
-        sortOrder: 2,
+        sortOrder: 3,
         allowedRoles: ['developer'],
       },
       {
@@ -146,7 +157,7 @@ export const navigationConfig: NavigationGroupConfig[] = [
         moduleId: 'ai-settings',
         iconKey: 'ai-settings',
         group: 'system',
-        sortOrder: 3,
+        sortOrder: 4,
         allowedRoles: ['developer'],
       },
       {
@@ -156,7 +167,7 @@ export const navigationConfig: NavigationGroupConfig[] = [
         moduleId: 'logs',
         iconKey: 'logs',
         group: 'system',
-        sortOrder: 4,
+        sortOrder: 5,
         allowedRoles: ['developer'],
       },
     ],
