@@ -14,6 +14,7 @@ import {
   type ChartConfig,
 } from '../../../components/ui/chart';
 import { formatLocalizedDate } from '../../../i18n/date-format';
+import { getChannelLabel, getLeadStatusLabel } from '../../../i18n/labels';
 import { services } from '../../../services';
 import type {
   OperatorStatisticsDetail,
@@ -68,46 +69,6 @@ type PieSlice = {
   share: number;
   color: string;
 };
-
-function buildStatusPieData(
-  items: OperatorStatisticsDistributionItem[] | undefined,
-): PieSlice[] {
-  const safeItems = Array.isArray(items) ? items : [];
-  const total = safeItems.reduce((sum, item) => sum + (item.total ?? 0), 0);
-  if (total <= 0) {
-    return [];
-  }
-
-  return safeItems
-    .filter((item) => (item.total ?? 0) > 0)
-    .map((item, index) => ({
-      key: String(item.status ?? `status-${index}`),
-      label: String(item.status ?? ''),
-      count: Number(item.total ?? 0),
-      share: (Number(item.total ?? 0) / total) * 100,
-      color: COLORS_FALLBACK[index % COLORS_FALLBACK.length]!,
-    }));
-}
-
-function buildSourcePieData(
-  items: OperatorStatisticsSourceDistributionItem[] | undefined,
-): PieSlice[] {
-  const safeItems = Array.isArray(items) ? items : [];
-  const total = safeItems.reduce((sum, item) => sum + (item.total ?? 0), 0);
-  if (total <= 0) {
-    return [];
-  }
-
-  return safeItems
-    .filter((item) => (item.total ?? 0) > 0)
-    .map((item, index) => ({
-      key: String(item.source ?? `source-${index}`),
-      label: String(item.source ?? ''),
-      count: Number(item.total ?? 0),
-      share: (Number(item.total ?? 0) / total) * 100,
-      color: COLORS_FALLBACK[index % COLORS_FALLBACK.length]!,
-    }));
-}
 
 interface OperatorKpiDetailPanelProps {
   operatorId: string;
@@ -176,18 +137,81 @@ function OperatorKpiDetailPanel({
   );
 
   const contractStatusPie = useMemo(
-    () => buildStatusPieData(detail?.contract_status_distribution),
-    [detail],
+    () => {
+      const items = Array.isArray(detail?.contract_status_distribution)
+        ? detail.contract_status_distribution
+        : [];
+      const total = items.reduce((sum, item) => sum + (item.total ?? 0), 0);
+      if (total <= 0) {
+        return [];
+      }
+
+      return items
+        .filter((item) => (item.total ?? 0) > 0)
+        .map((item, index) => {
+          const statusKey = String(item.status ?? `status-${index}`);
+          return {
+            key: statusKey,
+            label: t(`contractsPage.statuses.${statusKey}`, { defaultValue: statusKey }),
+            count: Number(item.total ?? 0),
+            share: (Number(item.total ?? 0) / total) * 100,
+            color: COLORS_FALLBACK[index % COLORS_FALLBACK.length]!,
+          };
+        });
+    },
+    [detail, t],
   );
 
   const clientStatusPie = useMemo(
-    () => buildStatusPieData(detail?.client_status_distribution),
-    [detail],
+    () => {
+      const items = Array.isArray(detail?.client_status_distribution)
+        ? detail.client_status_distribution
+        : [];
+      const total = items.reduce((sum, item) => sum + (item.total ?? 0), 0);
+      if (total <= 0) {
+        return [];
+      }
+
+      return items
+        .filter((item) => (item.total ?? 0) > 0)
+        .map((item, index) => {
+          const statusKey = String(item.status ?? `status-${index}`);
+          return {
+            key: statusKey,
+            label: getLeadStatusLabel(t, statusKey, statusKey),
+            count: Number(item.total ?? 0),
+            share: (Number(item.total ?? 0) / total) * 100,
+            color: COLORS_FALLBACK[index % COLORS_FALLBACK.length]!,
+          };
+        });
+    },
+    [detail, t],
   );
 
   const sourcePie = useMemo(
-    () => buildSourcePieData(detail?.source_distribution),
-    [detail],
+    () => {
+      const items = Array.isArray(detail?.source_distribution)
+        ? detail.source_distribution
+        : [];
+      const total = items.reduce((sum, item) => sum + (item.total ?? 0), 0);
+      if (total <= 0) {
+        return [];
+      }
+
+      return items
+        .filter((item) => (item.total ?? 0) > 0)
+        .map((item, index) => {
+          const sourceKey = String(item.source ?? `source-${index}`);
+          return {
+            key: sourceKey,
+            label: getChannelLabel(t, sourceKey, sourceKey),
+            count: Number(item.total ?? 0),
+            share: (Number(item.total ?? 0) / total) * 100,
+            color: COLORS_FALLBACK[index % COLORS_FALLBACK.length]!,
+          };
+        });
+    },
+    [detail, t],
   );
 
   const recentClientColumns = useMemo<DataTableColumn<OperatorStatisticsRecentClient>[]>(() => {
