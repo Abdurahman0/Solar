@@ -230,14 +230,18 @@ function OperatorKpiDetailPanel({
         key: 'status',
         label: t('operatorKpi.recentClients.columns.status', { defaultValue: 'Status' }),
         render: (item) => (
-          <span className="text-sm font-semibold text-text-secondary">{item.status}</span>
+          <span className="text-sm font-semibold text-text-secondary">
+            {getLeadStatusLabel(t, item.status, item.status)}
+          </span>
         ),
       },
       {
         key: 'source',
         label: t('operatorKpi.recentClients.columns.source', { defaultValue: 'Source' }),
         render: (item) => (
-          <span className="text-sm font-semibold text-text-secondary">{item.source_platform}</span>
+          <span className="text-sm font-semibold text-text-secondary">
+            {getChannelLabel(t, item.source_platform, item.source_platform)}
+          </span>
         ),
       },
       {
