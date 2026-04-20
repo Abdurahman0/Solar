@@ -743,7 +743,7 @@ function DashboardPage() {
 		{ value: 'deye', label: publicTx.deyeLabel },
 		{ value: 'solax', label: publicTx.solaxLabel },
 	]
-	const requestedPowerOptions = [10, 20, 30, 40, 50].map(value => ({
+	const requestedPowerOptions = [10, 15, 20, 30, 50].map(value => ({
 		value: String(value),
 		label: `${value} kW`,
 	}))
