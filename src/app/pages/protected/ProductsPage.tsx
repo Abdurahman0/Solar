@@ -469,7 +469,6 @@ function ProductsPage() {
     product: ProductMutationInput;
     primaryImageFile: File | null;
     galleryImageFiles: File[];
-    removedImageIds: EntityId[];
   }) {
     setIsSaving(true);
     setFormErrorMessage(null);
@@ -510,14 +509,6 @@ function ProductsPage() {
       }
 
       const productId = productIdForImages ?? savedProduct.id;
-
-      if (input.removedImageIds.length > 0) {
-        await Promise.all(
-          input.removedImageIds.map((imageId) =>
-            services.products.deleteProductImage(productId, imageId),
-          ),
-        );
-      }
 
       if (input.galleryImageFiles.length > 0) {
         if (formMode === 'edit') {

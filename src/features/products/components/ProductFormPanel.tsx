@@ -8,7 +8,6 @@ interface ProductFormSubmitPayload {
   product: ProductMutationInput;
   primaryImageFile: File | null;
   galleryImageFiles: File[];
-  removedImageIds: string[];
 }
 
 interface ProductFormPanelProps {
@@ -118,7 +117,6 @@ function ProductFormPanel({
   const [existingImages, setExistingImages] = useState<ExistingImageState[]>(() =>
     getExistingImages(product),
   );
-  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
   const [primaryImageFile, setPrimaryImageFile] = useState<File | null>(null);
   const [galleryImageFiles, setGalleryImageFiles] = useState<File[]>([]);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
@@ -128,7 +126,6 @@ function ProductFormPanel({
     setForm(createInitialState(mode, product));
     setFieldError(null);
     setExistingImages(getExistingImages(product));
-    setRemovedImageIds([]);
     setPrimaryImageFile(null);
     setGalleryImageFiles([]);
     setPreviewImageUrl(null);
@@ -184,44 +181,18 @@ function ProductFormPanel({
     );
   }, [form]);
 
-  function markRemovedImage(image: ExistingImageState | null) {
-    if (!image?.id) {
-      return;
-    }
-
-    setRemovedImageIds((current) =>
-      current.includes(image.id as string) ? current : [...current, image.id as string],
-    );
-  }
-
   function handlePrimaryImageSelect(file: File | null) {
     if (!file) {
       return;
     }
 
     setFieldError(null);
-
-    if (existingPrimary) {
-      markRemovedImage(existingPrimary);
-      setExistingImages((current) => current.filter((image) => image !== existingPrimary));
-    }
-
     setPrimaryImageFile(file);
   }
 
   function handleRemoveSelectedPrimary() {
     setFieldError(null);
     setPrimaryImageFile(null);
-  }
-
-  function handleRemoveExistingPrimary() {
-    if (!existingPrimary) {
-      return;
-    }
-
-    setFieldError(null);
-    markRemovedImage(existingPrimary);
-    setExistingImages((current) => current.filter((image) => image !== existingPrimary));
   }
 
   function handleSelectGalleryImages(files: FileList | null) {
@@ -245,16 +216,6 @@ function ProductFormPanel({
     }
 
     setGalleryImageFiles((current) => [...current, ...pickedFiles]);
-  }
-
-  function handleRemoveExistingGalleryByIndex(index: number) {
-    setFieldError(null);
-    const target = existingGallery[index] ?? null;
-    if (!target) {
-      return;
-    }
-    markRemovedImage(target);
-    setExistingImages((current) => current.filter((image) => image !== target));
   }
 
   function handleRemoveSelectedGallery(index: number) {
@@ -316,7 +277,6 @@ function ProductFormPanel({
       },
       primaryImageFile,
       galleryImageFiles,
-      removedImageIds,
     });
   }
 
@@ -498,15 +458,17 @@ function ProductFormPanel({
                         )
                       }
                     />
-                    <button
-                      type="button"
-                      className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow-sm"
-                      onClick={primaryImageFile ? handleRemoveSelectedPrimary : handleRemoveExistingPrimary}
-                      disabled={isSubmitting}
-                      aria-label={t('products.form.removeImage')}
-                    >
-                      <AppIcon name="trash" className="h-3 w-3" aria-hidden="true" />
-                    </button>
+                    {primaryImageFile ? (
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow-sm"
+                        onClick={handleRemoveSelectedPrimary}
+                        disabled={isSubmitting}
+                        aria-label={t('products.form.removeImage')}
+                      >
+                        <AppIcon name="trash" className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
@@ -561,15 +523,6 @@ function ProductFormPanel({
                           )
                         }
                       />
-                      <button
-                        type="button"
-                        className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow-sm"
-                        onClick={() => handleRemoveExistingGalleryByIndex(index)}
-                        disabled={isSubmitting}
-                        aria-label={t('products.form.removeImage')}
-                      >
-                        <AppIcon name="trash" className="h-3 w-3" aria-hidden="true" />
-                      </button>
                     </div>
                   ))}
 
