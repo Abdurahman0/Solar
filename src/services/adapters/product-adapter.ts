@@ -182,6 +182,9 @@ function mapImages(
 export function mapProductDtoToModel(dto: ProductDto): Product {
   const nowIso = new Date().toISOString();
   const price = readNumber(dto.price, 0);
+  const subsidyEnabled = readBoolean(dto.subsidy_enabled ?? dto.subsidyEnabled, true);
+  const subsidyAmount = readNumber(dto.subsidy_amount ?? dto.subsidyAmount, 0);
+  const priceAfterSubsidy = readNumber(dto.price_after_subsidy ?? dto.priceAfterSubsidy, price);
   const stockQuantity = readInteger(dto.stock_quantity, 0);
   const minimalStock = readInteger(dto.minimal_stock, 0);
   const stockStatus = resolveStockStatus(
@@ -231,6 +234,10 @@ export function mapProductDtoToModel(dto: ProductDto): Product {
     categoryName,
     category,
     price,
+    isRecommended: readBoolean(dto.is_recommended ?? dto.isRecommended, false),
+    subsidyEnabled,
+    subsidyAmount: subsidyEnabled ? subsidyAmount : 0,
+    priceAfterSubsidy: subsidyEnabled ? priceAfterSubsidy : price,
     promoPrice: undefined,
     currency: readString(dto.currency, 'UZS'),
     stockQuantity,

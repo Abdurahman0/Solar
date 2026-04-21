@@ -196,6 +196,34 @@ function ProductDetailPanel({
                     <p className={`mt-1 ${valueClassName}`}>{product.price}</p>
                   </div>
                   <div className="rounded-lg bg-surface-subtle/80 p-3">
+                    <p className={labelClassName}>{t('products.detail.subsidyEnabled')}</p>
+                    <p className={`mt-1 ${valueClassName}`}>
+                      {product.subsidyEnabled ? t('common.yes') : t('common.no')}
+                    </p>
+                  </div>
+                  <div
+                    className={[
+                      'rounded-lg p-3',
+                      product.subsidyEnabled
+                        ? 'bg-success-bg/60 ring-1 ring-success/25'
+                        : 'bg-surface-subtle/80',
+                    ].join(' ')}
+                  >
+                    <p className={labelClassName}>{t('products.detail.subsidyAmount')}</p>
+                    <p className={`mt-1 ${valueClassName}`}>{product.subsidyAmount}</p>
+                  </div>
+                  <div
+                    className={[
+                      'rounded-lg p-3',
+                      product.subsidyEnabled
+                        ? 'bg-primary/10 ring-1 ring-primary/20'
+                        : 'bg-surface-subtle/80',
+                    ].join(' ')}
+                  >
+                    <p className={labelClassName}>{t('products.detail.priceAfterSubsidy')}</p>
+                    <p className={`mt-1 ${valueClassName}`}>{product.priceAfterSubsidy}</p>
+                  </div>
+                  <div className="rounded-lg bg-surface-subtle/80 p-3">
                     <p className={labelClassName}>{t('products.detail.stockQuantity')}</p>
                     <p className={`mt-1 ${valueClassName}`}>{product.stockQuantity ?? 0}</p>
                   </div>

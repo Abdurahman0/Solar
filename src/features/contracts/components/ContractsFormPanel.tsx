@@ -32,7 +32,7 @@ type ContractFormState = {
 	delivery_status: string
 	delivery_notes: string
 	details: string
-	items: Array<{ product: string; quantity: number; unit_price: string }>
+	items: Array<{ product: string; quantity: number | ''; unit_price: string }>
 	file: File | null
 	cadastre_file: File | null
 	house_image: File | null
@@ -617,7 +617,7 @@ export function ContractsFormPanel({
 			delivery_notes: form.delivery_notes || '',
 
 			items: form.items
-				.filter(item => item.product && item.quantity > 0)
+				.filter(item => item.product && Number(item.quantity) > 0)
 				.map(item => ({
 					product: item.product,
 					quantity: Number(item.quantity),
@@ -1043,7 +1043,11 @@ export function ContractsFormPanel({
 									placeholder={tx.labels.quantity}
 									value={item.quantity}
 									onChange={event =>
-										updateItemField(index, 'quantity', Number(event.target.value))
+										updateItemField(
+											index,
+											'quantity',
+											event.target.value === '' ? '' : Number(event.target.value),
+										)
 									}
 									disabled={isSubmitting}
 								/>

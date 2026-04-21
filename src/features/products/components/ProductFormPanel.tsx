@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import { FilterSelect, Switch } from '../../../components/shared/data';
+import { services } from '../../../services';
 import type { Product, ProductMutationInput, SelectOption } from '../../../types/domain';
 
 interface ProductFormSubmitPayload {
@@ -28,6 +29,8 @@ interface ProductFormState {
   stockQuantity: string;
   minimalStock: string;
   isActive: boolean;
+  isRecommended: boolean;
+  subsidyEnabled: boolean;
   categoryId: string;
 }
 
@@ -62,6 +65,8 @@ function createInitialState(
       stockQuantity: String(product.stockQuantity ?? 0),
       minimalStock: String(product.minimalStock ?? 0),
       isActive: product.isActive,
+      isRecommended: product.isRecommended,
+      subsidyEnabled: product.subsidyEnabled,
       categoryId: product.categoryId ?? '',
     };
   }
@@ -73,6 +78,8 @@ function createInitialState(
     stockQuantity: '0',
     minimalStock: '0',
     isActive: true,
+    isRecommended: false,
+    subsidyEnabled: true,
     categoryId: '',
   };
 }
@@ -121,6 +128,7 @@ function ProductFormPanel({
   const [galleryImageFiles, setGalleryImageFiles] = useState<File[]>([]);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewImageAlt, setPreviewImageAlt] = useState<string>('');
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
 
   useEffect(() => {
     setForm(createInitialState(mode, product));
@@ -223,6 +231,25 @@ function ProductFormPanel({
     setGalleryImageFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
   }
 
+  async function handleDeleteExistingImage(image: ExistingImageState) {
+    if (mode !== 'edit' || !product?.id || !image.id || isSubmitting) {
+      return;
+    }
+
+    setFieldError(null);
+    setDeletingImageId(image.id);
+
+    try {
+      await (services.products as any).deleteProductImage(product.id, image.id);
+      const refreshed = await services.products.getProductById(product.id);
+      setExistingImages(getExistingImages(refreshed ?? product));
+    } catch {
+      setFieldError(t('products.form.imageDeleteError'));
+    } finally {
+      setDeletingImageId(null);
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFieldError(null);
@@ -274,6 +301,8 @@ function ProductFormPanel({
         stockQuantity: Math.floor(parsedStock),
         minimalStock: Math.floor(parsedMinimalStock),
         isActive: form.isActive,
+        isRecommended: form.isRecommended,
+        subsidyEnabled: form.subsidyEnabled,
       },
       primaryImageFile,
       galleryImageFiles,
@@ -468,6 +497,16 @@ function ProductFormPanel({
                       >
                         <AppIcon name="trash" className="h-3 w-3" aria-hidden="true" />
                       </button>
+                    ) : existingPrimary?.id ? (
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow-sm"
+                        onClick={() => handleDeleteExistingImage(existingPrimary)}
+                        disabled={isSubmitting || deletingImageId === existingPrimary.id}
+                        aria-label={t('products.form.removeImage')}
+                      >
+                        <AppIcon name="trash" className="h-3 w-3" aria-hidden="true" />
+                      </button>
                     ) : null}
                   </div>
                 </div>
@@ -523,6 +562,17 @@ function ProductFormPanel({
                           )
                         }
                       />
+                      {image.id ? (
+                        <button
+                          type="button"
+                          className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-danger text-white shadow-sm"
+                          onClick={() => handleDeleteExistingImage(image)}
+                          disabled={isSubmitting || deletingImageId === image.id}
+                          aria-label={t('products.form.removeImage')}
+                        >
+                          <AppIcon name="trash" className="h-3 w-3" aria-hidden="true" />
+                        </button>
+                      ) : null}
                     </div>
                   ))}
 
@@ -553,6 +603,30 @@ function ProductFormPanel({
                 </div>
               ) : null}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-card px-4 py-4 ring-1 ring-border-soft/35">
+            <div className="grid gap-0.5">
+              <p className="m-0 text-sm font-semibold text-text-primary">{t('products.form.recommendedProduct')}</p>
+              <p className="m-0 text-[12px] text-text-secondary">{t('products.form.recommendedProductHint')}</p>
+            </div>
+            <Switch
+              checked={form.isRecommended}
+              onChange={(nextValue) => setForm((current) => ({ ...current, isRecommended: nextValue }))}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-card px-4 py-4 ring-1 ring-border-soft/35">
+            <div className="grid gap-0.5">
+              <p className="m-0 text-sm font-semibold text-text-primary">{t('products.form.subsidyEnabled')}</p>
+              <p className="m-0 text-[12px] text-text-secondary">{t('products.form.subsidyEnabledHint')}</p>
+            </div>
+            <Switch
+              checked={form.subsidyEnabled}
+              onChange={(nextValue) => setForm((current) => ({ ...current, subsidyEnabled: nextValue }))}
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="flex items-center justify-between gap-4 rounded-xl bg-surface-card px-4 py-4 ring-1 ring-border-soft/35">

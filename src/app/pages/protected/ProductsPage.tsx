@@ -661,7 +661,19 @@ function ProductsPage() {
         key: 'price',
         label: t('products.columns.price'),
         render: (product) => (
-          <span className={tablePrimaryTextClassName}>{product.price}</span>
+          <div className="grid gap-0.5">
+            <span className={tablePrimaryTextClassName}>{product.price}</span>
+            {product.subsidyEnabled ? (
+              <span className={[tableSecondaryTextClassName, 'font-semibold text-success'].join(' ')}>
+                {t('products.columns.priceAfterSubsidy')}: {product.priceAfterSubsidy}
+              </span>
+            ) : null}
+            {product.subsidyEnabled && product.subsidyAmount > 0 ? (
+              <span className={tableSecondaryTextClassName}>
+                {t('products.columns.subsidyAmount')}: {product.subsidyAmount}
+              </span>
+            ) : null}
+          </div>
         ),
       },
       {

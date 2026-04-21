@@ -58,6 +58,10 @@ export interface Product extends AuditInfo {
   categoryName?: string;
   category?: ProductCategory;
   price: number;
+  isRecommended: boolean;
+  subsidyEnabled: boolean;
+  subsidyAmount: number;
+  priceAfterSubsidy: number;
   promoPrice?: number;
   currency: CurrencyCode;
   stockQuantity?: number;
@@ -79,6 +83,8 @@ export interface ProductMutationInput {
   description: string;
   categoryId?: EntityId | null;
   price: number;
+  isRecommended?: boolean;
+  subsidyEnabled?: boolean;
   currency?: CurrencyCode;
   stockQuantity: number;
   minimalStock: number;

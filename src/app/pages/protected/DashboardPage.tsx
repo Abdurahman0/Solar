@@ -118,6 +118,7 @@ interface SubsidyInputState {
 	panel_type: string
 	inverter_type: string
 	requested_power_kw: number
+	audit_power_kw: number
 }
 
 interface SubsidyResultCardData {
@@ -410,6 +411,7 @@ function DashboardPage() {
 		panelType: t('dashboard.publicApi.panelType'),
 		inverterType: t('dashboard.publicApi.inverterType'),
 		requestedPower: t('dashboard.publicApi.requestedPower'),
+		auditPower: t('dashboard.publicApi.auditPower'),
 		calculate: t('dashboard.publicApi.calculate'),
 		calculating: t('dashboard.publicApi.calculating'),
 		subsidyError: t('dashboard.publicApi.subsidyError'),
@@ -434,6 +436,7 @@ function DashboardPage() {
 		panel_type: 'jinko_ja',
 		inverter_type: 'deye',
 		requested_power_kw: 10,
+		audit_power_kw: 10,
 	})
 	const [subsidyResult, setSubsidyResult] = useState<unknown>(null)
 	const [subsidyLoading, setSubsidyLoading] = useState(false)
@@ -747,6 +750,7 @@ function DashboardPage() {
 		value: String(value),
 		label: `${value} kW`,
 	}))
+	const auditPowerOptions = requestedPowerOptions
 	const parsedSubsidyResult = parseSubsidyResult(subsidyResult)
 
 	async function handleCalculateSubsidy(event: FormEvent<HTMLFormElement>) {
@@ -755,10 +759,7 @@ function DashboardPage() {
 		setSubsidyError(null)
 
 		try {
-			const payload = await services.common.calculateSubsidy({
-				...subsidyInput,
-				audit_power_kw: subsidyInput.requested_power_kw,
-			})
+			const payload = await services.common.calculateSubsidy(subsidyInput)
 			setSubsidyResult(payload)
 		} catch {
 			setSubsidyError(publicTx.subsidyError)
@@ -1276,6 +1277,23 @@ function DashboardPage() {
 									}
 									options={requestedPowerOptions}
 									ariaLabel={publicTx.requestedPower}
+								/>
+							</label>
+
+							<label className='grid gap-1.5'>
+								<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'>
+									{publicTx.auditPower}
+								</span>
+								<StylishDropdown
+									value={String(subsidyInput.audit_power_kw)}
+									onChange={value =>
+										setSubsidyInput(current => ({
+											...current,
+											audit_power_kw: Number(value),
+										}))
+									}
+									options={auditPowerOptions}
+									ariaLabel={publicTx.auditPower}
 								/>
 							</label>
 

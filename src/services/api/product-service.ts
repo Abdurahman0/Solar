@@ -98,6 +98,12 @@ function toMutationPayload(input: ProductMutationInput | ProductPatchInput): Rec
   if (input.isActive !== undefined) {
     payload.is_active = input.isActive;
   }
+  if (input.isRecommended !== undefined) {
+    payload.is_recommended = input.isRecommended;
+  }
+  if (input.subsidyEnabled !== undefined) {
+    payload.subsidy_enabled = input.subsidyEnabled;
+  }
   if (input.categoryId !== undefined) {
     const normalizedCategoryId =
       typeof input.categoryId === 'string' ? input.categoryId.trim() : input.categoryId;
@@ -161,14 +167,30 @@ export const apiProductService: ProductService = {
   },
 
   async listProducts(params) {
+    const ordering =
+      params?.ordering ??
+      (params?.sortBy
+        ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}`
+        : undefined);
+
+    const sort =
+      ordering === 'price'
+        ? 'price_asc'
+        : ordering === '-price'
+          ? 'price_desc'
+          : ordering === 'cheap_first'
+            ? 'cheap_first'
+            : ordering === 'expensive_first'
+              ? 'expensive_first'
+              : undefined;
+
     const { data } = await apiClient.get<unknown>('/api/products/', {
       params: {
         page: params?.page ?? 1,
         page_size: params?.pageSize ?? params?.page_size,
         search: params?.search,
-        ordering:
-          params?.ordering ??
-          (params?.sortBy ? `${params?.sortDirection === 'desc' ? '-' : ''}${params.sortBy}` : undefined),
+        ordering: sort ? undefined : ordering,
+        sort,
       },
     });
 
@@ -233,6 +255,18 @@ export const apiProductService: ProductService = {
   async deleteProduct(id: EntityId) {
     await apiClient.delete(`/api/products/${id}/`);
     return true;
+  },
+
+  async deleteProductImage(productId: EntityId, imageId: EntityId) {
+    const { data } = await apiClient.delete<unknown>(
+      `/api/products/${productId}/images/${imageId}/`,
+    );
+
+    const payload = toRecord(data);
+    const nested = payload ? toRecord(payload.data) : null;
+    const deletedId = readString(nested?.deleted_image_id) || readString(payload?.deleted_image_id);
+
+    return deletedId || imageId;
   },
 
   async listProductCategories(params?: ProductCategoryListParams) {
