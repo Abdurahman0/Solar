@@ -84,7 +84,7 @@ export interface ProductMutationInput {
   minimalStock: number;
   reviewsEnabled?: boolean;
   isActive: boolean;
-  // Image update via PATCH /api/products/{id}/ with multipart/form-data.
+  // Image can be supplied with the product mutation via multipart/form-data.
   image?: File | null;
   imageAltText?: string;
   imageIsPrimary?: boolean;

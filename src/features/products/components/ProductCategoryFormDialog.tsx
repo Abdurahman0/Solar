@@ -24,6 +24,15 @@ const inputClassName = [
 const labelClassName =
   'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted';
 
+function normalizeCategoryCode(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 function ProductCategoryFormDialog({
   mode,
   category,
@@ -45,7 +54,7 @@ function ProductCategoryFormDialog({
     setName('');
   }, [mode, category]);
 
-  const code = useMemo(() => name.trim().toLocaleLowerCase(), [name]);
+  const code = useMemo(() => normalizeCategoryCode(name), [name]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,7 +68,7 @@ function ProductCategoryFormDialog({
 
     onSubmit({
       name: normalizedName,
-      code: normalizedName.toLocaleLowerCase(),
+      code: normalizeCategoryCode(normalizedName),
     });
   }
 

@@ -293,12 +293,6 @@ function ProductFormPanel({
       return;
     }
 
-    const hasPrimary = Boolean(primaryImageFile || existingPrimary);
-    if (mode === 'create' && !hasPrimary) {
-      setFieldError(t('products.form.imagesMinError'));
-      return;
-    }
-
     const totalImagesCount =
       (existingPrimary ? 1 : 0) +
       existingGallery.length +

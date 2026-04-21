@@ -204,7 +204,11 @@ export const apiProductService: ProductService = {
   },
 
   async createProduct(input) {
-    const { data } = await apiClient.post<ProductDto>('/api/products/', toMutationPayload(input));
+    const payload =
+      input?.image instanceof File || input?.imageAltText !== undefined || input?.imageIsPrimary !== undefined
+        ? toMutationFormData(input)
+        : toMutationPayload(input);
+    const { data } = await apiClient.post<ProductDto>('/api/products/', payload);
     return mapProductDtoToModel(data);
   },
 
