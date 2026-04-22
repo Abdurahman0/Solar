@@ -233,7 +233,6 @@ function ProductsPage() {
         const result = await services.products.listProductCategories({
           page: 1,
           pageSize: CATEGORY_FETCH_SIZE,
-          ordering: 'name',
         });
 
         if (!isActive) {

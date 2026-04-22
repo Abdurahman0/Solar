@@ -294,6 +294,7 @@ export function mapProductCategoryDtoToModel(
     id: readString(dto.id) || `product-category-${nowIso}`,
     name: readString(dto.name),
     code: readString(dto.code),
+    sortOrder: readInteger(dto.sort_order, 0),
     description: readString(dto.description) || undefined,
     image: readString(dto.image) || null,
     imageUrl,
