@@ -242,6 +242,7 @@ function DataTable<T>({
   const draggingDataIndex = draggingIndex != null ? draggedDataIndexRef.current : null;
   const draggingRow = draggingDataIndex != null ? data[draggingDataIndex] : null;
   const placeholderIndex = draggingIndex != null ? dragCurrentIndexRef.current : null;
+  const placeholderHeight = Math.max(44, dragRowRectRef.current.height || 0);
   const displayOrder = useMemo(() => {
     const baseOrder =
       resolvedOrder ?? Array.from({ length: data.length }, (_, index) => index);
@@ -370,24 +371,51 @@ function DataTable<T>({
                   isSelected ? SELECTED_ROW_CLASS_NAME : '',
                   dragOverIndex === renderIndex ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
                   isPlaceholderRow
-                    ? 'bg-transparent shadow-none'
+                    ? 'bg-primary/5 shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.25)]'
                     : '',
                 ].join(' ')}
                 onClick={onRowClick && row ? () => onRowClick(row) : undefined}
                 aria-selected={isSelected}
               >
                 {isPlaceholderRow ? (
-                  <td
-                    colSpan={columns.length + (isRowReorderEnabled ? 1 : 0)}
-                    className="px-4 py-1"
-                  >
-                    <div className="h-2 rounded-full bg-primary/15 ring-1 ring-primary/25" />
-                  </td>
+                  <>
+                    {isRowReorderEnabled ? (
+                      <td
+                        className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}
+                        style={{ height: `${placeholderHeight}px` }}
+                      >
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary/65">
+                          <span className="grid grid-cols-2 grid-rows-3 gap-[2px]" aria-hidden="true">
+                            {Array.from({ length: 6 }).map((_, dotIndex) => (
+                              <span
+                                key={dotIndex}
+                                className="h-1 w-1 rounded-full bg-current opacity-70"
+                              />
+                            ))}
+                          </span>
+                        </span>
+                      </td>
+                    ) : null}
+                    {columns.map((column) => (
+                      <td
+                        key={`placeholder-${column.key}`}
+                        className={[
+                          BODY_CELL_BASE_CLASS_NAME,
+                          'text-text-muted',
+                          `data-table__cell--${column.align ?? 'left'}`,
+                          ALIGN_CLASS_NAMES[column.align ?? 'left'],
+                        ].join(' ')}
+                        style={{ height: `${placeholderHeight}px` }}
+                      >
+                        <div className="h-2 w-[48%] rounded-full bg-primary/10" />
+                      </td>
+                    ))}
+                  </>
                 ) : (
                   <>
                     {isRowReorderEnabled ? (
                       <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
-                      <button
+                        <button
                         type="button"
                         className={[
                           'inline-flex h-8 w-8 select-none items-center justify-center rounded-md text-text-muted transition duration-fast',
