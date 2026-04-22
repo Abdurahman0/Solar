@@ -121,6 +121,7 @@ function DataTable<T>({
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragCurrentIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const isRowReorderEnabled = Boolean(rowReorder?.onReorder) && rowReorder?.enabled !== false;
   const isRowReorderDisabled = Boolean(rowReorder?.disabled);
   const reorderAriaLabel = rowReorder?.ariaLabel ?? t('shared.table.reorderRow');
@@ -212,6 +213,7 @@ function DataTable<T>({
                   getRowClassName ? getRowClassName(row, dataIndex) : '',
                   isSelected ? SELECTED_ROW_CLASS_NAME : '',
                   dragOverIndex === renderIndex ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
+                  draggingIndex === renderIndex ? 'opacity-55' : '',
                 ].join(' ')}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 aria-selected={isSelected}
@@ -285,8 +287,37 @@ function DataTable<T>({
                         dragFromIndexRef.current = renderIndex;
                         dragOriginIndexRef.current = renderIndex;
                         dragCurrentIndexRef.current = renderIndex;
+                        setDraggingIndex(renderIndex);
                         setDragOverIndex(null);
                         event.dataTransfer.effectAllowed = 'move';
+
+                        const rowElement = (event.currentTarget as HTMLElement).closest('tr');
+                        if (rowElement) {
+                          const rect = rowElement.getBoundingClientRect();
+                          const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+                          const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
+
+                          const ghost = document.createElement('div');
+                          ghost.style.position = 'fixed';
+                          ghost.style.top = '-2000px';
+                          ghost.style.left = '-2000px';
+                          ghost.style.pointerEvents = 'none';
+                          ghost.style.width = `${rect.width}px`;
+                          ghost.style.opacity = '0.98';
+                          ghost.style.filter = 'drop-shadow(0 18px 34px rgba(15,23,42,0.22))';
+                          ghost.innerHTML = `<table class="${TABLE_CLASS_NAME}" style="min-width:0;width:100%;border-spacing:0"><tbody>${rowElement.outerHTML}</tbody></table>`;
+
+                          document.body.appendChild(ghost);
+                          try {
+                            event.dataTransfer.setDragImage(ghost, offsetX, offsetY);
+                          } catch {
+                            // ignored
+                          }
+                          window.setTimeout(() => {
+                            ghost.remove();
+                          }, 0);
+                        }
+
                         try {
                           event.dataTransfer.setData('text/plain', resolvedRowKey);
                         } catch {
@@ -298,6 +329,7 @@ function DataTable<T>({
                         dragOriginIndexRef.current = null;
                         dragCurrentIndexRef.current = null;
                         setDragOverIndex(null);
+                        setDraggingIndex(null);
                         setRenderOrder(Array.from({ length: data.length }, (_, idx) => idx));
                       }}
                       aria-label={reorderAriaLabel}
