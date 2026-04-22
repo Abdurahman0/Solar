@@ -114,6 +114,7 @@ function DataTable<T>({
   rowReorder,
 }: DataTableProps<T>) {
   const { t } = useTranslation();
+  const tableRef = useRef<HTMLTableElement | null>(null);
   const resolvedEmptyTitle = emptyTitle ?? t('shared.table.emptyTitle');
   const resolvedEmptyDescription =
     emptyDescription ?? t('shared.table.emptyDescription');
@@ -309,7 +310,7 @@ function DataTable<T>({
           </table>
         </div>
       ) : null}
-      <table className={TABLE_CLASS_NAME}>
+      <table ref={tableRef} className={TABLE_CLASS_NAME}>
         <thead>
           <tr>
             {isRowReorderEnabled ? (
@@ -388,20 +389,22 @@ function DataTable<T>({
                             return;
                           }
 
-                          const rowElement = (event.currentTarget as HTMLElement).closest('tr');
-                          if (!rowElement) {
-                            return;
-                          }
+                        const rowElement = (event.currentTarget as HTMLElement).closest('tr');
+                        if (!rowElement) {
+                          return;
+                        }
 
-                          const rect = rowElement.getBoundingClientRect();
-                          dragOffsetRef.current = {
-                            x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
-                            y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
-                          };
-                          dragRowRectRef.current = {
-                            width: rect.width,
-                            height: rect.height,
-                          };
+                        const rect = rowElement.getBoundingClientRect();
+                        const tableRect = tableRef.current?.getBoundingClientRect() ?? rect;
+                        dragOffsetRef.current = {
+                          // Keep the dragged row horizontally aligned to the table width.
+                          x: Math.max(0, Math.min(tableRect.width, event.clientX - tableRect.left)),
+                          y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
+                        };
+                        dragRowRectRef.current = {
+                          width: tableRect.width,
+                          height: rect.height,
+                        };
 
                           draggedDataIndexRef.current = dataIndex;
                           dragOriginIndexRef.current = renderIndex;
