@@ -130,6 +130,22 @@ function DataTable<T>({
   const reorderAriaLabel = rowReorder?.ariaLabel ?? t('shared.table.reorderRow');
   const [renderOrder, setRenderOrder] = useState<number[] | null>(null);
 
+  function buildDisplayOrder(
+    baseOrder: number[],
+    draggedIndex: number | null,
+    placeholderIndex: number | null,
+  ): number[] {
+    if (draggedIndex == null || placeholderIndex == null) {
+      return baseOrder;
+    }
+
+    const withoutDragged = baseOrder.filter((value) => value !== draggedIndex);
+    const next = [...withoutDragged];
+    const safeIndex = Math.max(0, Math.min(next.length, placeholderIndex));
+    next.splice(safeIndex, 0, -1);
+    return next;
+  }
+
   const resolvedOrder = useMemo(() => {
     if (!isRowReorderEnabled || isRowReorderDisabled) {
       return null;
@@ -188,24 +204,8 @@ function DataTable<T>({
         return;
       }
 
-      setRenderOrder((currentOrder) => {
-        const baseOrder =
-          currentOrder && currentOrder.length === data.length
-            ? [...currentOrder]
-            : Array.from({ length: data.length }, (_, idx) => idx);
-
-        const currentIndex = baseOrder.indexOf(draggedDataIndex);
-        if (currentIndex < 0 || currentIndex === hoverIndex) {
-          return currentOrder;
-        }
-
-        const [moved] = baseOrder.splice(currentIndex, 1);
-        baseOrder.splice(hoverIndex, 0, moved);
-        dragCurrentIndexRef.current = hoverIndex;
-        setDragOverIndex(hoverIndex);
-
-        return baseOrder;
-      });
+      dragCurrentIndexRef.current = hoverIndex;
+      setDragOverIndex(hoverIndex);
     }
 
     function handlePointerUp() {
@@ -218,6 +218,7 @@ function DataTable<T>({
       setDragOverIndex(null);
       setDraggingIndex(null);
       setDragPointer(null);
+      setRenderOrder(Array.from({ length: data.length }, (_, idx) => idx));
 
       if (fromIndex == null || toIndex == null || fromIndex === toIndex) {
         return;
@@ -237,11 +238,14 @@ function DataTable<T>({
     };
   }, [data.length, draggingIndex, isRowReorderDisabled, isRowReorderEnabled, rowReorder]);
 
-  const draggingDataIndex = useMemo(() => {
-    return draggedDataIndexRef.current;
-  }, [draggingIndex]);
-
+  const draggingDataIndex = draggingIndex != null ? draggedDataIndexRef.current : null;
   const draggingRow = draggingDataIndex != null ? data[draggingDataIndex] : null;
+  const placeholderIndex = draggingIndex != null ? dragCurrentIndexRef.current : null;
+  const displayOrder = useMemo(() => {
+    const baseOrder =
+      resolvedOrder ?? Array.from({ length: data.length }, (_, index) => index);
+    return buildDisplayOrder(baseOrder, draggingDataIndex, placeholderIndex);
+  }, [data.length, draggingDataIndex, placeholderIndex, resolvedOrder]);
 
   if (loading) {
     return (
@@ -333,106 +337,120 @@ function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {(resolvedOrder ?? Array.from({ length: data.length }, (_, index) => index)).map((dataIndex, renderIndex) => {
-            const row = data[dataIndex];
-            const resolvedRowKey = getRowKey(row, dataIndex, rowKey);
-            const isSelected = selectedRowKey === resolvedRowKey;
+          {displayOrder.map((dataIndex, renderIndex) => {
+            const isPlaceholderRow = dataIndex === -1;
+            const row = isPlaceholderRow ? null : data[dataIndex];
+            const resolvedRowKey = row ? getRowKey(row, dataIndex, rowKey) : '__reorder_placeholder__';
+            const isSelected = row ? selectedRowKey === resolvedRowKey : false;
 
             return (
               <tr
                 key={resolvedRowKey}
+                data-reorder-index={renderIndex}
                 className={[
-                  onRowClick ? CLICKABLE_ROW_CLASS_NAME : ROW_CLASS_NAME,
-                  getRowClassName ? getRowClassName(row, dataIndex) : '',
+                  onRowClick && !isPlaceholderRow ? CLICKABLE_ROW_CLASS_NAME : ROW_CLASS_NAME,
+                  row && getRowClassName ? getRowClassName(row, dataIndex) : '',
                   isSelected ? SELECTED_ROW_CLASS_NAME : '',
                   dragOverIndex === renderIndex ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
-                  draggingIndex === renderIndex ? 'pointer-events-none opacity-0' : '',
+                  isPlaceholderRow
+                    ? 'bg-transparent shadow-none'
+                    : '',
                 ].join(' ')}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onClick={onRowClick && row ? () => onRowClick(row) : undefined}
                 aria-selected={isSelected}
-                data-reorder-index={renderIndex}
               >
-                {isRowReorderEnabled ? (
-                  <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
-                    <button
-                      type="button"
-                      className={[
-                        'inline-flex h-8 w-8 select-none items-center justify-center rounded-md text-text-muted transition duration-fast',
-                        'hover:bg-surface-card hover:text-text-secondary',
-                        isRowReorderDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing',
-                      ].join(' ')}
-                      onClick={(event) => event.stopPropagation()}
-                      onPointerDown={(event) => {
-                        if (isRowReorderDisabled || !isRowReorderEnabled) {
-                          return;
-                        }
-
-                        event.stopPropagation();
-                        if (event.button !== 0) {
-                          return;
-                        }
-
-                        const rowElement = (event.currentTarget as HTMLElement).closest('tr');
-                        if (!rowElement) {
-                          return;
-                        }
-
-                        const rect = rowElement.getBoundingClientRect();
-                        dragOffsetRef.current = {
-                          x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
-                          y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
-                        };
-                        dragRowRectRef.current = {
-                          width: rect.width,
-                          height: rect.height,
-                        };
-
-                        draggedDataIndexRef.current = dataIndex;
-                        dragOriginIndexRef.current = renderIndex;
-                        dragCurrentIndexRef.current = renderIndex;
-                        setDraggingIndex(renderIndex);
-                        setDragOverIndex(renderIndex);
-                        setDragPointer({ x: event.clientX, y: event.clientY });
-
-                        setRenderOrder((currentOrder) => {
-                          if (currentOrder && currentOrder.length === data.length) {
-                            return currentOrder;
-                          }
-                          return Array.from({ length: data.length }, (_, idx) => idx);
-                        });
-
-                        try {
-                          (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-                        } catch {
-                          // ignored
-                        }
-                      }}
-                      aria-label={reorderAriaLabel}
-                      title={reorderAriaLabel}
-                    >
-                      <span className="grid grid-cols-2 grid-rows-3 gap-[2px]" aria-hidden="true">
-                        {Array.from({ length: 6 }).map((_, dotIndex) => (
-                          <span
-                            key={dotIndex}
-                            className="h-1 w-1 rounded-full bg-current opacity-70"
-                          />
-                        ))}
-                      </span>
-                    </button>
-                  </td>
-                ) : null}
-                {columns.map((column) => (
+                {isPlaceholderRow ? (
                   <td
-                    key={column.key}
-                    className={[
-                      BODY_CELL_BASE_CLASS_NAME,
-                      `data-table__cell--${column.align ?? 'left'}`,
-                      ALIGN_CLASS_NAMES[column.align ?? 'left'],
-                    ].join(' ')}
+                    colSpan={columns.length + (isRowReorderEnabled ? 1 : 0)}
+                    className="px-4 py-1"
                   >
-                    {getCellContent(row, column)}
+                    <div className="h-2 rounded-full bg-primary/15 ring-1 ring-primary/25" />
                   </td>
-                ))}
+                ) : (
+                  <>
+                    {isRowReorderEnabled ? (
+                      <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
+                      <button
+                        type="button"
+                        className={[
+                          'inline-flex h-8 w-8 select-none items-center justify-center rounded-md text-text-muted transition duration-fast',
+                          'hover:bg-surface-card hover:text-text-secondary',
+                          isRowReorderDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing',
+                        ].join(' ')}
+                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => {
+                          if (isRowReorderDisabled || !isRowReorderEnabled) {
+                            return;
+                          }
+
+                          event.stopPropagation();
+                          if (event.button !== 0) {
+                            return;
+                          }
+
+                          const rowElement = (event.currentTarget as HTMLElement).closest('tr');
+                          if (!rowElement) {
+                            return;
+                          }
+
+                          const rect = rowElement.getBoundingClientRect();
+                          dragOffsetRef.current = {
+                            x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+                            y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
+                          };
+                          dragRowRectRef.current = {
+                            width: rect.width,
+                            height: rect.height,
+                          };
+
+                          draggedDataIndexRef.current = dataIndex;
+                          dragOriginIndexRef.current = renderIndex;
+                          dragCurrentIndexRef.current = renderIndex;
+                          setDraggingIndex(renderIndex);
+                          setDragOverIndex(renderIndex);
+                          setDragPointer({ x: event.clientX, y: event.clientY });
+
+                          setRenderOrder((currentOrder) => {
+                            if (currentOrder && currentOrder.length === data.length) {
+                              return currentOrder;
+                            }
+                            return Array.from({ length: data.length }, (_, idx) => idx);
+                          });
+
+                          try {
+                            (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+                          } catch {
+                            // ignored
+                          }
+                        }}
+                        aria-label={reorderAriaLabel}
+                        title={reorderAriaLabel}
+                        >
+                        <span className="grid grid-cols-2 grid-rows-3 gap-[2px]" aria-hidden="true">
+                          {Array.from({ length: 6 }).map((_, dotIndex) => (
+                            <span
+                              key={dotIndex}
+                              className="h-1 w-1 rounded-full bg-current opacity-70"
+                            />
+                          ))}
+                        </span>
+                      </button>
+                      </td>
+                    ) : null}
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className={[
+                          BODY_CELL_BASE_CLASS_NAME,
+                          `data-table__cell--${column.align ?? 'left'}`,
+                          ALIGN_CLASS_NAMES[column.align ?? 'left'],
+                        ].join(' ')}
+                      >
+                        {getCellContent(row as T, column)}
+                      </td>
+                    ))}
+                  </>
+                )}
               </tr>
             );
           })}
