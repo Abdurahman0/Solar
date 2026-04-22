@@ -777,7 +777,7 @@
       "namePlaceholder": "Masalan: quyosh panellari",
       "code": "Kod",
       "sortOrder": "Tartib raqami",
-      "sortOrderHint": "Kichik raqam yuqoriroq chiqadi. 0 eng yuqori.",
+      "sortOrderHint": "Kichik raqam yuqoriroq chiqadi. 1 eng yuqori.",
       "description": "Tavsif",
       "descriptionPlaceholder": "Kategoriya bo'yicha qisqa tavsif",
       "active": "Faol kategoriya",

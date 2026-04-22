@@ -44,18 +44,18 @@ function ProductCategoryFormDialog({
 }: ProductCategoryFormDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
-  const [sortOrder, setSortOrder] = useState('0');
+  const [sortOrder, setSortOrder] = useState('1');
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode === 'edit' && category) {
       setName(category.name);
-      setSortOrder(String(category.sortOrder ?? 0));
+      setSortOrder(String((category.sortOrder ?? 0) + 1));
       return;
     }
 
     setName('');
-    setSortOrder('0');
+    setSortOrder('1');
   }, [mode, category]);
 
   const code = useMemo(() => normalizeCategoryCode(name), [name]);
@@ -65,7 +65,7 @@ function ProductCategoryFormDialog({
     setFieldError(null);
 
     const normalizedName = name.trim();
-    const parsedSortOrder = Math.max(0, Math.floor(Number(sortOrder)));
+    const parsedSortOrder = Math.max(1, Math.floor(Number(sortOrder)));
     if (!normalizedName) {
       setFieldError(t('products.categoryForm.requiredError'));
       return;
@@ -79,7 +79,7 @@ function ProductCategoryFormDialog({
     onSubmit({
       name: normalizedName,
       code: normalizeCategoryCode(normalizedName),
-      sortOrder: parsedSortOrder,
+      sortOrder: parsedSortOrder - 1,
     });
   }
 

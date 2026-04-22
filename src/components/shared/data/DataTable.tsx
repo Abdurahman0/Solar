@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, LoadingState } from '../page';
 
@@ -118,10 +118,34 @@ function DataTable<T>({
   const resolvedEmptyDescription =
     emptyDescription ?? t('shared.table.emptyDescription');
   const dragFromIndexRef = useRef<number | null>(null);
+  const dragOriginIndexRef = useRef<number | null>(null);
+  const dragCurrentIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const isRowReorderEnabled = Boolean(rowReorder?.onReorder) && rowReorder?.enabled !== false;
   const isRowReorderDisabled = Boolean(rowReorder?.disabled);
   const reorderAriaLabel = rowReorder?.ariaLabel ?? t('shared.table.reorderRow');
+  const [renderOrder, setRenderOrder] = useState<number[] | null>(null);
+
+  const resolvedOrder = useMemo(() => {
+    if (!isRowReorderEnabled || isRowReorderDisabled) {
+      return null;
+    }
+
+    if (renderOrder && renderOrder.length === data.length) {
+      return renderOrder;
+    }
+
+    return Array.from({ length: data.length }, (_, index) => index);
+  }, [data.length, isRowReorderDisabled, isRowReorderEnabled, renderOrder]);
+
+  useEffect(() => {
+    if (!isRowReorderEnabled) {
+      setRenderOrder(null);
+      return;
+    }
+
+    setRenderOrder(Array.from({ length: data.length }, (_, index) => index));
+  }, [data.length, isRowReorderEnabled]);
 
   if (loading) {
     return (
@@ -175,8 +199,9 @@ function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {data.map((row, index) => {
-            const resolvedRowKey = getRowKey(row, index, rowKey);
+          {(resolvedOrder ?? Array.from({ length: data.length }, (_, index) => index)).map((dataIndex, renderIndex) => {
+            const row = data[dataIndex];
+            const resolvedRowKey = getRowKey(row, dataIndex, rowKey);
             const isSelected = selectedRowKey === resolvedRowKey;
 
             return (
@@ -184,9 +209,9 @@ function DataTable<T>({
                 key={resolvedRowKey}
                 className={[
                   onRowClick ? CLICKABLE_ROW_CLASS_NAME : ROW_CLASS_NAME,
-                  getRowClassName ? getRowClassName(row, index) : '',
+                  getRowClassName ? getRowClassName(row, dataIndex) : '',
                   isSelected ? SELECTED_ROW_CLASS_NAME : '',
-                  dragOverIndex === index ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
+                  dragOverIndex === renderIndex ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
                 ].join(' ')}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 aria-selected={isSelected}
@@ -197,26 +222,45 @@ function DataTable<T>({
                           return;
                         }
                         event.preventDefault();
-                        setDragOverIndex(index);
+                        setDragOverIndex(renderIndex);
+
+                        const currentIndex = dragCurrentIndexRef.current;
+                        if (currentIndex === null || currentIndex === renderIndex) {
+                          return;
+                        }
+
+                        setRenderOrder((currentOrder) => {
+                          const baseOrder =
+                            currentOrder && currentOrder.length === data.length
+                              ? [...currentOrder]
+                              : Array.from({ length: data.length }, (_, idx) => idx);
+                          const [moved] = baseOrder.splice(currentIndex, 1);
+                          baseOrder.splice(renderIndex, 0, moved);
+                          dragCurrentIndexRef.current = renderIndex;
+                          return baseOrder;
+                        });
                       }
                     : undefined
                 }
                 onDragLeave={
                   isRowReorderEnabled && !isRowReorderDisabled
-                    ? () => setDragOverIndex((current) => (current === index ? null : current))
+                    ? () => setDragOverIndex((current) => (current === renderIndex ? null : current))
                     : undefined
                 }
                 onDrop={
                   isRowReorderEnabled && !isRowReorderDisabled
                     ? (event) => {
                         event.preventDefault();
-                        const fromIndex = dragFromIndexRef.current;
+                        const fromIndex = dragOriginIndexRef.current;
+                        const toIndex = dragCurrentIndexRef.current;
                         dragFromIndexRef.current = null;
+                        dragOriginIndexRef.current = null;
+                        dragCurrentIndexRef.current = null;
                         setDragOverIndex(null);
-                        if (fromIndex === null || fromIndex === index) {
+                        if (fromIndex === null || toIndex === null || fromIndex === toIndex) {
                           return;
                         }
-                        rowReorder?.onReorder(fromIndex, index);
+                        rowReorder?.onReorder(fromIndex, toIndex);
                       }
                     : undefined
                 }
@@ -238,7 +282,9 @@ function DataTable<T>({
                           event.preventDefault();
                           return;
                         }
-                        dragFromIndexRef.current = index;
+                        dragFromIndexRef.current = renderIndex;
+                        dragOriginIndexRef.current = renderIndex;
+                        dragCurrentIndexRef.current = renderIndex;
                         setDragOverIndex(null);
                         event.dataTransfer.effectAllowed = 'move';
                         try {
@@ -249,7 +295,10 @@ function DataTable<T>({
                       }}
                       onDragEnd={() => {
                         dragFromIndexRef.current = null;
+                        dragOriginIndexRef.current = null;
+                        dragCurrentIndexRef.current = null;
                         setDragOverIndex(null);
+                        setRenderOrder(Array.from({ length: data.length }, (_, idx) => idx));
                       }}
                       aria-label={reorderAriaLabel}
                       title={reorderAriaLabel}

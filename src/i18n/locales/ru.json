@@ -777,7 +777,7 @@
       "namePlaceholder": "Например: солнечные панели",
       "code": "Код",
       "sortOrder": "Порядковый номер",
-      "sortOrderHint": "Меньшее число выше. 0 — самый верх.",
+      "sortOrderHint": "Меньшее число выше. 1 — самый верх.",
       "description": "Описание",
       "descriptionPlaceholder": "Краткое описание категории",
       "active": "Активная категория",

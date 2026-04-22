@@ -765,7 +765,7 @@ function ProductsPage() {
         key: 'sortOrder',
         label: t('products.categoryColumns.sortOrder'),
         render: (category) => (
-          <span className={tablePrimaryTextClassName}>{category.sortOrder ?? 0}</span>
+          <span className={tablePrimaryTextClassName}>{(category.sortOrder ?? 0) + 1}</span>
         ),
       },
       {
