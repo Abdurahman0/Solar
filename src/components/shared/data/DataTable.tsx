@@ -117,11 +117,14 @@ function DataTable<T>({
   const resolvedEmptyTitle = emptyTitle ?? t('shared.table.emptyTitle');
   const resolvedEmptyDescription =
     emptyDescription ?? t('shared.table.emptyDescription');
-  const dragFromIndexRef = useRef<number | null>(null);
   const dragOriginIndexRef = useRef<number | null>(null);
   const dragCurrentIndexRef = useRef<number | null>(null);
+  const draggedDataIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dragPointer, setDragPointer] = useState<{ x: number; y: number } | null>(null);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragRowRectRef = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
   const isRowReorderEnabled = Boolean(rowReorder?.onReorder) && rowReorder?.enabled !== false;
   const isRowReorderDisabled = Boolean(rowReorder?.disabled);
   const reorderAriaLabel = rowReorder?.ariaLabel ?? t('shared.table.reorderRow');
@@ -148,6 +151,98 @@ function DataTable<T>({
     setRenderOrder(Array.from({ length: data.length }, (_, index) => index));
   }, [data.length, isRowReorderEnabled]);
 
+  useEffect(() => {
+    if (draggingIndex === null || !isRowReorderEnabled || isRowReorderDisabled) {
+      return;
+    }
+
+    function findClosestRowIndex(eventTarget: EventTarget | null): number | null {
+      if (!eventTarget || !(eventTarget instanceof Element)) {
+        return null;
+      }
+
+      const rowEl = eventTarget.closest('tr[data-reorder-index]');
+      if (!rowEl) {
+        return null;
+      }
+
+      const raw = rowEl.getAttribute('data-reorder-index');
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      setDragPointer({ x: event.clientX, y: event.clientY });
+
+      const hoverIndex = findClosestRowIndex(document.elementFromPoint(event.clientX, event.clientY));
+      if (hoverIndex === null) {
+        return;
+      }
+
+      const draggedDataIndex = draggedDataIndexRef.current;
+      if (draggedDataIndex === null) {
+        return;
+      }
+
+      setRenderOrder((currentOrder) => {
+        const baseOrder =
+          currentOrder && currentOrder.length === data.length
+            ? [...currentOrder]
+            : Array.from({ length: data.length }, (_, idx) => idx);
+
+        const currentIndex = baseOrder.indexOf(draggedDataIndex);
+        if (currentIndex < 0 || currentIndex === hoverIndex) {
+          return currentOrder;
+        }
+
+        const [moved] = baseOrder.splice(currentIndex, 1);
+        baseOrder.splice(hoverIndex, 0, moved);
+        dragCurrentIndexRef.current = hoverIndex;
+        setDragOverIndex(hoverIndex);
+
+        return baseOrder;
+      });
+    }
+
+    function handlePointerUp() {
+      const fromIndex = dragOriginIndexRef.current;
+      const toIndex = dragCurrentIndexRef.current;
+
+      dragOriginIndexRef.current = null;
+      dragCurrentIndexRef.current = null;
+      draggedDataIndexRef.current = null;
+      setDragOverIndex(null);
+      setDraggingIndex(null);
+      setDragPointer(null);
+
+      if (fromIndex == null || toIndex == null || fromIndex === toIndex) {
+        return;
+      }
+
+      rowReorder?.onReorder(fromIndex, toIndex);
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerup', handlePointerUp, { passive: true });
+    window.addEventListener('pointercancel', handlePointerUp, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, [data.length, draggingIndex, isRowReorderDisabled, isRowReorderEnabled, rowReorder]);
+
+  const draggingDataIndex = useMemo(() => {
+    return draggedDataIndexRef.current;
+  }, [draggingIndex]);
+
+  const draggingRow = draggingDataIndex != null ? data[draggingDataIndex] : null;
+
   if (loading) {
     return (
       <div className={TABLE_SHELL_CLASS_NAME}>
@@ -172,6 +267,44 @@ function DataTable<T>({
 
   return (
     <div className={TABLE_SHELL_CLASS_NAME}>
+      {dragPointer && draggingRow && isRowReorderEnabled ? (
+        <div
+          className="pointer-events-none fixed left-0 top-0 z-[200]"
+          style={{
+            transform: `translate(${dragPointer.x - dragOffsetRef.current.x}px, ${dragPointer.y - dragOffsetRef.current.y}px)`,
+            width: `${dragRowRectRef.current.width}px`,
+          }}
+          aria-hidden="true"
+        >
+          <table className={TABLE_CLASS_NAME} style={{ minWidth: 0, width: '100%', borderSpacing: 0 }}>
+            <tbody>
+              <tr className={[ROW_CLASS_NAME, 'shadow-[0_22px_50px_-30px_rgba(15,23,42,0.65)]'].join(' ')}>
+                <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted">
+                    <span className="grid grid-cols-2 grid-rows-3 gap-[2px]" aria-hidden="true">
+                      {Array.from({ length: 6 }).map((_, dotIndex) => (
+                        <span key={dotIndex} className="h-1 w-1 rounded-full bg-current opacity-70" />
+                      ))}
+                    </span>
+                  </span>
+                </td>
+                {columns.map((column) => (
+                  <td
+                    key={`drag-overlay-${column.key}`}
+                    className={[
+                      BODY_CELL_BASE_CLASS_NAME,
+                      `data-table__cell--${column.align ?? 'left'}`,
+                      ALIGN_CLASS_NAMES[column.align ?? 'left'],
+                    ].join(' ')}
+                  >
+                    {getCellContent(draggingRow, column)}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      ) : null}
       <table className={TABLE_CLASS_NAME}>
         <thead>
           <tr>
@@ -213,124 +346,66 @@ function DataTable<T>({
                   getRowClassName ? getRowClassName(row, dataIndex) : '',
                   isSelected ? SELECTED_ROW_CLASS_NAME : '',
                   dragOverIndex === renderIndex ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
-                  draggingIndex === renderIndex ? 'opacity-55' : '',
+                  draggingIndex === renderIndex ? 'pointer-events-none opacity-0' : '',
                 ].join(' ')}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 aria-selected={isSelected}
-                onDragOver={
-                  isRowReorderEnabled && !isRowReorderDisabled
-                    ? (event) => {
-                        if (dragFromIndexRef.current === null) {
-                          return;
-                        }
-                        event.preventDefault();
-                        setDragOverIndex(renderIndex);
-
-                        const currentIndex = dragCurrentIndexRef.current;
-                        if (currentIndex === null || currentIndex === renderIndex) {
-                          return;
-                        }
-
-                        setRenderOrder((currentOrder) => {
-                          const baseOrder =
-                            currentOrder && currentOrder.length === data.length
-                              ? [...currentOrder]
-                              : Array.from({ length: data.length }, (_, idx) => idx);
-                          const [moved] = baseOrder.splice(currentIndex, 1);
-                          baseOrder.splice(renderIndex, 0, moved);
-                          dragCurrentIndexRef.current = renderIndex;
-                          return baseOrder;
-                        });
-                      }
-                    : undefined
-                }
-                onDragLeave={
-                  isRowReorderEnabled && !isRowReorderDisabled
-                    ? () => setDragOverIndex((current) => (current === renderIndex ? null : current))
-                    : undefined
-                }
-                onDrop={
-                  isRowReorderEnabled && !isRowReorderDisabled
-                    ? (event) => {
-                        event.preventDefault();
-                        const fromIndex = dragOriginIndexRef.current;
-                        const toIndex = dragCurrentIndexRef.current;
-                        dragFromIndexRef.current = null;
-                        dragOriginIndexRef.current = null;
-                        dragCurrentIndexRef.current = null;
-                        setDragOverIndex(null);
-                        if (fromIndex === null || toIndex === null || fromIndex === toIndex) {
-                          return;
-                        }
-                        rowReorder?.onReorder(fromIndex, toIndex);
-                      }
-                    : undefined
-                }
+                data-reorder-index={renderIndex}
               >
                 {isRowReorderEnabled ? (
                   <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
                     <button
                       type="button"
                       className={[
-                        'inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition duration-fast',
+                        'inline-flex h-8 w-8 select-none items-center justify-center rounded-md text-text-muted transition duration-fast',
                         'hover:bg-surface-card hover:text-text-secondary',
                         isRowReorderDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing',
                       ].join(' ')}
-                      draggable={!isRowReorderDisabled}
                       onClick={(event) => event.stopPropagation()}
-                      onPointerDown={(event) => event.stopPropagation()}
-                      onDragStart={(event) => {
-                        if (isRowReorderDisabled) {
-                          event.preventDefault();
+                      onPointerDown={(event) => {
+                        if (isRowReorderDisabled || !isRowReorderEnabled) {
                           return;
                         }
-                        dragFromIndexRef.current = renderIndex;
+
+                        event.stopPropagation();
+                        if (event.button !== 0) {
+                          return;
+                        }
+
+                        const rowElement = (event.currentTarget as HTMLElement).closest('tr');
+                        if (!rowElement) {
+                          return;
+                        }
+
+                        const rect = rowElement.getBoundingClientRect();
+                        dragOffsetRef.current = {
+                          x: Math.max(0, Math.min(rect.width, event.clientX - rect.left)),
+                          y: Math.max(0, Math.min(rect.height, event.clientY - rect.top)),
+                        };
+                        dragRowRectRef.current = {
+                          width: rect.width,
+                          height: rect.height,
+                        };
+
+                        draggedDataIndexRef.current = dataIndex;
                         dragOriginIndexRef.current = renderIndex;
                         dragCurrentIndexRef.current = renderIndex;
                         setDraggingIndex(renderIndex);
-                        setDragOverIndex(null);
-                        event.dataTransfer.effectAllowed = 'move';
+                        setDragOverIndex(renderIndex);
+                        setDragPointer({ x: event.clientX, y: event.clientY });
 
-                        const rowElement = (event.currentTarget as HTMLElement).closest('tr');
-                        if (rowElement) {
-                          const rect = rowElement.getBoundingClientRect();
-                          const offsetX = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
-                          const offsetY = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
-
-                          const ghost = document.createElement('div');
-                          ghost.style.position = 'fixed';
-                          ghost.style.top = '-2000px';
-                          ghost.style.left = '-2000px';
-                          ghost.style.pointerEvents = 'none';
-                          ghost.style.width = `${rect.width}px`;
-                          ghost.style.opacity = '0.98';
-                          ghost.style.filter = 'drop-shadow(0 18px 34px rgba(15,23,42,0.22))';
-                          ghost.innerHTML = `<table class="${TABLE_CLASS_NAME}" style="min-width:0;width:100%;border-spacing:0"><tbody>${rowElement.outerHTML}</tbody></table>`;
-
-                          document.body.appendChild(ghost);
-                          try {
-                            event.dataTransfer.setDragImage(ghost, offsetX, offsetY);
-                          } catch {
-                            // ignored
+                        setRenderOrder((currentOrder) => {
+                          if (currentOrder && currentOrder.length === data.length) {
+                            return currentOrder;
                           }
-                          window.setTimeout(() => {
-                            ghost.remove();
-                          }, 0);
-                        }
+                          return Array.from({ length: data.length }, (_, idx) => idx);
+                        });
 
                         try {
-                          event.dataTransfer.setData('text/plain', resolvedRowKey);
+                          (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
                         } catch {
                           // ignored
                         }
-                      }}
-                      onDragEnd={() => {
-                        dragFromIndexRef.current = null;
-                        dragOriginIndexRef.current = null;
-                        dragCurrentIndexRef.current = null;
-                        setDragOverIndex(null);
-                        setDraggingIndex(null);
-                        setRenderOrder(Array.from({ length: data.length }, (_, idx) => idx));
                       }}
                       aria-label={reorderAriaLabel}
                       title={reorderAriaLabel}
