@@ -281,10 +281,24 @@ function DataTable<T>({
           }}
           aria-hidden="true"
         >
-          <table className={TABLE_CLASS_NAME} style={{ minWidth: 0, width: '100%', borderSpacing: 0 }}>
+          <table
+            className={TABLE_CLASS_NAME}
+            style={{
+              minWidth: 0,
+              width: '100%',
+              borderSpacing: 0,
+              tableLayout: 'fixed',
+            }}
+          >
             <tbody>
-              <tr className={[ROW_CLASS_NAME, 'shadow-[0_22px_50px_-30px_rgba(15,23,42,0.65)]'].join(' ')}>
-                <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
+              <tr
+                className={[ROW_CLASS_NAME, 'shadow-[0_22px_50px_-30px_rgba(15,23,42,0.65)]'].join(' ')}
+                style={{ height: `${dragRowRectRef.current.height}px` }}
+              >
+                <td
+                  className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3 bg-surface-subtle/70'].join(' ')}
+                  style={{ height: `${dragRowRectRef.current.height}px` }}
+                >
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted">
                     <span className="grid grid-cols-2 grid-rows-3 gap-[2px]" aria-hidden="true">
                       {Array.from({ length: 6 }).map((_, dotIndex) => (
@@ -298,9 +312,11 @@ function DataTable<T>({
                     key={`drag-overlay-${column.key}`}
                     className={[
                       BODY_CELL_BASE_CLASS_NAME,
+                      'bg-surface-subtle/70',
                       `data-table__cell--${column.align ?? 'left'}`,
                       ALIGN_CLASS_NAMES[column.align ?? 'left'],
                     ].join(' ')}
+                    style={{ height: `${dragRowRectRef.current.height}px` }}
                   >
                     {getCellContent(draggingRow, column)}
                   </td>
