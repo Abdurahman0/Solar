@@ -11,6 +11,7 @@ interface ProductCategoryFormDialogProps {
   onSubmit: (payload: {
     name: string;
     code: string;
+    sortOrder: number;
   }) => void;
 }
 
@@ -43,15 +44,18 @@ function ProductCategoryFormDialog({
 }: ProductCategoryFormDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
+  const [sortOrder, setSortOrder] = useState('0');
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode === 'edit' && category) {
       setName(category.name);
+      setSortOrder(String(category.sortOrder ?? 0));
       return;
     }
 
     setName('');
+    setSortOrder('0');
   }, [mode, category]);
 
   const code = useMemo(() => normalizeCategoryCode(name), [name]);
@@ -61,14 +65,21 @@ function ProductCategoryFormDialog({
     setFieldError(null);
 
     const normalizedName = name.trim();
+    const parsedSortOrder = Math.max(0, Math.floor(Number(sortOrder)));
     if (!normalizedName) {
       setFieldError(t('products.categoryForm.requiredError'));
+      return;
+    }
+
+    if (!Number.isFinite(parsedSortOrder)) {
+      setFieldError(t('products.categoryForm.sortOrderError'));
       return;
     }
 
     onSubmit({
       name: normalizedName,
       code: normalizeCategoryCode(normalizedName),
+      sortOrder: parsedSortOrder,
     });
   }
 
@@ -132,6 +143,26 @@ function ProductCategoryFormDialog({
               disabled
               readOnly
             />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label className={labelClassName} htmlFor="product-category-sort-order">
+              {t('products.categoryForm.sortOrder')}
+            </label>
+            <input
+              id="product-category-sort-order"
+              type="number"
+              min="0"
+              step="1"
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value)}
+              className={inputClassName}
+              disabled={isSubmitting}
+              required
+            />
+            <p className="m-0 text-[12px] leading-5 text-text-secondary">
+              {t('products.categoryForm.sortOrderHint')}
+            </p>
           </div>
 
           {fieldError ? (

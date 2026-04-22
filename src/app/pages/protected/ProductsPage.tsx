@@ -173,6 +173,8 @@ function ProductsPage() {
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [isCategorySaving, setIsCategorySaving] = useState(false);
   const [categoryFormErrorMessage, setCategoryFormErrorMessage] = useState<string | null>(null);
+  const [isCategoryReordering, setIsCategoryReordering] = useState(false);
+  const [categoryReorderErrorMessage, setCategoryReorderErrorMessage] = useState<string | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<ProductCategory | null>(null);
   const [isCategoryDeleting, setIsCategoryDeleting] = useState(false);
 
@@ -577,7 +579,7 @@ function ProductsPage() {
     setIsCategoryFormOpen(true);
   }
 
-  async function handleSaveCategory(payload: { name: string; code: string }) {
+  async function handleSaveCategory(payload: { name: string; code: string; sortOrder: number }) {
     setIsCategorySaving(true);
     setCategoryFormErrorMessage(null);
 
@@ -761,6 +763,13 @@ function ProductsPage() {
         ),
       },
       {
+        key: 'sortOrder',
+        label: t('products.categoryColumns.sortOrder'),
+        render: (category) => (
+          <span className={tablePrimaryTextClassName}>{category.sortOrder ?? 0}</span>
+        ),
+      },
+      {
         key: 'code',
         label: t('products.categoryColumns.code'),
         render: (category) => <span className={tablePrimaryTextClassName}>{category.code || '-'}</span>,
@@ -813,21 +822,99 @@ function ProductsPage() {
     ];
   }, [locale, t]);
 
+  const orderedCategories = useMemo(() => {
+    return [...categories].sort((left, right) => {
+      const leftOrder = typeof left.sortOrder === 'number' ? left.sortOrder : 0;
+      const rightOrder = typeof right.sortOrder === 'number' ? right.sortOrder : 0;
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      return left.name.localeCompare(right.name, locale);
+    });
+  }, [categories, locale]);
+
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) {
-      return [...categories].sort((left, right) => left.name.localeCompare(right.name, locale));
+      return orderedCategories;
     }
 
-    return [...categories]
-      .filter((category) => {
-        return (
-          category.name.toLowerCase().includes(query) ||
-          category.code.toLowerCase().includes(query)
-        );
-      })
-      .sort((left, right) => left.name.localeCompare(right.name, locale));
-  }, [categories, locale, search]);
+    return orderedCategories.filter((category) => {
+      return (
+        category.name.toLowerCase().includes(query) ||
+        category.code.toLowerCase().includes(query)
+      );
+    });
+  }, [orderedCategories, search]);
+
+  async function handleReorderCategories(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || isCategoryReordering || isCategorySaving || isCategoryDeleting) {
+      return;
+    }
+
+    const start = (categoryMeta.page - 1) * PAGE_SIZE;
+    const visibleFromIndex = start + fromIndex;
+    const visibleToIndex = start + toIndex;
+
+    const dragged = filteredCategories[visibleFromIndex];
+    const target = filteredCategories[visibleToIndex];
+
+    if (!dragged || !target || dragged.id === target.id) {
+      return;
+    }
+
+    setCategoryReorderErrorMessage(null);
+    setIsCategoryReordering(true);
+
+    const prevCategoriesSnapshot = categories;
+    const prevSortOrderMap = new Map(prevCategoriesSnapshot.map((item) => [item.id, item.sortOrder]));
+
+    const nextOrdered = (() => {
+      const all = [...orderedCategories];
+      const fromGlobalIndex = all.findIndex((item) => item.id === dragged.id);
+      const toGlobalIndex = all.findIndex((item) => item.id === target.id);
+
+      if (fromGlobalIndex < 0 || toGlobalIndex < 0) {
+        return all;
+      }
+
+      const next = [...all];
+      const [moved] = next.splice(fromGlobalIndex, 1);
+      next.splice(toGlobalIndex, 0, moved);
+      return next;
+    })();
+
+    const nextCategories = nextOrdered.map((item, index) => ({
+      ...item,
+      sortOrder: index,
+    }));
+
+    setCategories(nextCategories);
+
+    try {
+      const updates = nextCategories
+        .map((item, index) => ({
+          id: item.id,
+          desired: index,
+          prev: prevSortOrderMap.get(item.id),
+        }))
+        .filter((item) => item.prev !== item.desired);
+
+      await Promise.all(
+        updates.map((item) =>
+          services.products.patchProductCategory(item.id, { sortOrder: item.desired }),
+        ),
+      );
+
+      setReloadCursor((current) => current + 1);
+    } catch {
+      setCategories(prevCategoriesSnapshot);
+      setCategoryReorderErrorMessage(t('products.categoryReorderError'));
+    } finally {
+      setIsCategoryReordering(false);
+    }
+  }
 
   const categoryMeta = useMemo(() => {
     const totalItems = filteredCategories.length;
@@ -969,16 +1056,29 @@ function ProductsPage() {
           </div>
 
           {isCategoriesView ? (
-            <DataTable
-              data={pagedCategories}
-              columns={categoryColumns}
-              rowKey="id"
-              selectedRowKey={selectedCategoryId}
-              loading={isCategoryOptionsLoading}
-              onRowClick={(category) => setSelectedCategoryId(category.id)}
-              emptyTitle={t('products.categoriesEmptyTitle')}
-              emptyDescription={t('products.categoriesEmptyDescription')}
-            />
+            <div className="grid gap-2">
+              {categoryReorderErrorMessage ? (
+                <p className="m-0 rounded-lg bg-danger-bg px-3 py-2 text-sm font-semibold text-danger">
+                  {categoryReorderErrorMessage}
+                </p>
+              ) : null}
+              <DataTable
+                data={pagedCategories}
+                columns={categoryColumns}
+                rowKey="id"
+                selectedRowKey={selectedCategoryId}
+                loading={isCategoryOptionsLoading}
+                onRowClick={(category) => setSelectedCategoryId(category.id)}
+                rowReorder={{
+                  disabled: isCategoryOptionsLoading || isCategoryReordering,
+                  onReorder: (fromIndex, toIndex) => {
+                    void handleReorderCategories(fromIndex, toIndex);
+                  },
+                }}
+                emptyTitle={t('products.categoriesEmptyTitle')}
+                emptyDescription={t('products.categoriesEmptyDescription')}
+              />
+            </div>
           ) : (
             <DataTable
               data={products}

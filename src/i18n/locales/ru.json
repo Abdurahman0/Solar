@@ -189,7 +189,8 @@
       "emptyTitle": "Записи не найдены",
       "emptyDescription": "Будет показано здесь, когда данные появятся.",
       "loadingTitle": "Таблица загружается",
-      "loadingDescription": "Строки появятся, когда данные будут готовы."
+      "loadingDescription": "Строки появятся, когда данные будут готовы.",
+      "reorderRow": "Изменить порядок"
     },
     "searchInput": {
       "placeholder": "Поиск"
@@ -729,6 +730,7 @@
     "categoriesEmptyDescription": "Измените поиск или фильтры и попробуйте снова.",
     "categoriesErrorTitle": "Категории недоступны",
     "categoriesErrorDescription": "Не удалось загрузить категории из текущего сервиса.",
+    "categoryReorderError": "Не удалось сохранить порядок категорий.",
     "categoryNoDescription": "Нет описания",
     "columns": {
       "product": "Товар",
@@ -750,6 +752,7 @@
     "categoryColumns": {
       "name": "Категория",
       "code": "Код",
+      "sortOrder": "Порядок",
       "status": "Статус",
       "updated": "Дата обновления",
       "actions": "Действия"
@@ -773,6 +776,8 @@
       "name": "Название категории",
       "namePlaceholder": "Например: солнечные панели",
       "code": "Код",
+      "sortOrder": "Порядковый номер",
+      "sortOrderHint": "Меньшее число выше. 0 — самый верх.",
       "description": "Описание",
       "descriptionPlaceholder": "Краткое описание категории",
       "active": "Активная категория",
@@ -782,6 +787,7 @@
       "creating": "Добавление...",
       "saving": "Сохранение...",
       "requiredError": "Введите название категории.",
+      "sortOrderError": "Введите корректный порядковый номер.",
       "saveError": "Не удалось сохранить категорию."
     },
     "categoryDeleteDialog": {

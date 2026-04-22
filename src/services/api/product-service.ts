@@ -154,6 +154,13 @@ function toCategoryMutationPayload(
   if (input.code !== undefined) {
     payload.code = input.code;
   }
+  const sortOrderCandidate = (input as ProductCategoryMutationInput).sortOrder;
+  if (sortOrderCandidate !== undefined) {
+    const parsedSortOrder = Number(sortOrderCandidate);
+    if (Number.isFinite(parsedSortOrder)) {
+      payload.sort_order = Math.max(0, Math.floor(parsedSortOrder));
+    }
+  }
   return payload;
 }
 

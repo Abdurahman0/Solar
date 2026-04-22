@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, LoadingState } from '../page';
 
@@ -22,6 +22,12 @@ interface DataTableProps<T> {
   emptyDescription?: string;
   onRowClick?: (row: T) => void;
   getRowClassName?: (row: T, index: number) => string;
+  rowReorder?: {
+    enabled?: boolean;
+    disabled?: boolean;
+    ariaLabel?: string;
+    onReorder: (fromIndex: number, toIndex: number) => void;
+  };
 }
 
 const TABLE_SHELL_CLASS_NAME = [
@@ -105,11 +111,17 @@ function DataTable<T>({
   emptyDescription,
   onRowClick,
   getRowClassName,
+  rowReorder,
 }: DataTableProps<T>) {
   const { t } = useTranslation();
   const resolvedEmptyTitle = emptyTitle ?? t('shared.table.emptyTitle');
   const resolvedEmptyDescription =
     emptyDescription ?? t('shared.table.emptyDescription');
+  const dragFromIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const isRowReorderEnabled = Boolean(rowReorder?.onReorder) && rowReorder?.enabled !== false;
+  const isRowReorderDisabled = Boolean(rowReorder?.disabled);
+  const reorderAriaLabel = rowReorder?.ariaLabel ?? t('shared.table.reorderRow');
 
   if (loading) {
     return (
@@ -138,6 +150,16 @@ function DataTable<T>({
       <table className={TABLE_CLASS_NAME}>
         <thead>
           <tr>
+            {isRowReorderEnabled ? (
+              <th
+                className={[
+                  HEAD_CELL_BASE_CLASS_NAME,
+                  'w-10 px-3',
+                  ALIGN_CLASS_NAMES.left,
+                ].join(' ')}
+                aria-label={reorderAriaLabel}
+              />
+            ) : null}
             {columns.map((column) => (
               <th
                 key={column.key}
@@ -164,10 +186,85 @@ function DataTable<T>({
                   onRowClick ? CLICKABLE_ROW_CLASS_NAME : ROW_CLASS_NAME,
                   getRowClassName ? getRowClassName(row, index) : '',
                   isSelected ? SELECTED_ROW_CLASS_NAME : '',
+                  dragOverIndex === index ? 'shadow-[inset_0_0_0_1px_rgb(var(--color-primary)/0.35)]' : '',
                 ].join(' ')}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 aria-selected={isSelected}
+                onDragOver={
+                  isRowReorderEnabled && !isRowReorderDisabled
+                    ? (event) => {
+                        if (dragFromIndexRef.current === null) {
+                          return;
+                        }
+                        event.preventDefault();
+                        setDragOverIndex(index);
+                      }
+                    : undefined
+                }
+                onDragLeave={
+                  isRowReorderEnabled && !isRowReorderDisabled
+                    ? () => setDragOverIndex((current) => (current === index ? null : current))
+                    : undefined
+                }
+                onDrop={
+                  isRowReorderEnabled && !isRowReorderDisabled
+                    ? (event) => {
+                        event.preventDefault();
+                        const fromIndex = dragFromIndexRef.current;
+                        dragFromIndexRef.current = null;
+                        setDragOverIndex(null);
+                        if (fromIndex === null || fromIndex === index) {
+                          return;
+                        }
+                        rowReorder?.onReorder(fromIndex, index);
+                      }
+                    : undefined
+                }
               >
+                {isRowReorderEnabled ? (
+                  <td className={[BODY_CELL_BASE_CLASS_NAME, 'w-10 px-3'].join(' ')}>
+                    <button
+                      type="button"
+                      className={[
+                        'inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition duration-fast',
+                        'hover:bg-surface-card hover:text-text-secondary',
+                        isRowReorderDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing',
+                      ].join(' ')}
+                      draggable={!isRowReorderDisabled}
+                      onClick={(event) => event.stopPropagation()}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onDragStart={(event) => {
+                        if (isRowReorderDisabled) {
+                          event.preventDefault();
+                          return;
+                        }
+                        dragFromIndexRef.current = index;
+                        setDragOverIndex(null);
+                        event.dataTransfer.effectAllowed = 'move';
+                        try {
+                          event.dataTransfer.setData('text/plain', resolvedRowKey);
+                        } catch {
+                          // ignored
+                        }
+                      }}
+                      onDragEnd={() => {
+                        dragFromIndexRef.current = null;
+                        setDragOverIndex(null);
+                      }}
+                      aria-label={reorderAriaLabel}
+                      title={reorderAriaLabel}
+                    >
+                      <span className="grid grid-cols-2 grid-rows-3 gap-[2px]" aria-hidden="true">
+                        {Array.from({ length: 6 }).map((_, dotIndex) => (
+                          <span
+                            key={dotIndex}
+                            className="h-1 w-1 rounded-full bg-current opacity-70"
+                          />
+                        ))}
+                      </span>
+                    </button>
+                  </td>
+                ) : null}
                 {columns.map((column) => (
                   <td
                     key={column.key}

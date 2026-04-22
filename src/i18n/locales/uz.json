@@ -189,7 +189,8 @@
       "emptyTitle": "Yozuvlar topilmadi",
       "emptyDescription": "Ma'lumot mavjud bo'lganda bu yerda ko'rsatiladi.",
       "loadingTitle": "Jadval yuklanmoqda",
-      "loadingDescription": "Ma'lumotlar tayyor bo'lgach satrlar ko'rsatiladi."
+      "loadingDescription": "Ma'lumotlar tayyor bo'lgach satrlar ko'rsatiladi.",
+      "reorderRow": "Tartibni o'zgartirish"
     },
     "searchInput": {
       "placeholder": "Qidirish"
@@ -729,6 +730,7 @@
     "categoriesEmptyDescription": "Qidiruv yoki filtrlarni o'zgartirib qayta urinib ko'ring.",
     "categoriesErrorTitle": "Kategoriyalar mavjud emas",
     "categoriesErrorDescription": "Joriy xizmatdan kategoriyalarni yuklab bo'lmadi.",
+    "categoryReorderError": "Kategoriyalar tartibini saqlab bo'lmadi.",
     "categoryNoDescription": "Tavsif yo'q",
     "columns": {
       "product": "Mahsulot",
@@ -750,6 +752,7 @@
     "categoryColumns": {
       "name": "Kategoriya",
       "code": "Kod",
+      "sortOrder": "Tartib",
       "status": "Holat",
       "updated": "Yangilangan sana",
       "actions": "Amallar"
@@ -773,6 +776,8 @@
       "name": "Kategoriya nomi",
       "namePlaceholder": "Masalan: quyosh panellari",
       "code": "Kod",
+      "sortOrder": "Tartib raqami",
+      "sortOrderHint": "Kichik raqam yuqoriroq chiqadi. 0 eng yuqori.",
       "description": "Tavsif",
       "descriptionPlaceholder": "Kategoriya bo'yicha qisqa tavsif",
       "active": "Faol kategoriya",
@@ -782,6 +787,7 @@
       "creating": "Qo'shilmoqda...",
       "saving": "Saqlanmoqda...",
       "requiredError": "Kategoriya nomini kiriting.",
+      "sortOrderError": "Tartib raqamini to'g'ri kiriting.",
       "saveError": "Kategoriyani saqlab bo'lmadi."
     },
     "categoryDeleteDialog": {

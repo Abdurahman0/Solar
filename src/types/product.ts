@@ -7,6 +7,7 @@ export interface ProductCategory extends AuditInfo {
   id: EntityId;
   name: string;
   code: string;
+  sortOrder: number;
   description?: string;
   image?: string | null;
   imageUrl?: string;
@@ -25,6 +26,7 @@ export interface ProductCategoryListParams {
 export interface ProductCategoryMutationInput {
   name: string;
   code: string;
+  sortOrder?: number;
   description?: string;
   image?: File | null;
   isActive?: boolean;
