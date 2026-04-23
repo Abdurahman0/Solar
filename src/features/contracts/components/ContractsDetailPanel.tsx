@@ -738,11 +738,6 @@ export function ContractsDetailPanel({
 		</PageCard>
 
 		<PageCard>
-			<p className={labelClassName}>{tx.fields.details}</p>
-			<ContractsDetailsView details={contract.details} isRu={isRu} locale={locale} />
-		</PageCard>
-
-		<PageCard>
 			<p className={labelClassName}>{tx.fields.items}</p>
 			<div className='mt-2 grid gap-2'>
 				{contract.items?.length ? (
