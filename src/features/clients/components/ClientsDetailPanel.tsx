@@ -28,14 +28,6 @@ function isUuidLike(value: string | undefined): boolean {
   );
 }
 
-function formatSessionId(value: string | null | undefined): string {
-  if (!value) {
-    return '-';
-  }
-
-  return value.length > 18 ? `...${value.slice(-18)}` : value;
-}
-
 const labelClassName =
   'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted';
 
@@ -316,7 +308,9 @@ export function ClientsDetailPanel({
             }}
           >
             <p className={labelClassName}>{tx.fields.chatSession}</p>
-            <p className={`mt-1 ${valueClassName}`}>{formatSessionId(client.chat_session_id)}</p>
+            <p className={`mt-1 ${valueClassName}`}>
+              {client.chat_session_id ? tx.fields.chatSession : '-'}
+            </p>
           </button>
           {client.notes ? (
             <div className="rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2">
