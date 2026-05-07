@@ -33,6 +33,7 @@ export interface ClientRecentContract {
 export interface Client extends BaseEntity {
 	lead?: string | null
 	lead_id?: string | null
+	chat_session_id?: string | null
 	full_name: string
 	phone?: string
 	region?: string

@@ -28,6 +28,14 @@ function isUuidLike(value: string | undefined): boolean {
   );
 }
 
+function formatSessionId(value: string | null | undefined): string {
+  if (!value) {
+    return '-';
+  }
+
+  return value.length > 18 ? `...${value.slice(-18)}` : value;
+}
+
 const labelClassName =
   'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted';
 
@@ -65,6 +73,7 @@ export function ClientsDetailPanel({
           budget: 'Бюджет',
           source: 'Источник',
           manager: 'Менеджер',
+          chatSession: 'В чат',
           notes: 'Заметки',
           aiSummary: 'AI сводка',
           created: 'Создан',
@@ -94,6 +103,7 @@ export function ClientsDetailPanel({
           budget: 'Byudjet',
           source: 'Manba',
           manager: 'Menejer',
+          chatSession: 'Chatga',
           notes: 'Izohlar',
           aiSummary: 'AI xulosa',
           created: 'Yaratilgan',
@@ -292,6 +302,22 @@ export function ClientsDetailPanel({
                 : '-'}
             </p>
           </div>
+          <button
+            type="button"
+            className="rounded-lg bg-surface-subtle/80 p-3 text-left transition duration-fast hover:bg-surface-subtle disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={!client.chat_session_id}
+            onClick={() => {
+              if (!client.chat_session_id) {
+                return;
+              }
+
+              navigate(`/chat/sessions/${client.chat_session_id}`);
+              onClose?.();
+            }}
+          >
+            <p className={labelClassName}>{tx.fields.chatSession}</p>
+            <p className={`mt-1 ${valueClassName}`}>{formatSessionId(client.chat_session_id)}</p>
+          </button>
           {client.notes ? (
             <div className="rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2">
               <p className={labelClassName}>{tx.fields.notes}</p>
