@@ -303,12 +303,13 @@ export function ClientsDetailPanel({
                 return;
               }
 
-              navigate(`/chat/sessions/${client.chat_session_id}`);
+              navigate(routePaths.chats, {
+                state: { sessionId: client.chat_session_id },
+              });
               onClose?.();
             }}
           >
-            <p className={labelClassName}>{tx.fields.chatSession}</p>
-            <p className={`mt-1 ${valueClassName}`}>
+            <p className={valueClassName}>
               {client.chat_session_id ? tx.fields.chatSession : '-'}
             </p>
           </button>

@@ -1,6 +1,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import ConfirmDialog from '../../../components/shared/dialogs/ConfirmDialog';
 import ChatSessionFilters from '../../../features/chat/components/ChatSessionFilters';
@@ -194,6 +195,7 @@ function sortSessionsByOrdering(
 
 function ChatPage() {
   const { t } = useTranslation();
+  const location = useLocation();
   const copy = useMemo(
     () => ({
       orderingLatestMessage: t('chatPage.ordering.latestMessage'),
@@ -237,6 +239,11 @@ function ChatPage() {
   );
   const [isUpdatingAIState, setIsUpdatingAIState] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const requestedSessionId = useMemo(() => {
+    const state = location.state as { sessionId?: unknown } | null;
+    return typeof state?.sessionId === 'string' ? state.sessionId : null;
+  }, [location.state]);
 
   const sessionCacheRef = useRef<Record<string, Conversation>>({});
   const activeSessionIdRef = useRef<EntityId | null>(null);
@@ -495,6 +502,14 @@ function ChatPage() {
   useEffect(() => {
     void loadSessions();
   }, [loadSessions]);
+
+  useEffect(() => {
+    if (!requestedSessionId) {
+      return;
+    }
+
+    setActiveSessionId(requestedSessionId);
+  }, [requestedSessionId]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
