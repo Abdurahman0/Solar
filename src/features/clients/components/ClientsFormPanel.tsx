@@ -4,6 +4,10 @@ import AppIcon from '../../../components/shared/icons/AppIcon';
 import { FilterSelect } from '../../../components/shared/data';
 import { services } from '../../../services';
 import type { Client, CreateClientInput, UpdateClientInput } from '../../../services/contracts';
+import {
+  ClientRecallScheduleField,
+  readClientRecallAt,
+} from './ClientRecallSchedule';
 
 export interface ClientsFormPanelProps {
   client?: Client;
@@ -24,6 +28,7 @@ const labelClassName =
 export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPanelProps) {
   const { i18n } = useTranslation();
   const isRu = i18n.language === 'ru';
+  const locale = isRu ? 'ru-RU' : 'uz-UZ';
   const isEditing = Boolean(client);
 
   const tx = isRu
@@ -53,7 +58,6 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
           budgetRange: 'Бюджет',
           manager: 'Менеджер',
           notes: 'Заметки',
-          aiSummary: 'AI резюме',
         },
       }
     : {
@@ -82,7 +86,6 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
           budgetRange: 'Byudjet',
           manager: 'Menejer',
           notes: 'Izohlar',
-          aiSummary: 'AI xulosa',
         },
       };
 
@@ -106,12 +109,12 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
     status: client?.status || 'new',
     manager: client?.manager || undefined,
     notes: client?.notes || '',
-    ai_summary: client?.ai_summary || '',
     metadata: client?.metadata || undefined,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [recallAt, setRecallAt] = useState<string | null>(() => readClientRecallAt(client));
   const canSubmit = useMemo(() => {
     const fullNameOk = (form.full_name ?? '').trim().length > 0;
     const phoneOk = (form.phone ?? '').trim().length > 0;
@@ -173,9 +176,14 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
 
     setIsSubmitting(true);
     try {
+      const payload: CreateClientInput | UpdateClientInput = {
+        ...form,
+        recall_at: recallAt,
+      };
+
       const result = isEditing
-        ? await services.clients.updateClient(client!.id, form as UpdateClientInput)
-        : await services.clients.createClient(form);
+        ? await services.clients.updateClient(client!.id, payload as UpdateClientInput)
+        : await services.clients.createClient(payload as CreateClientInput);
       onSuccess?.(result as Client);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to save client.');
@@ -323,8 +331,13 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
             <textarea className={`${inputClassName} min-h-[92px] resize-y`} value={form.notes || ''} onChange={(e) => updateField('notes', e.target.value)} disabled={isSubmitting} />
           </div>
           <div className="grid gap-1.5 sm:col-span-2">
-            <label className={labelClassName}>{tx.labels.aiSummary}</label>
-            <textarea className={`${inputClassName} min-h-[92px] resize-y`} value={form.ai_summary || ''} onChange={(e) => updateField('ai_summary', e.target.value)} disabled={isSubmitting} />
+            <ClientRecallScheduleField
+              value={recallAt}
+              onChange={setRecallAt}
+              language={i18n.language}
+              locale={locale}
+              disabled={isSubmitting}
+            />
           </div>
         </div>
 

@@ -9,6 +9,10 @@ import { formatLocalizedDate } from '../../../i18n/date-format';
 import { services } from '../../../services';
 import { routePaths } from '../../../config/routes';
 import type { Client, ClientRecentContract, ClientSelectedProduct } from '../../../services/contracts';
+import {
+  ClientRecallScheduleDisplay,
+  readClientRecallAt,
+} from './ClientRecallSchedule';
 
 export interface ClientsDetailPanelProps {
   clientId: string;
@@ -26,6 +30,17 @@ function isUuidLike(value: string | undefined): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value.trim(),
   );
+}
+
+function splitNotes(value: string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return value
+    .split(/\r?\n\s*\r?\n+/)
+    .map(note => note.trim())
+    .filter(Boolean);
 }
 
 const labelClassName =
@@ -161,6 +176,8 @@ export function ClientsDetailPanel({
   }
 
   const client = state.data as Client;
+  const recallAt = readClientRecallAt(client);
+  const noteItems = splitNotes(client.notes);
   const statusKey = (client.status || 'new') as keyof typeof statusLabels;
   const localizedStatusLabel =
     statusLabels[statusKey] || client.status_label || client.status || 'new';
@@ -313,12 +330,21 @@ export function ClientsDetailPanel({
               {client.chat_session_id ? tx.fields.chatSession : '-'}
             </p>
           </button>
-          {client.notes ? (
+          {noteItems.length > 0 ? (
             <div className="rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2">
               <p className={labelClassName}>{tx.fields.notes}</p>
-              <p className="mt-1 text-sm leading-6 text-text-secondary [overflow-wrap:anywhere]">
-                {client.notes}
-              </p>
+              <div className="mt-2 grid gap-2">
+                {noteItems.map((note, index) => (
+                  <div
+                    key={`${index}-${note}`}
+                    className="rounded-lg bg-surface-card/72 px-3 py-2.5 ring-1 ring-border-soft/35"
+                  >
+                    <p className="m-0 text-sm leading-6 text-text-secondary [overflow-wrap:anywhere] whitespace-pre-wrap">
+                      {note}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
           {client.ai_summary ? (
@@ -329,6 +355,11 @@ export function ClientsDetailPanel({
               </p>
             </div>
           ) : null}
+          <ClientRecallScheduleDisplay
+            value={recallAt}
+            language={i18n.language}
+            locale={locale}
+          />
         </div>
       </PageCard>
 

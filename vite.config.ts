@@ -48,7 +48,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      allowedHosts: ['nonofficinal-brent-telepathic.ngrok-free.dev'],
+      allowedHosts: ['triceps-goes-cure.ngrok-free.dev'],
       proxy: useApiProxy
         ? {
             '/api': {

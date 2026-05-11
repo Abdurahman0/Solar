@@ -39,6 +39,7 @@ export interface Client {
 	managerUsername?: string
 	notes?: string
 	aiSummary?: string
+	recallAt?: TimestampString | null
 	metadata?: Record<string, unknown>
 	createdAt: TimestampString
 	updatedAt?: TimestampString
@@ -73,6 +74,7 @@ export interface ClientMutationInput {
 	manager?: EntityId | null
 	notes?: string
 	ai_summary?: string
+	recall_at?: TimestampString | null
 	metadata?: Record<string, unknown>
 }
 
@@ -97,6 +99,7 @@ export interface ClientPatchInput {
 	manager?: EntityId | null
 	notes?: string
 	ai_summary?: string
+	recall_at?: TimestampString | null
 	metadata?: Record<string, unknown>
 }
 

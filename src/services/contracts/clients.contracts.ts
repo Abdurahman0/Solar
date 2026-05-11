@@ -67,6 +67,7 @@ export interface Client extends BaseEntity {
 	manager_username?: string
 	notes?: string
 	ai_summary?: string
+	recall_at?: string | null
 	metadata?: Record<string, unknown>
 	selected_products?: ClientSelectedProduct[]
 	recent_contracts?: ClientRecentContract[]

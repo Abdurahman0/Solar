@@ -60,6 +60,7 @@ function normalizePayload(input: CreateClientInput | UpdateClientInput): Record<
 		'manager',
 		'notes',
 		'ai_summary',
+		'recall_at',
 		'metadata',
 	]
 
