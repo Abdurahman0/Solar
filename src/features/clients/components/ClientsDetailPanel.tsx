@@ -71,12 +71,7 @@ export function ClientsDetailPanel({
           phone: 'Телефон',
           region: 'Регион',
           address: 'Адрес',
-          objectType: 'Тип объекта',
-          segment: 'Сегмент клиента',
           electricity: 'Потребление электроэнергии',
-          desiredPower: 'Желаемая мощность',
-          monthlyBill: 'Ежемесячный счет',
-          solutionType: 'Тип решения',
           budget: 'Бюджет',
           source: 'Источник',
           manager: 'Менеджер',
@@ -101,12 +96,7 @@ export function ClientsDetailPanel({
           phone: 'Telefon',
           region: 'Hudud',
           address: 'Manzil',
-          objectType: 'Obyekt turi',
-          segment: 'Mijoz segmenti',
           electricity: 'Elektr iste\'moli',
-          desiredPower: 'So\'ralgan quvvat',
-          monthlyBill: 'Oylik hisob',
-          solutionType: 'Yechim turi',
           budget: 'Byudjet',
           source: 'Manba',
           manager: 'Menejer',
@@ -229,63 +219,8 @@ export function ClientsDetailPanel({
             <p className={`mt-1 ${valueClassName}`}>{client.address || '-'}</p>
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>{tx.fields.objectType}</p>
-            <p className={`mt-1 ${valueClassName}`}>{client.object_type || '-'}</p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>{tx.fields.segment}</p>
-            <p className={`mt-1 ${valueClassName}`}>{client.customer_segment || '-'}</p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.electricity}</p>
             <p className={`mt-1 ${valueClassName}`}>{client.electricity_consumption || '-'}</p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>{tx.fields.desiredPower}</p>
-            <p className={`mt-1 ${valueClassName}`}>{client.desired_power_kw ? `${client.desired_power_kw} kVt` : '-'}</p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>
-              {isRu ? 'Мощность по аудиту' : 'Audit xulosasi quvvati'}
-            </p>
-            <p className={`mt-1 ${valueClassName}`}>
-              {client.audit_conclusion_kw ? `${client.audit_conclusion_kw} kVt` : '-'}
-            </p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>
-              {isRu ? 'Субсидируемая мощность' : 'Subsidiya uchun quvvat'}
-            </p>
-            <p className={`mt-1 ${valueClassName}`}>
-              {client.eligible_subsidy_kw ? `${client.eligible_subsidy_kw} kVt` : '-'}
-            </p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>
-              {isRu ? 'Оценочная сумма субсидии' : 'Taxminiy subsidiya summasi'}
-            </p>
-            <p className={`mt-1 ${valueClassName}`}>
-              {client.estimated_subsidy_amount
-                ? (typeof client.estimated_subsidy_amount === 'number' ||
-                   !isNaN(Number(client.estimated_subsidy_amount))
-                    ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(Number(client.estimated_subsidy_amount))} UZS`
-                    : client.estimated_subsidy_amount)
-                : '-'}
-            </p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>{tx.fields.monthlyBill}</p>
-            <p className={`mt-1 ${valueClassName}`}>
-              {client.monthly_bill 
-                ? (typeof client.monthly_bill === 'number' || !isNaN(Number(client.monthly_bill))
-                  ? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(Number(client.monthly_bill))} UZS`
-                  : client.monthly_bill)
-                : '-'}
-            </p>
-          </div>
-          <div className="rounded-lg bg-surface-subtle/80 p-3">
-            <p className={labelClassName}>{tx.fields.solutionType}</p>
-            <p className={`mt-1 ${valueClassName}`}>{client.solution_type || '-'}</p>
           </div>
           <div className="rounded-lg bg-surface-subtle/80 p-3">
             <p className={labelClassName}>{tx.fields.budget}</p>

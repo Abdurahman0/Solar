@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useEffect, useRef } from 'react'
 import { FiEdit2, FiTrash2 } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
@@ -121,7 +121,7 @@ function ContractsPage() {
 			paid: t('contractsPage.statuses.paid'),
 			delivered: t('contractsPage.statuses.delivered'),
 			sent: t('contractsPage.statuses.sent'),
-			signed: t('contractsPage.statuses.signed'),
+			signed: isRu ? 'Завершен' : 'Yakunlandi',
 			canceled: t('contractsPage.statuses.canceled'),
 		},
 		edit: t('contractsPage.edit'),

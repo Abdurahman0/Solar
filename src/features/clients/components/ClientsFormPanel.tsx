@@ -49,12 +49,7 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
           status: 'Статус',
           region: 'Регион',
           address: 'Адрес',
-          objectType: 'Тип объекта',
-          segment: 'Сегмент клиента',
           electricity: 'Электропотребление',
-          desiredPower: 'Желаемая мощность (кВт)',
-          monthlyBill: 'Средний чек',
-          solutionType: 'Тип решения',
           budgetRange: 'Бюджет',
           manager: 'Менеджер',
           notes: 'Заметки',
@@ -77,12 +72,7 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
           status: 'Holat',
           region: 'Hudud',
           address: 'Manzil',
-          objectType: 'Obyekt turi',
-          segment: 'Mijoz segmenti',
           electricity: 'Elektr iste\'moli',
-          desiredPower: 'So\'ralgan quvvat (kVt)',
-          monthlyBill: 'Oylik hisob',
-          solutionType: 'Yechim turi',
           budgetRange: 'Byudjet',
           manager: 'Menejer',
           notes: 'Izohlar',
@@ -254,73 +244,8 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
             <input className={inputClassName} value={form.address || ''} onChange={(e) => updateField('address', e.target.value)} disabled={isSubmitting} />
           </div>
           <div className="grid gap-1.5">
-            <label className={labelClassName}>{tx.labels.objectType}</label>
-            <input className={inputClassName} value={form.object_type || ''} onChange={(e) => updateField('object_type', e.target.value)} disabled={isSubmitting} />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>{tx.labels.segment}</label>
-            <input className={inputClassName} value={form.customer_segment || ''} onChange={(e) => updateField('customer_segment', e.target.value)} disabled={isSubmitting} />
-          </div>
-          <div className="grid gap-1.5">
             <label className={labelClassName}>{tx.labels.electricity}</label>
             <input className={inputClassName} value={form.electricity_consumption || ''} onChange={(e) => updateField('electricity_consumption', e.target.value)} disabled={isSubmitting} />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>{tx.labels.desiredPower}</label>
-            <input 
-              type="number" 
-              className={inputClassName} 
-              value={form.desired_power_kw ?? ''} 
-              onChange={(e) => updateField('desired_power_kw', e.target.value ? Number(e.target.value) : null)} 
-              disabled={isSubmitting} 
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>
-              {isRu ? 'Мощность по аудиту (кВт)' : 'Audit xulosasi quvvati (kVt)'}
-            </label>
-            <input
-              type="number"
-              className={inputClassName}
-              value={form.audit_conclusion_kw ?? ''}
-              onChange={(e) =>
-                updateField('audit_conclusion_kw', e.target.value ? Number(e.target.value) : null)
-              }
-              disabled={isSubmitting}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>
-              {isRu ? 'Субсидируемая мощность (кВт)' : 'Subsidiya uchun quvvat (kVt)'}
-            </label>
-            <input
-              type="number"
-              className={inputClassName}
-              value={form.eligible_subsidy_kw ?? ''}
-              onChange={(e) =>
-                updateField('eligible_subsidy_kw', e.target.value ? Number(e.target.value) : null)
-              }
-              disabled={isSubmitting}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>
-              {isRu ? 'Оценочная сумма субсидии' : 'Taxminiy subsidiya summasi'}
-            </label>
-            <input
-              className={inputClassName}
-              value={String(form.estimated_subsidy_amount ?? '')}
-              onChange={(e) => updateField('estimated_subsidy_amount', e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>{tx.labels.monthlyBill}</label>
-            <input className={inputClassName} value={String(form.monthly_bill ?? '')} onChange={(e) => updateField('monthly_bill', e.target.value)} disabled={isSubmitting} />
-          </div>
-          <div className="grid gap-1.5">
-            <label className={labelClassName}>{tx.labels.solutionType}</label>
-            <input className={inputClassName} value={form.solution_type || ''} onChange={(e) => updateField('solution_type', e.target.value)} disabled={isSubmitting} />
           </div>
           <div className="grid gap-1.5">
             <label className={labelClassName}>{tx.labels.budgetRange}</label>

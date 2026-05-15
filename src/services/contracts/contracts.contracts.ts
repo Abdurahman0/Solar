@@ -22,6 +22,7 @@ export interface Contract extends BaseEntity {
 		| 'paid'
 		| 'delivered'
 		| 'sent'
+		| 'completed'
 		| 'signed'
 		| 'canceled'
 	panel_type: 'jinko_ja' | 'longi_hi_mo_x10' | ''
@@ -37,7 +38,15 @@ export interface Contract extends BaseEntity {
 	subsidy_amount?: string | number | null
 	customer_amount?: string | number | null
 	customer_phone?: string
+	one_id_code?: string
+	agreed_amount?: string | number | null
+	paid_amount?: string | number | null
 	installation_address?: string
+	auditor_organization_name?: string
+	auditor_phone?: string
+	audit_conclusion?: string
+	lot_deadline?: string | null
+	installer_fee_amount?: string | number | null
 	delivery_status?: string
 	delivery_status_label?: string
 	delivery_notes?: string
@@ -49,6 +58,14 @@ export interface Contract extends BaseEntity {
 	cadastre_file_url?: string | null
 	house_image?: string | null
 	house_image_url?: string | null
+	home_cadastre_file?: string | null
+	home_cadastre_file_url?: string | null
+	audit_contract_file?: string | null
+	audit_contract_file_url?: string | null
+	company_contract_file?: string | null
+	company_contract_file_url?: string | null
+	additional_file?: string | null
+	additional_file_url?: string | null
 	details?: string | Record<string, unknown> | null
 	items: ContractItem[]
 }
@@ -73,7 +90,16 @@ export interface CreateContractInput {
 	eligible_subsidy_kw?: number | null
 	estimated_subsidy_amount?: string | number | null
 	subsidy_percent?: string | number | null
+	one_id_code?: string
 	customer_phone?: string
+	agreed_amount?: string | number | null
+	paid_amount?: string | number | null
+	subsidy_amount?: string | number | null
+	auditor_organization_name?: string
+	auditor_phone?: string
+	audit_conclusion?: string
+	lot_deadline?: string | null
+	installer_fee_amount?: string | number | null
 	installation_address?: string
 	delivery_status?: string
 	delivery_notes?: string
@@ -86,6 +112,10 @@ export interface CreateContractInput {
 	file?: string | File | null
 	cadastre_file?: string | File | null
 	house_image?: string | File | null
+	home_cadastre_file?: string | File | null
+	audit_contract_file?: string | File | null
+	company_contract_file?: string | File | null
+	additional_file?: string | File | null
 }
 
 export interface UpdateContractInput {
@@ -100,7 +130,16 @@ export interface UpdateContractInput {
 	eligible_subsidy_kw?: number | null
 	estimated_subsidy_amount?: string | number | null
 	subsidy_percent?: string | number | null
+	one_id_code?: string
 	customer_phone?: string
+	agreed_amount?: string | number | null
+	paid_amount?: string | number | null
+	subsidy_amount?: string | number | null
+	auditor_organization_name?: string
+	auditor_phone?: string
+	audit_conclusion?: string
+	lot_deadline?: string | null
+	installer_fee_amount?: string | number | null
 	installation_address?: string
 	delivery_status?: string
 	delivery_notes?: string
@@ -108,6 +147,10 @@ export interface UpdateContractInput {
 	file?: string | File | null
 	cadastre_file?: string | File | null
 	house_image?: string | File | null
+	home_cadastre_file?: string | File | null
+	audit_contract_file?: string | File | null
+	company_contract_file?: string | File | null
+	additional_file?: string | File | null
 	items?: Array<{
 		product: string
 		quantity: number

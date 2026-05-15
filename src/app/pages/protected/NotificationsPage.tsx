@@ -181,13 +181,30 @@ function NotificationsPage() {
   }
 
   function handleNotificationDeleted(notificationId: EntityId) {
+    let nextItemsLength = 0;
     setNotifications((current) =>
-      current.filter((notification) => notification.id !== notificationId),
+      {
+        const next = current.filter((notification) => notification.id !== notificationId);
+        nextItemsLength = next.length;
+        return next;
+      },
     );
+    setPaginationMeta((current) => {
+      const nextTotalItems = Math.max(0, current.totalItems - 1);
+      const nextTotalPages = Math.max(1, Math.ceil(nextTotalItems / current.pageSize));
+      return {
+        ...current,
+        totalItems: nextTotalItems,
+        totalPages: nextTotalPages,
+      };
+    });
     if (selectedNotificationId === notificationId) {
       setSelectedNotificationId(null);
     }
-    setReloadCursor((current) => current + 1);
+    if (nextItemsLength === 0 && currentPage > 1) {
+      setCurrentPage((current) => Math.max(1, current - 1));
+      setReloadCursor((current) => current + 1);
+    }
   }
 
   async function handleMarkAllRead() {

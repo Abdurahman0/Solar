@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FiEdit2, FiTrash2 } from 'react-icons/fi'
+import {
+	FiActivity,
+	FiCheckCircle,
+	FiClock,
+	FiCreditCard,
+	FiEdit2,
+	FiFileText,
+	FiSend,
+	FiShield,
+	FiTrash2,
+	FiTruck,
+	FiXCircle,
+} from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
 import { useDetail } from '../../../components/hooks'
 import { EmptyState, LoadingState, PageCard } from '../../../components/shared/page'
@@ -29,7 +41,7 @@ const valueClassName =
 function getStatusTone(
 	status: string,
 ): 'info' | 'warning' | 'accent' | 'success' | 'danger' {
-	if (status === 'paid' || status === 'signed' || status === 'delivered') {
+	if (status === 'paid' || status === 'signed' || status === 'completed' || status === 'delivered') {
 		return 'success'
 	}
 	if (status === 'canceled') {
@@ -56,7 +68,8 @@ function getStatusLabel(status: string, isRu: boolean): string {
 			paid: "\u041e\u043f\u043b\u0430\u0447\u0435\u043d",
 			delivered: "\u0414\u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d",
 			sent: "\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d",
-			signed: "\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d",
+			signed: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d",
+			completed: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d",
 			canceled: "\u041e\u0442\u043c\u0435\u043d\u0435\u043d",
 		}
 		return map[status] ?? status
@@ -72,11 +85,305 @@ function getStatusLabel(status: string, isRu: boolean): string {
 		paid: 'To\'langan',
 		delivered: 'Yetkazilgan',
 		sent: 'Yuborilgan',
-		signed: 'Imzolangan',
+		signed: 'Yakunlandi',
+		completed: 'Yakunlandi',
 		canceled: 'Bekor qilingan',
 	}
 	return map[status] ?? status
 }
+
+const CONTRACT_STAGE_IDS = ['draft', 'audit', 'moderation', 'payment', 'finish'] as const
+
+type ContractStageId = (typeof CONTRACT_STAGE_IDS)[number]
+type StageTone = 'todo' | 'pending' | 'success' | 'danger'
+
+function getCurrentStageIndex(status: string): number {
+	if (
+		status === 'canceled' ||
+		status === 'sent' ||
+		status === 'delivered' ||
+		status === 'signed' ||
+		status === 'completed'
+	) {
+		return 4
+	}
+	if (status === 'payment_pending' || status === 'paid') {
+		return 3
+	}
+	if (status === 'moderation' || status === 'contract_ready') {
+		return 2
+	}
+	if (status === 'audit_pending' || status === 'audit_paid') {
+		return 1
+	}
+	return 0
+}
+
+function getStageTone(stageId: ContractStageId, status: string): StageTone {
+	if (status === 'canceled') {
+		return 'danger'
+	}
+
+	const currentIndex = getCurrentStageIndex(status)
+	const stageIndex = CONTRACT_STAGE_IDS.indexOf(stageId)
+
+	if (stageIndex > currentIndex) {
+		return 'todo'
+	}
+	if (stageIndex < currentIndex) {
+		return 'success'
+	}
+
+	switch (stageId) {
+		case 'draft':
+			return 'success'
+		case 'audit':
+			return status === 'audit_pending' ? 'pending' : 'success'
+		case 'moderation':
+			return status === 'moderation' ? 'pending' : 'success'
+		case 'payment':
+			return status === 'payment_pending' ? 'pending' : 'success'
+		case 'finish':
+			return 'success'
+		default:
+			return 'todo'
+	}
+}
+
+function getStageStatusLabel(
+	stageId: ContractStageId,
+	status: string,
+	isRu: boolean,
+	tone: StageTone,
+): string {
+	if (stageId === 'draft') {
+		return getStatusLabel('draft', isRu)
+	}
+	if (stageId === 'audit') {
+		return getStatusLabel(tone === 'success' ? 'audit_paid' : 'audit_pending', isRu)
+	}
+	if (stageId === 'moderation') {
+		return getStatusLabel(tone === 'success' ? 'contract_ready' : 'moderation', isRu)
+	}
+	if (stageId === 'payment') {
+		return getStatusLabel(tone === 'success' ? 'paid' : 'payment_pending', isRu)
+	}
+	if (tone === 'danger' || status === 'canceled') {
+		return getStatusLabel('canceled', isRu)
+	}
+	if (tone === 'todo') {
+		return getStatusLabel('sent', isRu)
+	}
+	if (status === 'sent' || status === 'delivered' || status === 'signed' || status === 'completed') {
+		return getStatusLabel(status, isRu)
+	}
+	return getStatusLabel('signed', isRu)
+}
+
+function getStageIcon(stageId: ContractStageId, tone: StageTone, status: string) {
+	if (tone === 'danger') {
+		return FiXCircle
+	}
+	if (tone === 'pending') {
+		if (stageId === 'moderation') {
+			return FiActivity
+		}
+		return FiClock
+	}
+	if (tone === 'todo') {
+		switch (stageId) {
+			case 'audit':
+				return FiShield
+			case 'payment':
+				return FiCreditCard
+			case 'finish':
+				return FiTruck
+			case 'moderation':
+				return FiActivity
+			default:
+				return FiFileText
+		}
+	}
+
+	if (stageId === 'audit') {
+		return FiShield
+	}
+	if (stageId === 'payment') {
+		return FiCreditCard
+	}
+	if (stageId === 'finish') {
+		if (status === 'sent') {
+			return FiSend
+		}
+		if (status === 'delivered') {
+			return FiTruck
+		}
+		return FiCheckCircle
+	}
+	return FiCheckCircle
+}
+
+function getToneClass(tone: StageTone): string {
+	if (tone === 'danger') {
+		return 'bg-danger-bg text-danger ring-danger/30'
+	}
+	if (tone === 'success') {
+		return 'bg-success/15 text-success ring-success/30'
+	}
+	if (tone === 'pending') {
+		return 'bg-warning/15 text-warning ring-warning/30'
+	}
+	return 'bg-surface-card text-text-muted ring-border-soft/45'
+}
+
+function getToneTextClass(tone: StageTone): string {
+	if (tone === 'danger') {
+		return 'text-danger'
+	}
+	if (tone === 'success') {
+		return 'text-success'
+	}
+	if (tone === 'pending') {
+		return 'text-warning'
+	}
+	return 'text-text-muted'
+}
+
+function getToneHex(tone: StageTone): string {
+	if (tone === 'danger') {
+		return '#ef4444'
+	}
+	if (tone === 'success') {
+		return '#22c55e'
+	}
+	if (tone === 'pending') {
+		return '#f59e0b'
+	}
+	return '#cbd5e1'
+}
+
+function ContractStatusTimeline({
+	status,
+	isRu,
+}: {
+	status: string
+	isRu: boolean
+}) {
+	const isCanceled = status === 'canceled'
+	const title = isRu ? '\u0425\u043e\u0434 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430' : 'Shartnoma jarayoni'
+	const currentStageLabel = isRu ? '\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u044d\u0442\u0430\u043f' : 'Joriy bosqich'
+	const currentStageIndex = getCurrentStageIndex(status)
+	const currentTone = getStageTone(CONTRACT_STAGE_IDS[currentStageIndex], status)
+	const currentLabel =
+		currentTone === 'danger'
+			? isRu
+				? '\u041e\u0442\u043c\u0435\u043d\u0435\u043d'
+				: 'Bekor'
+			: currentTone === 'success'
+				? isRu
+					? '\u0423\u0441\u043f\u0435\u0448\u043d\u043e'
+					: 'Muvaffaqiyatli'
+				: isRu
+					? '\u041e\u0436\u0438\u0434\u0430\u043d\u0438\u0435'
+					: 'Kutilmoqda'
+	const currentClass = getToneClass(currentTone)
+	const CurrentIcon =
+		currentTone === 'danger'
+			? FiXCircle
+			: currentTone === 'success'
+				? FiCheckCircle
+				: FiClock
+	const stages = CONTRACT_STAGE_IDS.map(stageId => {
+		const tone = getStageTone(stageId, status)
+		return {
+			id: stageId,
+			tone,
+			statusLabel: getStageStatusLabel(stageId, status, isRu, tone),
+			icon: getStageIcon(stageId, tone, status),
+		}
+	})
+	const canceledNote = isRu
+		? '\u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u043e\u0442\u043c\u0435\u043d\u0435\u043d. \u041f\u0440\u043e\u0446\u0435\u0441\u0441 \u043f\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430\u043c \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d.'
+		: "Shartnoma bekor qilingan. Statuslar bo'yicha jarayon to'xtatilgan."
+
+	return (
+		<div className='rounded-2xl bg-gradient-to-br from-surface-subtle/85 via-surface-card to-surface-subtle/45 p-4 ring-1 ring-border-soft/45'>
+			<div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+				<div className='min-w-0'>
+					<p className={labelClassName}>{title}</p>
+					<p className='mt-1 text-sm font-semibold text-text-secondary'>{currentStageLabel}</p>
+				</div>
+				<div
+					className={[
+						'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ring-1',
+						currentClass,
+					].join(' ')}
+				>
+					<CurrentIcon className='h-4 w-4' />
+					<span>{currentLabel}</span>
+				</div>
+			</div>
+			<p className='mb-3 text-sm font-semibold text-text-primary'>{getStatusLabel(status, isRu)}</p>
+
+			<div className='w-full pb-3 pt-1'>
+				<div className='flex w-full items-start px-1'>
+					{stages.map((stage, index) => {
+						const Icon = stage.icon
+						const circleClass = getToneClass(stage.tone)
+						const textClass = getToneTextClass(stage.tone)
+						const leftLineStyle =
+							index > 0
+								? {
+										backgroundColor: getToneHex(stages[index - 1].tone),
+									}
+								: undefined
+						const rightLineStyle =
+							index < stages.length - 1
+								? {
+										backgroundColor: getToneHex(stage.tone),
+									}
+								: undefined
+						return (
+							<div key={stage.id} className='relative flex flex-1 flex-col items-center'>
+								{index > 0 ? (
+									<div
+										className='absolute left-0 top-[20px] h-[2px] w-[calc(50%-20px)] opacity-90'
+										style={leftLineStyle}
+									/>
+								) : null}
+								{index < stages.length - 1 ? (
+									<div
+										className='absolute right-0 top-[20px] h-[2px] w-[calc(50%-20px)] opacity-90'
+										style={rightLineStyle}
+									/>
+								) : null}
+								<div
+									className={[
+										'relative z-[1] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ring-1 transition duration-fast',
+										circleClass,
+									].join(' ')}
+								>
+									<Icon className='h-5 w-5' />
+								</div>
+								<p className={`mt-2 w-full px-1 text-center text-xs font-semibold leading-tight ${textClass}`}>
+									{stage.statusLabel}
+								</p>
+							</div>
+						)
+					})}
+				</div>
+			</div>
+
+			{isCanceled ? (
+				<div className='mt-3 inline-flex items-center gap-2 rounded-lg bg-danger-bg px-3 py-2 text-xs font-semibold text-danger ring-1 ring-danger/25'>
+					<FiXCircle className='h-4 w-4' />
+					{canceledNote}
+				</div>
+			) : null}
+		</div>
+	)
+}
+
 function getDeliveryStatusLabel(
 	status: string | null | undefined,
 	isRu: boolean,
@@ -118,7 +425,51 @@ function formatDetailsText(details: Contract['details']): string {
 	}
 }
 
+function readDetailsObject(details: Contract['details']): Record<string, unknown> {
+	if (!details) {
+		return {}
+	}
+	if (typeof details === 'string') {
+		const text = details.trim()
+		if (!text.length) {
+			return {}
+		}
+		try {
+			const parsed = JSON.parse(text) as unknown
+			return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+				? (parsed as Record<string, unknown>)
+				: {}
+		} catch {
+			return {}
+		}
+	}
+	return details && typeof details === 'object' && !Array.isArray(details)
+		? (details as Record<string, unknown>)
+		: {}
+}
+
+function readDetailsString(details: Record<string, unknown>, key: string): string {
+	const value = details[key]
+	if (value === null || value === undefined) {
+		return ''
+	}
+	return String(value)
+}
+
 type PlainObject = Record<string, unknown>
+const HIDDEN_CONTRACT_DETAIL_KEYS = new Set([
+	'object_type',
+	'customer_segment',
+	'desired_power_kw',
+	'requested_power_kw',
+	'audit_power_kw',
+	'audit_conclusion_kw',
+	'eligible_subsidy_kw',
+	'subsidy_reference_power_kw',
+	'estimated_subsidy_amount',
+	'monthly_bill',
+	'solution_type',
+])
 
 function isPlainObject(value: unknown): value is PlainObject {
 	return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -216,11 +567,7 @@ function getDetailsLabel(key: string, isRu: boolean): string {
 		subsidy_amount: '\u0421\u0443\u043c\u043c\u0430 \u0441\u0443\u0431\u0441\u0438\u0434\u0438\u0438',
 		customer_amount: '\u0421\u0443\u043c\u043c\u0430 \u0434\u043b\u044f \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
 		subsidy_percent: '\u0421\u0443\u0431\u0441\u0438\u0434\u0438\u044f (%)',
-		requested_power_kw:
-			'\u0417\u0430\u043f\u0440\u043e\u0448\u0435\u043d\u043d\u0430\u044f \u043c\u043e\u0449\u043d\u043e\u0441\u0442\u044c',
 		audit_power_kw: '\u0410\u0443\u0434\u0438\u0442 \u043c\u043e\u0449\u043d\u043e\u0441\u0442\u044c',
-		subsidy_reference_power_kw:
-			'\u041c\u043e\u0449\u043d\u043e\u0441\u0442\u044c \u0434\u043b\u044f \u0441\u0443\u0431\u0441\u0438\u0434\u0438\u0438',
 		panel_type: '\u0422\u0438\u043f \u043f\u0430\u043d\u0435\u043b\u0438',
 		inverter_type: '\u0422\u0438\u043f \u0438\u043d\u0432\u0435\u0440\u0442\u043e\u0440\u0430',
 	}
@@ -231,9 +578,7 @@ function getDetailsLabel(key: string, isRu: boolean): string {
 		subsidy_amount: 'Subsidiya summasi',
 		customer_amount: 'Mijoz summasi',
 		subsidy_percent: 'Subsidiya (%)',
-		requested_power_kw: 'So\'ralgan quvvat',
 		audit_power_kw: 'Audit quvvati',
-		subsidy_reference_power_kw: 'Subsidiya uchun quvvat',
 		panel_type: 'Panel turi',
 		inverter_type: 'Invertor turi',
 	}
@@ -251,7 +596,9 @@ function DetailsGrid({
 	locale: string
 }) {
 	const currencyLabel = isRu ? '\u0441\u0443\u043c' : "so'm"
-	const entries = Object.entries(data).filter(([, value]) => value !== undefined)
+	const entries = Object.entries(data).filter(
+		([key, value]) => value !== undefined && !HIDDEN_CONTRACT_DETAIL_KEYS.has(key),
+	)
 
 	if (!entries.length) {
 		return <p className='mt-1 text-sm font-semibold text-text-secondary'>-</p>
@@ -320,7 +667,10 @@ function ContractsDetailsView({
 		? (details.pricing_breakdown as PlainObject)
 		: null
 
-	const hasExtra = Object.keys(details).some(key => key !== 'pricing_breakdown')
+	const visibleDetails = Object.fromEntries(
+		Object.entries(details).filter(([key]) => !HIDDEN_CONTRACT_DETAIL_KEYS.has(key)),
+	)
+	const hasExtra = Object.keys(visibleDetails).some(key => key !== 'pricing_breakdown')
 
 	return (
 		<div className='mt-2 grid gap-2'>
@@ -341,7 +691,7 @@ function ContractsDetailsView({
 							: "Boshqa ma'lumotlar"}
 					</p>
 					<pre className='mt-2 whitespace-pre-wrap break-words rounded-lg bg-surface-card/70 p-3 text-xs font-medium leading-relaxed text-text-primary ring-1 ring-border-soft/25'>
-						{formatDetailsText(details)}
+						{formatDetailsText(visibleDetails)}
 					</pre>
 				</div>
 			) : null}
@@ -363,39 +713,52 @@ export function ContractsDetailPanel({
 	const navigate = useNavigate()
 	const tx = isRu
 		? {
-				title: 'Профиль договора',
-				loadingTitle: 'Загрузка...',
-				loadingDescription: 'Получаем данные договора.',
-				errorTitle: 'Договор не найден',
-				errorDescription: 'Договор недоступен или был удален.',
-				edit: 'Редактировать',
-				delete: 'Удалить',
+				title: '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
+				loadingTitle: '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...',
+				loadingDescription:
+					'\u041f\u043e\u043b\u0443\u0447\u0430\u0435\u043c \u0434\u0430\u043d\u043d\u044b\u0435 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430.',
+				errorTitle: '\u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+				errorDescription:
+					'\u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0438\u043b\u0438 \u0431\u044b\u043b \u0443\u0434\u0430\u043b\u0435\u043d.',
+				edit: '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c',
+				delete: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c',
 				fields: {
-					client: 'Клиент',
-					panel: 'Тип панели',
-					inverter: 'Тип инвертора',
-					power: 'Мощность (кВт)',
-					auditPower: 'Аудит мощность (кВт)',
-					auditConclusionPower: 'Мощность по аудиту (кВт)',
-					eligibleSubsidyPower: 'Субсидируемая мощность (кВт)',
-					estimatedSubsidyAmount: 'Оценочная сумма субсидии',
-					subsidy: 'Субсидия (%)',
-					subsidyAmount: 'Сумма субсидии',
-					customerAmount: 'Сумма к оплате',
-					phone: 'Телефон',
-					address: 'Адрес установки',
-					deliveryStatus: 'Статус доставки',
-					deliveryNotes: 'Примечание доставки',
-					total: 'Итоговая сумма',
-					details: 'Детали',
-					attachments: 'Файлы и фото',
-					contractFile: 'Файл договора',
-					cadastreFile: 'Кадастр',
-					houseImage: 'Фото дома',
-					open: 'Открыть',
-					created: 'Создан',
-					updated: 'Обновлен',
-					items: 'Позиции договора',
+					client: '\u041a\u043b\u0438\u0435\u043d\u0442',
+					status: '\u0421\u0442\u0430\u0442\u0443\u0441',
+					fullName: '\u0424.\u0418.\u0428.',
+					requestedPower:
+						'\u0417\u0430\u043f\u0440\u043e\u0448\u0435\u043d\u043d\u0430\u044f \u043c\u043e\u0449\u043d\u043e\u0441\u0442\u044c',
+					phone: '\u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+					oneIdCode: 'One ID \u043a\u043e\u0434',
+					inverter: '\u0422\u0438\u043f \u0438\u043d\u0432\u0435\u0440\u0442\u043e\u0440\u0430',
+					panel: '\u0422\u0438\u043f \u043f\u0430\u043d\u0435\u043b\u0438',
+					agreedAmount:
+						'\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430',
+					paidAmount: '\u0412\u044b\u0434\u0430\u043d\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430',
+					givenSubsidyAmount:
+						'\u0412\u044b\u0434\u0430\u043d\u043d\u0430\u044f \u0441\u0443\u0431\u0441\u0438\u0434\u0438\u044f',
+					address: '\u0410\u0434\u0440\u0435\u0441 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438',
+					auditorCompanyName:
+						'\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0430\u0443\u0434\u0438\u0442\u043e\u0440\u0441\u043a\u043e\u0439 \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u0438',
+					auditorPhone: '\u041d\u043e\u043c\u0435\u0440 \u0430\u0443\u0434\u0438\u0442\u043e\u0440\u0430',
+					auditConclusionText:
+						'\u0410\u0443\u0434\u0438\u0442\u043e\u0440\u0441\u043a\u043e\u0435 \u0437\u0430\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435',
+					lotDeadlineAt: '\u0421\u0440\u043e\u043a \u043b\u043e\u0442\u0430',
+					installerFeeAmount: '\u0421\u0443\u043c\u043c\u0430 \u0443\u0441\u0442\u0430',
+					details: '\u0414\u0435\u0442\u0430\u043b\u0438',
+					attachments: '\u0424\u0430\u0439\u043b\u044b \u0438 \u0444\u043e\u0442\u043e',
+					auditContractFile:
+						'\u0424\u0430\u0439\u043b \u0430\u0443\u0434\u0438\u0442 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
+					cadastreFile:
+						'\u0424\u0430\u0439\u043b \u043a\u0430\u0434\u0430\u0441\u0442\u0440\u0430 \u0434\u043e\u043c\u0430',
+					companyContractFile:
+						'\u0424\u0430\u0439\u043b \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430 \u0444\u0438\u0440\u043c\u044b',
+					additionalFile:
+						'\u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0439 \u0444\u0430\u0439\u043b',
+					open: '\u041e\u0442\u043a\u0440\u044b\u0442\u044c',
+					created: '\u0421\u043e\u0437\u0434\u0430\u043d',
+					updated: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d',
+					items: '\u041f\u043e\u0437\u0438\u0446\u0438\u0438 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
 				},
 			}
 		: {
@@ -403,31 +766,33 @@ export function ContractsDetailPanel({
 				loadingTitle: 'Yuklanmoqda...',
 				loadingDescription: "Shartnoma ma'lumotlari olinmoqda.",
 				errorTitle: 'Shartnoma topilmadi',
-				errorDescription: "Shartnoma mavjud emas yoki o\'chirilgan.",
+				errorDescription: "Shartnoma mavjud emas yoki o'chirilgan.",
 				edit: 'Tahrirlash',
 				delete: "O'chirish",
 				fields: {
 					client: 'Mijoz',
-					panel: 'Panel turi',
+					status: 'Holat',
+					fullName: 'F.I.SH',
+					requestedPower: "So'ralgan quvvat",
+					phone: 'Mijoz telefon raqami',
+					oneIdCode: 'One ID kodi',
 					inverter: 'Invertor turi',
-					power: 'Quvvat (kW)',
-					auditPower: 'Audit quvvati (kW)',
-					auditConclusionPower: 'Audit xulosasi quvvati (kW)',
-					eligibleSubsidyPower: 'Subsidiya uchun quvvat (kW)',
-					estimatedSubsidyAmount: 'Taxminiy subsidiya summasi',
-					subsidy: 'Subsidiya (%)',
-					subsidyAmount: 'Subsidiya summasi',
-					customerAmount: 'Mijoz summasi',
-					phone: 'Telefon',
+					panel: 'Panel turi',
+					agreedAmount: 'Kelishilgan summa',
+					paidAmount: 'Berilgan summa',
+					givenSubsidyAmount: 'Berilgan subsidiya miqdori',
 					address: "O'rnatish manzili",
-					deliveryStatus: 'Yetkazib berish holati',
-					deliveryNotes: 'Yetkazish izohi',
-					total: 'Jami summa',
+					auditorCompanyName: 'Auditor tashkilot nomi',
+					auditorPhone: 'Auditor raqami',
+					auditConclusionText: 'Audit bergan xulosa',
+					lotDeadlineAt: "Lotga qo'yilgan muddat",
+					installerFeeAmount: 'Obyekt usta haqi summasi',
 					details: 'Tafsilotlar',
 					attachments: 'Fayllar va rasmlar',
-					contractFile: 'Shartnoma fayli',
-					cadastreFile: 'Kadastr fayli',
-					houseImage: 'Uy rasmi',
+					auditContractFile: 'Audit shartnoma fayl',
+					cadastreFile: 'Uy kadastr fayl',
+					companyContractFile: 'Firma shartnomasi fayl',
+					additionalFile: "Qo'shimcha fayl",
 					open: "Ko'rish",
 					created: 'Yaratilgan',
 					updated: 'Yangilangan',
@@ -442,60 +807,12 @@ export function ContractsDetailPanel({
 	const [state, { fetch: fetchContractDetail }] = useDetail(fetchContract, {
 		autoFetch: true,
 	})
-	const [clientAuditFallback, setClientAuditFallback] = useState<{
-		audit_conclusion_kw: number | null
-		eligible_subsidy_kw: number | null
-		estimated_subsidy_amount: string | number | null
-	} | null>(null)
 
 	useEffect(() => {
 		if (refreshToken > 0) {
 			void fetchContractDetail()
 		}
 	}, [fetchContractDetail, refreshToken])
-
-	useEffect(() => {
-		const contract = state.data
-		if (!contract?.client) {
-			setClientAuditFallback(null)
-			return
-		}
-
-		const needsFallback =
-			contract.audit_conclusion_kw == null ||
-			contract.eligible_subsidy_kw == null ||
-			contract.estimated_subsidy_amount == null ||
-			(typeof contract.estimated_subsidy_amount === 'string' &&
-				contract.estimated_subsidy_amount.trim().length === 0)
-
-		if (!needsFallback) {
-			setClientAuditFallback(null)
-			return
-		}
-
-		let isActive = true
-		void (async () => {
-			try {
-				const client = await services.clients.getClient(contract.client)
-				if (!isActive) {
-					return
-				}
-				setClientAuditFallback({
-					audit_conclusion_kw: client.audit_conclusion_kw ?? null,
-					eligible_subsidy_kw: client.eligible_subsidy_kw ?? null,
-					estimated_subsidy_amount: client.estimated_subsidy_amount ?? null,
-				})
-			} catch {
-				if (isActive) {
-					setClientAuditFallback(null)
-				}
-			}
-		})()
-
-		return () => {
-			isActive = false
-		}
-	}, [state.data])
 
 	if (state.isLoading) {
 		return <LoadingState title={tx.loadingTitle} description={tx.loadingDescription} />
@@ -505,26 +822,65 @@ export function ContractsDetailPanel({
 	}
 
 	const contract = state.data
-	const resolvedAuditConclusionKw =
-		contract.audit_conclusion_kw ?? clientAuditFallback?.audit_conclusion_kw ?? null
-	const resolvedEligibleSubsidyKw =
-		contract.eligible_subsidy_kw ?? clientAuditFallback?.eligible_subsidy_kw ?? null
-	const resolvedEstimatedSubsidyAmount =
-		contract.estimated_subsidy_amount != null &&
-		!(typeof contract.estimated_subsidy_amount === 'string' && contract.estimated_subsidy_amount.trim().length === 0)
-			? contract.estimated_subsidy_amount
-			: (clientAuditFallback?.estimated_subsidy_amount ?? null)
+	const contractDetails = readDetailsObject(contract.details)
+	const oneIdCode = contract.one_id_code || readDetailsString(contractDetails, 'one_id_code')
+	const agreedAmount =
+		(contract.agreed_amount != null ? String(contract.agreed_amount) : '') ||
+		readDetailsString(contractDetails, 'agreed_amount') ||
+		(contract.total_amount != null ? String(contract.total_amount) : '')
+	const paidAmount =
+		(contract.paid_amount != null ? String(contract.paid_amount) : '') ||
+		readDetailsString(contractDetails, 'paid_amount') ||
+		(contract.customer_amount != null ? String(contract.customer_amount) : '')
+	const givenSubsidyAmount =
+		readDetailsString(contractDetails, 'given_subsidy_amount') ||
+		(contract.subsidy_amount != null ? String(contract.subsidy_amount) : '')
+	const auditorCompanyName =
+		contract.auditor_organization_name ||
+		readDetailsString(contractDetails, 'auditor_company_name') ||
+		readDetailsString(contractDetails, 'auditor_organization_name')
+	const auditorPhone =
+		contract.auditor_phone ||
+		readDetailsString(contractDetails, 'auditor_phone')
+	const auditConclusionText =
+		contract.audit_conclusion ||
+		readDetailsString(contractDetails, 'audit_conclusion_text') ||
+		readDetailsString(contractDetails, 'audit_conclusion')
+	const lotDeadlineAt =
+		contract.lot_deadline ||
+		readDetailsString(contractDetails, 'lot_deadline_at') ||
+		readDetailsString(contractDetails, 'lot_deadline')
+	const installerFeeAmount =
+		(contract.installer_fee_amount != null ? String(contract.installer_fee_amount) : '') ||
+		readDetailsString(contractDetails, 'installer_fee_amount')
+	const additionalFileUrl =
+		contract.additional_file_url ||
+		readDetailsString(contractDetails, 'additional_file_url')
 	const recalculateLabel = isRu ? "\u041f\u0435\u0440\u0435\u0441\u0447\u0438\u0442\u0430\u0442\u044c" : 'Qayta hisoblash'
 	const currencyLabel = isRu ? '\u0441\u0443\u043c' : "so'm"
-	const contractFileUrl = contract.file_url || (typeof contract.file === 'string' ? contract.file : '') || ''
+	const contractFileUrl =
+		contract.audit_contract_file_url ||
+		contract.file_url ||
+		(typeof contract.audit_contract_file === 'string' ? contract.audit_contract_file : '') ||
+		(typeof contract.file === 'string' ? contract.file : '') ||
+		''
 	const cadastreFileUrl =
-		contract.cadastre_file_url || (typeof contract.cadastre_file === 'string' ? contract.cadastre_file : '') || ''
+		contract.home_cadastre_file_url ||
+		contract.cadastre_file_url ||
+		(typeof contract.home_cadastre_file === 'string' ? contract.home_cadastre_file : '') ||
+		(typeof contract.cadastre_file === 'string' ? contract.cadastre_file : '') ||
+		''
 	const houseImageUrl =
-		contract.house_image_url || (typeof contract.house_image === 'string' ? contract.house_image : '') || ''
+		contract.company_contract_file_url ||
+		contract.house_image_url ||
+		(typeof contract.company_contract_file === 'string' ? contract.company_contract_file : '') ||
+		(typeof contract.house_image === 'string' ? contract.house_image : '') ||
+		''
 	const attachments = [
-		{ key: 'contract', label: tx.fields.contractFile, url: contractFileUrl },
+		{ key: 'contract', label: tx.fields.auditContractFile, url: contractFileUrl },
 		{ key: 'cadastre', label: tx.fields.cadastreFile, url: cadastreFileUrl },
-		{ key: 'house', label: tx.fields.houseImage, url: houseImageUrl },
+		{ key: 'house', label: tx.fields.companyContractFile, url: houseImageUrl },
+		{ key: 'additional', label: tx.fields.additionalFile, url: additionalFileUrl },
 	].filter(item => Boolean(item.url))
 	return (
 		<div className='grid gap-3'>
@@ -557,6 +913,10 @@ export function ContractsDetailPanel({
 			</header>
 
 			<PageCard>
+				<ContractStatusTimeline status={contract.status} isRu={isRu} />
+			</PageCard>
+
+			<PageCard>
 				<div className='grid gap-2.5 sm:grid-cols-2'>
 					{contract.client && contract.client_name ? (
 						<div
@@ -586,10 +946,28 @@ export function ContractsDetailPanel({
 						</div>
 					)}
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.panel}</p>
+						<p className={labelClassName}>{tx.fields.status}</p>
 						<p className={`mt-1 ${valueClassName}`}>
-							{contract.panel_type_label || contract.panel_type || '-'}
+							{getStatusLabel(contract.status, isRu)}
 						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.fullName}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.title || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.requestedPower}</p>
+						<p className={`mt-1 ${valueClassName}`}>
+							{formatSmartValue('requested_power_kw', contract.requested_power_kw, locale, currencyLabel)}
+						</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.phone}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contract.customer_phone || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.oneIdCode}</p>
+						<p className={`mt-1 ${valueClassName}`}>{oneIdCode || '-'}</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.inverter}</p>
@@ -598,73 +976,53 @@ export function ContractsDetailPanel({
 						</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.power}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.requested_power_kw ?? '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.auditPower}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.audit_power_kw ?? '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.auditConclusionPower}</p>
-						<p className={`mt-1 ${valueClassName}`}>{resolvedAuditConclusionKw ?? '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.eligibleSubsidyPower}</p>
-						<p className={`mt-1 ${valueClassName}`}>{resolvedEligibleSubsidyKw ?? '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.estimatedSubsidyAmount}</p>
+						<p className={labelClassName}>{tx.fields.panel}</p>
 						<p className={`mt-1 ${valueClassName}`}>
-							{formatSmartValue(
-								'estimated_subsidy_amount',
-								resolvedEstimatedSubsidyAmount,
-								locale,
-								currencyLabel,
-							)}
+							{contract.panel_type_label || contract.panel_type || '-'}
 						</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.subsidy}</p>
-						<p className={`mt-1 ${valueClassName}`}>{String(contract.subsidy_percent ?? '-')}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.subsidyAmount}</p>
+						<p className={labelClassName}>{tx.fields.agreedAmount}</p>
 						<p className={`mt-1 ${valueClassName}`}>
-							{formatSmartValue('subsidy_amount', contract.subsidy_amount, locale, currencyLabel)}
+							{formatSmartValue('agreed_amount', agreedAmount, locale, currencyLabel)}
 						</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.customerAmount}</p>
+						<p className={labelClassName}>{tx.fields.paidAmount}</p>
 						<p className={`mt-1 ${valueClassName}`}>
-							{formatSmartValue('customer_amount', contract.customer_amount, locale, currencyLabel)}
+							{formatSmartValue('paid_amount', paidAmount, locale, currencyLabel)}
 						</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.phone}</p>
-						<p className={`mt-1 ${valueClassName}`}>{contract.customer_phone || '-'}</p>
-					</div>
-					<div className='rounded-lg bg-surface-subtle/80 p-3'>
-						<p className={labelClassName}>{tx.fields.deliveryStatus}</p>
+						<p className={labelClassName}>{tx.fields.givenSubsidyAmount}</p>
 						<p className={`mt-1 ${valueClassName}`}>
-							{getDeliveryStatusLabel(contract.delivery_status, isRu) ||
-								contract.delivery_status_label ||
-								contract.delivery_status ||
-								'-'}
+							{formatSmartValue('given_subsidy_amount', givenSubsidyAmount, locale, currencyLabel)}
 						</p>
 					</div>
 				<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
 					<p className={labelClassName}>{tx.fields.address}</p>
 					<p className={`mt-1 ${valueClassName}`}>{contract.installation_address || '-'}</p>
 				</div>
-				<div className='rounded-lg bg-surface-subtle/80 p-3 sm:col-span-2'>
-					<p className={labelClassName}>{tx.fields.deliveryNotes}</p>
-					<p className={`mt-1 ${valueClassName}`}>{contract.delivery_notes || '-'}</p>
+				<div className='rounded-lg bg-surface-subtle/80 p-3'>
+					<p className={labelClassName}>{tx.fields.auditorCompanyName}</p>
+					<p className={`mt-1 ${valueClassName}`}>{auditorCompanyName || '-'}</p>
 				</div>
 				<div className='rounded-lg bg-surface-subtle/80 p-3'>
-					<p className={labelClassName}>{tx.fields.total}</p>
+					<p className={labelClassName}>{tx.fields.auditorPhone}</p>
+					<p className={`mt-1 ${valueClassName}`}>{auditorPhone || '-'}</p>
+				</div>
+				<div className='rounded-lg bg-surface-subtle/80 p-3'>
+					<p className={labelClassName}>{tx.fields.auditConclusionText}</p>
+					<p className={`mt-1 ${valueClassName}`}>{auditConclusionText || '-'}</p>
+				</div>
+				<div className='rounded-lg bg-surface-subtle/80 p-3'>
+					<p className={labelClassName}>{tx.fields.lotDeadlineAt}</p>
+					<p className={`mt-1 ${valueClassName}`}>{lotDeadlineAt || '-'}</p>
+				</div>
+				<div className='rounded-lg bg-surface-subtle/80 p-3'>
+					<p className={labelClassName}>{tx.fields.installerFeeAmount}</p>
 					<p className={`mt-1 ${valueClassName}`}>
-						{formatSmartValue('total_amount', contract.total_amount, locale, currencyLabel)}
+						{formatSmartValue('installer_fee_amount', installerFeeAmount, locale, currencyLabel)}
 					</p>
 				</div>
 			</div>
@@ -815,3 +1173,5 @@ export function ContractsDetailPanel({
 		</div>
 	)
 }
+
+

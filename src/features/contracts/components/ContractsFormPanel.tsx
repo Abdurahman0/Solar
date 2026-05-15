@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+﻿import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import AppIcon from '../../../components/shared/icons/AppIcon'
 import { FilterSelect, Switch } from '../../../components/shared/data'
@@ -22,20 +22,24 @@ type ContractFormState = {
 	panel_type: Contract['panel_type']
 	inverter_type: Contract['inverter_type']
 	requested_power_kw: number | ''
-	audit_power_kw: number | ''
-	audit_conclusion_kw: number | ''
-	eligible_subsidy_kw: number | ''
-	estimated_subsidy_amount: string
 	subsidy_percent: string
 	customer_phone: string
+	one_id_code: string
+	agreed_amount: string
+	paid_amount: string
+	given_subsidy_amount: string
 	installation_address: string
-	delivery_status: string
-	delivery_notes: string
+	auditor_company_name: string
+	auditor_phone: string
+	audit_conclusion_text: string
+	lot_deadline_at: string
+	installer_fee_amount: string
 	details: string
 	items: Array<{ product: string; quantity: number | ''; unit_price: string }>
 	file: File | null
 	cadastre_file: File | null
 	house_image: File | null
+	additional_file: File | null
 }
 
 const inputClassName = [
@@ -203,7 +207,66 @@ function extractDetails(details: Contract['details']): string {
 	}
 }
 
+function readDetailsObject(details: Contract['details']): Record<string, unknown> {
+	if (!details) {
+		return {}
+	}
+	if (typeof details === 'string') {
+		const text = details.trim()
+		if (!text.length) {
+			return {}
+		}
+		try {
+			const parsed = JSON.parse(text) as unknown
+			return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+				? (parsed as Record<string, unknown>)
+				: {}
+		} catch {
+			return {}
+		}
+	}
+	return details && typeof details === 'object' && !Array.isArray(details)
+		? (details as Record<string, unknown>)
+		: {}
+}
+
+function readStringField(source: Record<string, unknown>, key: string): string {
+	const value = source[key]
+	if (value === null || value === undefined) {
+		return ''
+	}
+	return String(value)
+}
+
+function formatLotDeadlineForInput(value: string | null | undefined): string {
+	const text = (value ?? '').trim()
+	if (!text) {
+		return ''
+	}
+	const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+	if (!isoMatch) {
+		return text
+	}
+	const [, year, month, day, hour, minute] = isoMatch
+	return `${day}.${month}.${year} ${hour}:${minute}`
+}
+
+function toApiDateTime(value: string): string | null {
+	const text = value.trim()
+	if (!text) {
+		return null
+	}
+	const localMatch = text.match(/^(\d{2})\.(\d{2})\.(\d{4})\s(\d{2}):(\d{2})$/)
+	if (!localMatch) {
+		return text
+	}
+	const [, day, month, year, hour, minute] = localMatch
+	return `${year}-${month}-${day}T${hour}:${minute}:00`
+}
+
 function toInitialState(contract?: Contract): ContractFormState {
+	const details = readDetailsObject(contract?.details)
+
 	return {
 		client: contract?.client ?? '',
 		title: contract?.title ?? '',
@@ -214,24 +277,42 @@ function toInitialState(contract?: Contract): ContractFormState {
 			typeof contract?.requested_power_kw === 'number'
 				? contract.requested_power_kw
 				: '',
-		audit_power_kw:
-			typeof contract?.audit_power_kw === 'number'
-				? contract.audit_power_kw
-				: '',
-		audit_conclusion_kw:
-			typeof contract?.audit_conclusion_kw === 'number'
-				? contract.audit_conclusion_kw
-				: '',
-		eligible_subsidy_kw:
-			typeof contract?.eligible_subsidy_kw === 'number'
-				? contract.eligible_subsidy_kw
-				: '',
-		estimated_subsidy_amount: String(contract?.estimated_subsidy_amount ?? ''),
 		subsidy_percent: String(contract?.subsidy_percent ?? ''),
 		customer_phone: contract?.customer_phone ?? '',
+		one_id_code:
+			contract?.one_id_code ??
+			readStringField(details, 'one_id_code'),
+		agreed_amount:
+			String(contract?.agreed_amount ?? '') ||
+			readStringField(details, 'agreed_amount') ||
+			String(contract?.total_amount ?? ''),
+		paid_amount:
+			String(contract?.paid_amount ?? '') ||
+			readStringField(details, 'paid_amount') ||
+			String(contract?.customer_amount ?? ''),
+		given_subsidy_amount:
+			readStringField(details, 'given_subsidy_amount') ||
+			String(contract?.subsidy_amount ?? ''),
 		installation_address: contract?.installation_address ?? '',
-		delivery_status: contract?.delivery_status ?? 'pending',
-		delivery_notes: contract?.delivery_notes ?? '',
+		auditor_company_name:
+			contract?.auditor_organization_name ||
+			readStringField(details, 'auditor_company_name') ||
+			readStringField(details, 'auditor_organization_name'),
+		auditor_phone:
+			contract?.auditor_phone ||
+			readStringField(details, 'auditor_phone'),
+		audit_conclusion_text:
+			contract?.audit_conclusion ||
+			readStringField(details, 'audit_conclusion_text') ||
+			readStringField(details, 'audit_conclusion'),
+		lot_deadline_at: formatLotDeadlineForInput(
+			contract?.lot_deadline ||
+				readStringField(details, 'lot_deadline_at') ||
+				readStringField(details, 'lot_deadline'),
+		),
+		installer_fee_amount:
+			String(contract?.installer_fee_amount ?? '') ||
+			readStringField(details, 'installer_fee_amount'),
 		details: extractDetails(contract?.details),
 		items:
 			contract?.items?.length
@@ -244,6 +325,7 @@ function toInitialState(contract?: Contract): ContractFormState {
 		file: null,
 		cadastre_file: null,
 		house_image: null,
+		additional_file: null,
 	}
 }
 
@@ -258,56 +340,78 @@ export function ContractsFormPanel({
 
 	const tx = isRu
 		? {
-				form: 'Форма договора',
-				createTitle: 'Новый договор',
-				editTitle: 'Редактирование договора',
-				requiredError: 'Заполните обязательные поля: клиент и название.',
-				detailsJsonError: 'Поле "Детали" должно быть валидным JSON объектом.',
-				saveError: 'Не удалось сохранить договор.',
-				saving: 'Сохранение...',
-				createSubmit: 'Создать договор',
-				editSubmit: 'Сохранить изменения',
-				cancel: 'Отмена',
-				close: 'Закрыть',
-				chooseFile: 'Выбрать файл',
-				noFile: 'Файл не выбран',
-				currentFile: 'Текущий файл',
-				open: 'Открыть',
-				addItem: 'Добавить позицию',
-				removeItem: 'Удалить',
+				form: '\u0424\u043e\u0440\u043c\u0430 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
+				createTitle: '\u041d\u043e\u0432\u044b\u0439 \u0434\u043e\u0433\u043e\u0432\u043e\u0440',
+				editTitle: '\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
+				requiredError:
+					'\u0417\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u043f\u043e\u043b\u044f: \u043a\u043b\u0438\u0435\u043d\u0442 \u0438 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435.',
+				detailsJsonError:
+					'\u041f\u043e\u043b\u0435 "\u0414\u0435\u0442\u0430\u043b\u0438" \u0434\u043e\u043b\u0436\u043d\u043e \u0431\u044b\u0442\u044c \u0432\u0430\u043b\u0438\u0434\u043d\u044b\u043c JSON \u043e\u0431\u044a\u0435\u043a\u0442\u043e\u043c.',
+				saveError:
+					'\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0434\u043e\u0433\u043e\u0432\u043e\u0440.',
+				saving: '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...',
+				createSubmit:
+					'\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0434\u043e\u0433\u043e\u0432\u043e\u0440',
+				editSubmit:
+					'\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f',
+				cancel: '\u041e\u0442\u043c\u0435\u043d\u0430',
+				close: '\u0417\u0430\u043a\u0440\u044b\u0442\u044c',
+				chooseFile: '\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0444\u0430\u0439\u043b',
+				noFile: '\u0424\u0430\u0439\u043b \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d',
+				currentFile: '\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0444\u0430\u0439\u043b',
+				open: '\u041e\u0442\u043a\u0440\u044b\u0442\u044c',
+				addItem:
+					'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u0437\u0438\u0446\u0438\u044e',
+				removeItem: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c',
 				labels: {
-					client: 'Клиент',
-					title: 'Название',
-					status: 'Статус',
-					panelType: 'Тип панели',
-					inverterType: 'Тип инвертора',
-					requestedPower: 'Запрошенная мощность (кВт)',
-					auditPower: 'Аудит мощность (кВт)',
-					auditConclusionPower: 'Мощность по аудиту (кВт)',
-					eligibleSubsidyPower: 'Субсидируемая мощность (кВт)',
-					estimatedSubsidyAmount: 'Оценочная сумма субсидии',
-					subsidyPercent: 'Субсидия (%)',
-					customerPhone: 'Телефон клиента',
-					address: 'Адрес установки',
-					deliveryStatus: 'Статус доставки',
-					deliveryNotes: 'Примечание доставки',
-					details: 'Детали',
-					file: 'Файл договора',
-					cadastreFile: 'Кадастр файл',
-					houseImage: 'Фото дома',
-					items: 'Позиции договора',
-					quantity: 'Количество',
-					unitPrice: 'Цена',
+					client: '\u041a\u043b\u0438\u0435\u043d\u0442',
+					title: '\u0424.\u0418.\u0428.',
+					status: '\u0421\u0442\u0430\u0442\u0443\u0441',
+					requestedPower:
+						'\u0417\u0430\u043f\u0440\u043e\u0448\u0435\u043d\u043d\u0430\u044f \u043c\u043e\u0449\u043d\u043e\u0441\u0442\u044c (kW)',
+					customerPhone:
+						'\u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+					oneIdCode: 'One ID \u043a\u043e\u0434',
+					inverterType:
+						'\u0422\u0438\u043f \u0438\u043d\u0432\u0435\u0440\u0442\u043e\u0440\u0430',
+					panelType: '\u0422\u0438\u043f \u043f\u0430\u043d\u0435\u043b\u0438',
+					agreedAmount:
+						'\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430',
+					paidAmount:
+						'\u0412\u044b\u0434\u0430\u043d\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430',
+					givenSubsidyAmount:
+						'\u0412\u044b\u0434\u0430\u043d\u043d\u0430\u044f \u0441\u0443\u0431\u0441\u0438\u0434\u0438\u044f',
+					address: '\u0410\u0434\u0440\u0435\u0441 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438',
+					auditorCompanyName:
+						'\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0430\u0443\u0434\u0438\u0442\u043e\u0440\u0441\u043a\u043e\u0439 \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u0438',
+					auditorPhone: '\u041d\u043e\u043c\u0435\u0440 \u0430\u0443\u0434\u0438\u0442\u043e\u0440\u0430',
+					auditConclusionText:
+						'\u0410\u0443\u0434\u0438\u0442\u043e\u0440\u0441\u043a\u043e\u0435 \u0437\u0430\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435',
+					lotDeadlineAt: '\u0421\u0440\u043e\u043a \u043b\u043e\u0442\u0430 (dd.MM.yyyy HH:mm)',
+					installerFeeAmount:
+						'\u0421\u0443\u043c\u043c\u0430 \u043e\u043f\u043b\u0430\u0442\u044b \u0443\u0441\u0442\u0430',
+					auditContractFile:
+						'\u0424\u0430\u0439\u043b \u0430\u0443\u0434\u0438\u0442 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
+					homeCadastreFile:
+						'\u0424\u0430\u0439\u043b \u043a\u0430\u0434\u0430\u0441\u0442\u0440\u0430 \u0434\u043e\u043c\u0430',
+					companyContractFile:
+						'\u0424\u0430\u0439\u043b \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430 \u0444\u0438\u0440\u043c\u044b',
+					additionalFile:
+						'\u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0439 \u0444\u0430\u0439\u043b',
+					subsidyPercent: '\u0421\u0443\u0431\u0441\u0438\u0434\u0438\u044f (%)',
+					items: '\u041f\u043e\u0437\u0438\u0446\u0438\u0438 \u0434\u043e\u0433\u043e\u0432\u043e\u0440\u0430',
+					quantity: '\u041a\u043e\u043b\u0438\u0447\u0435\u0441\u0442\u0432\u043e',
+					unitPrice: '\u0426\u0435\u043d\u0430',
 				},
 			}
 		: {
 				form: 'Shartnoma formasi',
 				createTitle: 'Yangi shartnoma',
 				editTitle: 'Shartnomani tahrirlash',
-				requiredError: 'Majburiy maydonlarni to\'ldiring: mijoz va nom.',
+				requiredError: "Majburiy maydonlarni to'ldiring: mijoz va nom.",
 				detailsJsonError:
-					'"Tafsilotlar" maydoni yaroqli JSON obyekt bo\'lishi kerak.',
-				saveError: 'Shartnomani saqlab bo\'lmadi.',
+					"\"Tafsilotlar\" maydoni yaroqli JSON obyekt bo'lishi kerak.",
+				saveError: "Shartnomani saqlab bo'lmadi.",
 				saving: 'Saqlanmoqda...',
 				createSubmit: 'Shartnoma yaratish',
 				editSubmit: "O'zgarishlarni saqlash",
@@ -317,28 +421,31 @@ export function ContractsFormPanel({
 				noFile: 'Fayl tanlanmagan',
 				currentFile: 'Hozirgi fayl',
 				open: "Ko'rish",
-				addItem: 'Pozitsiya qo\'shish',
+				addItem: "Pozitsiya qo'shish",
 				removeItem: 'Olib tashlash',
 				labels: {
 					client: 'Mijoz',
-					title: 'Nomi',
+					title: 'F.I.SH',
 					status: 'Holat',
-					panelType: 'Panel turi',
-					inverterType: 'Invertor turi',
-					requestedPower: 'So\'ralgan quvvat (kW)',
-					auditPower: 'Audit quvvati (kW)',
-					auditConclusionPower: 'Audit xulosasi quvvati (kW)',
-					eligibleSubsidyPower: 'Subsidiya uchun quvvat (kW)',
-					estimatedSubsidyAmount: 'Taxminiy subsidiya summasi',
-					subsidyPercent: 'Subsidiya (%)',
+					requestedPower: "So'ralgan quvvat (kW)",
 					customerPhone: 'Mijoz telefoni',
+					oneIdCode: 'One ID kodi',
+					inverterType: 'Invertor turi',
+					panelType: 'Panel turi',
+					agreedAmount: 'Kelishilgan summa',
+					paidAmount: 'Berilgan summa',
+					givenSubsidyAmount: 'Berilgan subsidiya miqdori',
 					address: "O'rnatish manzili",
-					deliveryStatus: 'Yetkazib berish holati',
-					deliveryNotes: 'Yetkazish izohi',
-					details: 'Tafsilotlar',
-					file: 'Shartnoma fayli',
-					cadastreFile: 'Kadastr fayli',
-					houseImage: 'Uy rasmi',
+					auditorCompanyName: 'Auditor tashkilot nomi',
+					auditorPhone: 'Auditor raqami',
+					auditConclusionText: 'Audit bergan xulosa',
+					lotDeadlineAt: "Lotga qo'yilgan muddat (dd.MM.yyyy HH:mm)",
+					installerFeeAmount: 'Obyekt usta haqi summasi',
+					auditContractFile: 'Audit shartnoma fayl',
+					homeCadastreFile: 'Uy kadastr fayl',
+					companyContractFile: 'Firma shartnomasi fayl',
+					additionalFile: "Qo'shimcha fayl",
+					subsidyPercent: 'Subsidiya (%)',
 					items: 'Shartnoma pozitsiyalari',
 					quantity: 'Soni',
 					unitPrice: 'Narx',
@@ -347,36 +454,52 @@ export function ContractsFormPanel({
 
 	const [form, setForm] = useState<ContractFormState>(() => toInitialState(contract))
 	const [isNewClient, setIsNewClient] = useState(false)
-	const [newClientName, setNewClientName] = useState('')
 	const [newClientPhone, setNewClientPhone] = useState('')
 	const existingContractFileUrl =
+		contract?.audit_contract_file_url ||
 		contract?.file_url || (typeof contract?.file === 'string' ? contract.file : '') || ''
 	const existingCadastreFileUrl =
+		contract?.home_cadastre_file_url ||
 		contract?.cadastre_file_url ||
 		(typeof contract?.cadastre_file === 'string' ? contract.cadastre_file : '') ||
 		''
 	const existingHouseImageUrl =
+		contract?.company_contract_file_url ||
 		contract?.house_image_url ||
 		(typeof contract?.house_image === 'string' ? contract.house_image : '') ||
 		''
-	const [clients, setClients] = useState<Array<{ id: string; full_name: string }>>(
+	const existingAdditionalFileUrl =
+		contract?.additional_file_url ||
+		(typeof contract?.additional_file === 'string' ? contract.additional_file : '') ||
+		''
+	const [clients, setClients] = useState<Array<{ id: string; full_name: string; phone?: string }>>(
 		[],
 	)
 	const [products, setProducts] = useState<Array<{ id: string; name: string }>>([])
 	const [isLoadingReferences, setIsLoadingReferences] = useState(true)
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
-	const hasSubsidyPercent = form.subsidy_percent.trim().length > 0
+	const selectedClientNameForSubmit =
+		clients.find(client => client.id === form.client)?.full_name?.trim() ?? ''
+	const resolvedTitleForSubmit = isNewClient
+		? form.title.trim()
+		: form.title.trim() || selectedClientNameForSubmit
+	const resolvedPhoneForSubmit = isNewClient
+		? newClientPhone.trim()
+		: form.customer_phone.trim()
+	const hasClientRequired = isNewClient
+		? resolvedTitleForSubmit.length > 0
+		: Boolean(form.client)
+	const isCreateRequiredFilled = Boolean(
+		hasClientRequired &&
+			form.requested_power_kw !== '' &&
+			resolvedPhoneForSubmit.length > 0 &&
+			form.inverter_type &&
+			form.panel_type,
+	)
 	const canSubmit = isEditing
-		? Boolean(form.client && form.title.trim().length > 0 && hasSubsidyPercent)
-		: isNewClient
-			? Boolean(
-					newClientName.trim().length > 0 &&
-						newClientPhone.trim().length > 0 &&
-						form.title.trim().length > 0 &&
-						hasSubsidyPercent,
-				)
-			: Boolean(form.client && form.title.trim().length > 0 && hasSubsidyPercent)
+		? Boolean(form.client)
+		: isCreateRequiredFilled
 
 	useEffect(() => {
 		if (isEditing) {
@@ -396,9 +519,10 @@ export function ContractsFormPanel({
 					return
 				}
 				setClients(
-					clientsResponse.items.map((client: { id: string; full_name: string }) => ({
+					clientsResponse.items.map((client: { id: string; full_name: string; phone?: string }) => ({
 						id: client.id,
 						full_name: client.full_name,
+						phone: client.phone,
 					})),
 				)
 				setProducts(
@@ -419,106 +543,26 @@ export function ContractsFormPanel({
 		}
 	}, [])
 
-	useEffect(() => {
-		if (!form.client || isNewClient) {
-			return
-		}
-
-		const needsAuditFallback =
-			form.audit_conclusion_kw === '' ||
-			form.eligible_subsidy_kw === '' ||
-			form.estimated_subsidy_amount.trim().length === 0
-
-		if (!needsAuditFallback) {
-			return
-		}
-
-		let isActive = true
-		const selectedClientId = form.client
-
-		void (async () => {
-			try {
-				const client = await services.clients.getClient(selectedClientId)
-				if (!isActive) {
-					return
-				}
-
-				setForm(current => {
-					if (current.client !== selectedClientId) {
-						return current
-					}
-
-					let didChange = false
-					const next = { ...current }
-
-					if (
-						next.audit_conclusion_kw === '' &&
-						typeof client.audit_conclusion_kw === 'number'
-					) {
-						next.audit_conclusion_kw = client.audit_conclusion_kw
-						didChange = true
-					}
-
-					if (
-						next.eligible_subsidy_kw === '' &&
-						typeof client.eligible_subsidy_kw === 'number'
-					) {
-						next.eligible_subsidy_kw = client.eligible_subsidy_kw
-						didChange = true
-					}
-
-					if (
-						next.estimated_subsidy_amount.trim().length === 0 &&
-						client.estimated_subsidy_amount != null
-					) {
-						next.estimated_subsidy_amount = String(client.estimated_subsidy_amount)
-						didChange = true
-					}
-
-					return didChange ? next : current
-				})
-			} catch {
-				// Keep form usable even when client lookup fails.
-			}
-		})()
-
-		return () => {
-			isActive = false
-		}
-	}, [
-		form.client,
-		form.audit_conclusion_kw,
-		form.eligible_subsidy_kw,
-		form.estimated_subsidy_amount,
-		isNewClient,
-	])
-
 	const statusOptions = useMemo(
 		() => [
 			{ value: 'draft', label: isRu ? 'Черновик' : 'Qoralama' },
 			{ value: 'audit_pending', label: isRu ? 'Audit kutilmoqda' : 'Audit kutilmoqda' },
 			{ value: 'audit_paid', label: isRu ? 'Audit to\'langan' : 'Audit to\'langan' },
 			{ value: 'moderation', label: isRu ? 'Модерация' : 'Moderatsiya' },
-			{ value: 'contract_ready', label: isRu ? 'Договор tayyor' : 'Shartnoma tayyor' },
+			{ value: 'contract_ready', label: isRu ? 'Договор готов' : 'Shartnoma tayyor' },
 			{ value: 'payment_pending', label: isRu ? 'To\'lov kutilmoqda' : 'To\'lov kutilmoqda' },
 			{ value: 'paid', label: isRu ? 'Оплачен' : 'To\'langan' },
 			{ value: 'delivered', label: isRu ? 'Доставлен' : 'Yetkazilgan' },
 			{ value: 'sent', label: isRu ? 'Отправлен' : 'Yuborilgan' },
-			{ value: 'signed', label: isRu ? 'Подписан' : 'Imzolangan' },
+			{ value: 'signed', label: isRu ? 'Завершен' : 'Yakunlandi' },
+			{ value: 'completed', label: isRu ? 'Завершен' : 'Yakunlandi' },
 			{ value: 'canceled', label: isRu ? 'Отменен' : 'Bekor qilingan' },
 		],
 		[isRu],
 	)
-
-	const deliveryStatusOptions = useMemo(
-		() => [
-			{ value: 'pending', label: isRu ? 'Ожидается' : 'Kutilmoqda' },
-			{ value: 'in_progress', label: isRu ? 'В процессе' : 'Jarayonda' },
-			{ value: 'delivered', label: isRu ? 'Доставлен' : 'Yetkazilgan' },
-			{ value: 'canceled', label: isRu ? 'Отменен' : 'Bekor qilingan' },
-		],
-		[isRu],
-	)
+	const lotDeadlinePlaceholder = isRu
+		? 'Например: 15.05.2026 14:20'
+		: 'Masalan: 15.05.2026 14:20'
 
 	function updateField<Key extends keyof ContractFormState>(
 		key: Key,
@@ -545,24 +589,48 @@ export function ContractsFormPanel({
 		setErrorMessage(null)
 
 		const title = form.title.trim()
-		const subsidyPercent = form.subsidy_percent.trim()
-
-		if (!subsidyPercent) {
-			setErrorMessage(t('contractsPage.form.subsidyRequiredError'))
-			return
-		}
+		const selectedClientName = isNewClient
+			? ''
+			: clients.find(client => client.id === form.client)?.full_name?.trim() ?? ''
+		const resolvedTitle = isNewClient ? title : title || selectedClientName || contract?.title?.trim() || ''
+		const subsidyPercent = form.subsidy_percent.trim() || '0'
 
 		if (!isEditing && isNewClient) {
-			if (!newClientName.trim() || !newClientPhone.trim() || !title) {
+			if (!title || !newClientPhone.trim()) {
 				setErrorMessage(t('contractsPage.form.newClientRequiredError'))
 				return
 			}
-		} else if (!form.client || !title) {
+		} else if (!form.client) {
+			setErrorMessage(tx.requiredError)
+			return
+		}
+		if (!resolvedTitle) {
+			setErrorMessage(tx.requiredError)
+			return
+		}
+		if (!isEditing && !isCreateRequiredFilled) {
 			setErrorMessage(tx.requiredError)
 			return
 		}
 
-		const parsedDetails: Record<string, unknown> | null = null
+		const baseDetails = readDetailsObject(form.details)
+		const givenSubsidyAmount = form.given_subsidy_amount.trim()
+		const lotDeadline = toApiDateTime(form.lot_deadline_at)
+		const detailsPayload: Record<string, unknown> = {
+			...baseDetails,
+			one_id_code: form.one_id_code.trim() || null,
+			agreed_amount: form.agreed_amount.trim() || null,
+			paid_amount: form.paid_amount.trim() || null,
+			given_subsidy_amount: givenSubsidyAmount || null,
+			auditor_company_name: form.auditor_company_name.trim() || null,
+			auditor_organization_name: form.auditor_company_name.trim() || null,
+			auditor_phone: form.auditor_phone.trim() || null,
+			audit_conclusion_text: form.audit_conclusion_text.trim() || null,
+			audit_conclusion: form.audit_conclusion_text.trim() || null,
+			lot_deadline_at: form.lot_deadline_at.trim() || null,
+			lot_deadline: lotDeadline || null,
+			installer_fee_amount: form.installer_fee_amount.trim() || null,
+		}
 
 		setIsSubmitting(true)
 		try {
@@ -571,7 +639,7 @@ export function ContractsFormPanel({
 
 			if (!isEditing && isNewClient) {
 				const createdClientResponse = await services.clients.createClient({
-					full_name: newClientName.trim(),
+					full_name: resolvedTitle,
 					phone: newClientPhone.trim(),
 				} as any)
 
@@ -595,37 +663,43 @@ export function ContractsFormPanel({
 				resolvedCustomerPhone = newClientPhone.trim()
 			}
 
+			const resolvedRequestedPowerKw =
+				form.requested_power_kw === '' ? null : Number(form.requested_power_kw)
+
 			const payload: CreateContractInput | UpdateContractInput = {
 				client: clientId,
-				title,
-			status: form.status,
-			panel_type: form.panel_type,
-			inverter_type: form.inverter_type,
-			requested_power_kw:
-				form.requested_power_kw === '' ? null : Number(form.requested_power_kw),
-			audit_power_kw:
-				form.audit_power_kw === '' ? null : Number(form.audit_power_kw),
-			audit_conclusion_kw:
-				form.audit_conclusion_kw === '' ? null : Number(form.audit_conclusion_kw),
-			eligible_subsidy_kw:
-				form.eligible_subsidy_kw === '' ? null : Number(form.eligible_subsidy_kw),
-			estimated_subsidy_amount: form.estimated_subsidy_amount || null,
-			subsidy_percent: subsidyPercent,
-			customer_phone: resolvedCustomerPhone,
-			installation_address: form.installation_address || '',
-			delivery_status: form.delivery_status || 'pending',
-			delivery_notes: form.delivery_notes || '',
-
-			items: form.items
-				.filter(item => item.product && Number(item.quantity) > 0)
-				.map(item => ({
-					product: item.product,
-					quantity: Number(item.quantity),
-					unit_price: item.unit_price || '0',
-				})),
-			file: form.file,
-			cadastre_file: form.cadastre_file,
-			house_image: form.house_image,
+				title: resolvedTitle,
+				status: form.status,
+				panel_type: form.panel_type,
+				inverter_type: form.inverter_type,
+				requested_power_kw: resolvedRequestedPowerKw,
+				subsidy_percent: subsidyPercent,
+				one_id_code: form.one_id_code.trim() || undefined,
+				customer_phone: resolvedCustomerPhone,
+				agreed_amount: form.agreed_amount.trim() || null,
+				paid_amount: form.paid_amount.trim() || null,
+				subsidy_amount: givenSubsidyAmount || null,
+				auditor_organization_name: form.auditor_company_name.trim() || undefined,
+				auditor_phone: form.auditor_phone.trim() || undefined,
+				audit_conclusion: form.audit_conclusion_text.trim() || undefined,
+				lot_deadline: lotDeadline || undefined,
+				installer_fee_amount: form.installer_fee_amount.trim() || null,
+				installation_address: form.installation_address || '',
+				details: detailsPayload,
+				items: form.items
+					.filter(item => item.product && Number(item.quantity) > 0)
+					.map(item => ({
+						product: item.product,
+						quantity: Number(item.quantity),
+						unit_price: item.unit_price || '0',
+					})),
+				file: form.file, // legacy backend field
+				cadastre_file: form.cadastre_file, // legacy backend field
+				house_image: form.house_image, // legacy backend field
+				audit_contract_file: form.file,
+				home_cadastre_file: form.cadastre_file,
+				company_contract_file: form.house_image,
+				additional_file: form.additional_file,
 			}
 
 			const saved = isEditing
@@ -693,76 +767,32 @@ export function ContractsFormPanel({
 			</header>
 
 			<form className='grid gap-3' onSubmit={handleSubmit} noValidate>
-				<div className='grid items-start gap-3 sm:grid-cols-2'>
-					{!isEditing && isNewClient ? (
-						<>
-							<div className='grid gap-3 sm:col-span-2 sm:grid-cols-2'>
-								<div className='grid gap-1.5'>
-									<label className={labelClassName}>
-										{t('contractsPage.form.newClientName')}
-									</label>
-									<input
-										className={inputClassName}
-										value={newClientName}
-										onChange={event => setNewClientName(event.target.value)}
-										placeholder={t('contractsPage.form.newClientNamePlaceholder')}
-										disabled={isSubmitting}
-									/>
-								</div>
-
-								<div className='grid gap-1.5'>
-									<label className={labelClassName}>
-										{t('contractsPage.form.newClientPhone')}
-									</label>
-									<input
-										className={inputClassName}
-										value={newClientPhone}
-										onChange={event => setNewClientPhone(event.target.value)}
-										placeholder={t('contractsPage.form.newClientPhonePlaceholder')}
-										disabled={isSubmitting}
-									/>
-								</div>
-							</div>
-
-							<div className='grid gap-1.5 sm:col-span-2'>
-								<label className={labelClassName}>{tx.labels.title}</label>
-								<input
-									className={inputClassName}
-									value={form.title}
-									onChange={event => updateField('title', event.target.value)}
-									disabled={isSubmitting}
-								/>
-							</div>
-						</>
-					) : (
-						<>
-							<div className='grid gap-1.5'>
-								<label className={labelClassName}>{tx.labels.client}</label>
-								<FilterSelect
-									value={form.client}
-									options={[
-										{ value: '', label: t('shared.filterSelect.select'), disabled: true },
-										...clients.map(client => ({
-											value: client.id,
-											label: client.full_name,
-										})),
-									]}
-									onChange={value => updateField('client', value)}
-									disabled={isSubmitting || isLoadingReferences}
-								/>
-							</div>
-
-							<div className='grid gap-1.5'>
-								<label className={labelClassName}>{tx.labels.title}</label>
-								<input
-									className={inputClassName}
-									value={form.title}
-									onChange={event => updateField('title', event.target.value)}
-									disabled={isSubmitting}
-								/>
-							</div>
-						</>
-					)}
+				<div className='grid items-start gap-3 sm:grid-cols-2'>					{!isNewClient ? (
+						<div className='grid gap-1.5'>
+							<label className={labelClassName}>{tx.labels.client}</label>
+							<FilterSelect
+								value={form.client}
+								options={[
+									{ value: '', label: t('shared.filterSelect.select'), disabled: true },
+									...clients.map(client => ({
+										value: client.id,
+										label: client.full_name,
+									})),
+								]}
+								onChange={value => {
+									updateField('client', value)
+									const selected = clients.find(item => item.id === value)
+									updateField('customer_phone', selected?.phone || '')
+									if (!form.title.trim()) {
+										if (selected?.full_name) {
+											updateField('title', selected.full_name)
+										}
+									}
+								}}
+								disabled={isSubmitting || isLoadingReferences}
+							/>
+						</div>
+					) : null}
 					<div className='grid gap-1.5'>
 						<label className={labelClassName}>{tx.labels.status}</label>
 						<FilterSelect
@@ -772,19 +802,52 @@ export function ContractsFormPanel({
 							disabled={isSubmitting}
 						/>
 					</div>
+					{isNewClient ? (
+						<div className='grid gap-1.5'>
+							<label className={labelClassName}>{tx.labels.title}</label>
+							<input
+								className={inputClassName}
+								value={form.title}
+								onChange={event => updateField('title', event.target.value)}
+								disabled={isSubmitting}
+							/>
+						</div>
+					) : null}
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.panelType}</label>
-						<FilterSelect
-							value={form.panel_type}
-							options={[
-								{
-									value: '',
-									label: isRu ? 'Не указано' : 'Ko\'rsatilmagan',
-								},
-								{ value: 'jinko_ja', label: 'Jinko / JA Solar' },
-								{ value: 'longi_hi_mo_x10', label: 'Longi HI MO X10' },
-							]}
-							onChange={value => updateField('panel_type', value as Contract['panel_type'])}
+						<label className={labelClassName}>{tx.labels.requestedPower}</label>
+						<input
+							type='number'
+							min={0}
+							className={inputClassName}
+							value={form.requested_power_kw}
+							onChange={event =>
+								updateField(
+									'requested_power_kw',
+									event.target.value === '' ? '' : Number(event.target.value),
+								)
+							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.customerPhone}</label>
+						<input
+							className={inputClassName}
+							value={!isEditing && isNewClient ? newClientPhone : form.customer_phone}
+							onChange={event =>
+								!isEditing && isNewClient
+									? setNewClientPhone(event.target.value)
+									: updateField('customer_phone', event.target.value)
+							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.oneIdCode}</label>
+						<input
+							className={inputClassName}
+							value={form.one_id_code}
+							onChange={event => updateField('one_id_code', event.target.value)}
 							disabled={isSubmitting}
 						/>
 					</div>
@@ -807,111 +870,56 @@ export function ContractsFormPanel({
 						/>
 					</div>
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.requestedPower}</label>
+						<label className={labelClassName}>{tx.labels.panelType}</label>
 						<FilterSelect
-							value={form.requested_power_kw === '' ? '' : String(form.requested_power_kw)}
+							value={form.panel_type}
 							options={[
-								{ value: '', label: t('shared.filterSelect.select'), disabled: true },
-								{ value: '10', label: '10kW' },
-								{ value: '20', label: '20kW' },
-								{ value: '30', label: '30kW' },
-								{ value: '40', label: '40kW' },
-								{ value: '50', label: '50kW' },
+								{
+									value: '',
+									label: isRu ? 'Не указано' : 'Ko\'rsatilmagan',
+								},
+								{ value: 'jinko_ja', label: 'Jinko / JA Solar' },
+								{ value: 'longi_hi_mo_x10', label: 'Longi HI MO X10' },
 							]}
-							onChange={value =>
-								updateField(
-									'requested_power_kw',
-									value === '' ? '' : Number(value),
-								)
-							}
+							onChange={value => updateField('panel_type', value as Contract['panel_type'])}
 							disabled={isSubmitting}
 						/>
 					</div>
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.auditPower}</label>
+						<label className={labelClassName}>{tx.labels.agreedAmount}</label>
 						<input
 							type='number'
 							min={0}
 							className={inputClassName}
-							value={form.audit_power_kw}
-							onChange={event =>
-								updateField(
-									'audit_power_kw',
-									event.target.value === '' ? '' : Number(event.target.value),
-								)
-							}
+							value={form.agreed_amount}
+							onChange={event => updateField('agreed_amount', event.target.value)}
 							disabled={isSubmitting}
 						/>
 					</div>
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.auditConclusionPower}</label>
+						<label className={labelClassName}>{tx.labels.paidAmount}</label>
 						<input
 							type='number'
 							min={0}
 							className={inputClassName}
-							value={form.audit_conclusion_kw}
-							onChange={event =>
-								updateField(
-									'audit_conclusion_kw',
-									event.target.value === '' ? '' : Number(event.target.value),
-								)
-							}
+							value={form.paid_amount}
+							onChange={event => updateField('paid_amount', event.target.value)}
 							disabled={isSubmitting}
 						/>
 					</div>
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.eligibleSubsidyPower}</label>
+						<label className={labelClassName}>{tx.labels.givenSubsidyAmount}</label>
 						<input
 							type='number'
 							min={0}
 							className={inputClassName}
-							value={form.eligible_subsidy_kw}
+							value={form.given_subsidy_amount}
 							onChange={event =>
-								updateField(
-									'eligible_subsidy_kw',
-									event.target.value === '' ? '' : Number(event.target.value),
-								)
+								updateField('given_subsidy_amount', event.target.value)
 							}
 							disabled={isSubmitting}
 						/>
 					</div>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.estimatedSubsidyAmount}</label>
-						<input
-							type='text'
-							className={inputClassName}
-							value={form.estimated_subsidy_amount}
-							onChange={event =>
-								updateField('estimated_subsidy_amount', event.target.value)
-							}
-							disabled={isSubmitting}
-						/>
-					</div>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.subsidyPercent}</label>
-						<input
-							type='number'
-							min={0}
-							step='0.01'
-							className={inputClassName}
-							value={form.subsidy_percent}
-							onChange={event => updateField('subsidy_percent', event.target.value)}
-							disabled={isSubmitting}
-						/>
-					</div>
-					{!isEditing && isNewClient ? null : (
-						<div className='grid gap-1.5'>
-							<label className={labelClassName}>{tx.labels.customerPhone}</label>
-							<input
-								className={inputClassName}
-								value={form.customer_phone}
-								onChange={event =>
-									updateField('customer_phone', event.target.value)
-								}
-								disabled={isSubmitting}
-							/>
-						</div>
-					)}
 					<div className='grid gap-1.5 sm:col-span-2'>
 						<label className={labelClassName}>{tx.labels.address}</label>
 						<input
@@ -924,20 +932,57 @@ export function ContractsFormPanel({
 						/>
 					</div>
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.deliveryStatus}</label>
-						<FilterSelect
-							value={form.delivery_status}
-							options={deliveryStatusOptions}
-							onChange={value => updateField('delivery_status', value)}
+						<label className={labelClassName}>{tx.labels.auditorCompanyName}</label>
+						<input
+							className={inputClassName}
+							value={form.auditor_company_name}
+							onChange={event =>
+								updateField('auditor_company_name', event.target.value)
+							}
 							disabled={isSubmitting}
 						/>
 					</div>
 					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.deliveryNotes}</label>
+						<label className={labelClassName}>{tx.labels.auditorPhone}</label>
 						<input
 							className={inputClassName}
-							value={form.delivery_notes}
-							onChange={event => updateField('delivery_notes', event.target.value)}
+							value={form.auditor_phone}
+							onChange={event => updateField('auditor_phone', event.target.value)}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.auditConclusionText}</label>
+						<input
+							className={inputClassName}
+							value={form.audit_conclusion_text}
+							onChange={event =>
+								updateField('audit_conclusion_text', event.target.value)
+							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.lotDeadlineAt}</label>
+						<input
+							className={inputClassName}
+							value={form.lot_deadline_at}
+							placeholder={lotDeadlinePlaceholder}
+							pattern='^\\d{2}\\.\\d{2}\\.\\d{4}\\s\\d{2}:\\d{2}$'
+							onChange={event => updateField('lot_deadline_at', event.target.value)}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.installerFeeAmount}</label>
+						<input
+							type='number'
+							min={0}
+							className={inputClassName}
+							value={form.installer_fee_amount}
+							onChange={event =>
+								updateField('installer_fee_amount', event.target.value)
+							}
 							disabled={isSubmitting}
 						/>
 					</div>
@@ -945,7 +990,7 @@ export function ContractsFormPanel({
 					<div className='sm:col-span-2'>
 						<FilePickerField
 							id='contract-file'
-							label={tx.labels.file}
+							label={tx.labels.auditContractFile}
 							value={form.file}
 							chooseLabel={tx.chooseFile}
 							emptyLabel={tx.noFile}
@@ -954,7 +999,7 @@ export function ContractsFormPanel({
 						/>
 						{isEditing && existingContractFileUrl ? (
 							<ExistingAttachment
-								label={`${tx.currentFile}: ${tx.labels.file}`}
+								label={`${tx.currentFile}: ${tx.labels.auditContractFile}`}
 								url={existingContractFileUrl}
 								openLabel={tx.open}
 							/>
@@ -963,7 +1008,7 @@ export function ContractsFormPanel({
 					<div className='sm:col-span-2'>
 						<FilePickerField
 							id='contract-cadastre-file'
-							label={tx.labels.cadastreFile}
+							label={tx.labels.homeCadastreFile}
 							value={form.cadastre_file}
 							chooseLabel={tx.chooseFile}
 							emptyLabel={tx.noFile}
@@ -972,7 +1017,7 @@ export function ContractsFormPanel({
 						/>
 						{isEditing && existingCadastreFileUrl ? (
 							<ExistingAttachment
-								label={`${tx.currentFile}: ${tx.labels.cadastreFile}`}
+								label={`${tx.currentFile}: ${tx.labels.homeCadastreFile}`}
 								url={existingCadastreFileUrl}
 								openLabel={tx.open}
 							/>
@@ -981,18 +1026,35 @@ export function ContractsFormPanel({
 					<div className='sm:col-span-2'>
 						<FilePickerField
 							id='contract-house-image'
-							label={tx.labels.houseImage}
+							label={tx.labels.companyContractFile}
 							value={form.house_image}
 							chooseLabel={tx.chooseFile}
 							emptyLabel={tx.noFile}
-							accept='image/*'
 							disabled={isSubmitting}
 							onChange={file => updateField('house_image', file)}
 						/>
 						{isEditing && existingHouseImageUrl ? (
 							<ExistingAttachment
-								label={`${tx.currentFile}: ${tx.labels.houseImage}`}
+								label={`${tx.currentFile}: ${tx.labels.companyContractFile}`}
 								url={existingHouseImageUrl}
+								openLabel={tx.open}
+							/>
+						) : null}
+					</div>
+					<div className='sm:col-span-2'>
+						<FilePickerField
+							id='contract-additional-file'
+							label={tx.labels.additionalFile}
+							value={form.additional_file}
+							chooseLabel={tx.chooseFile}
+							emptyLabel={tx.noFile}
+							disabled={isSubmitting}
+							onChange={file => updateField('additional_file', file)}
+						/>
+						{isEditing && existingAdditionalFileUrl ? (
+							<ExistingAttachment
+								label={`${tx.currentFile}: ${tx.labels.additionalFile}`}
+								url={existingAdditionalFileUrl}
 								openLabel={tx.open}
 							/>
 						) : null}
@@ -1111,3 +1173,6 @@ export function ContractsFormPanel({
 		</div>
 	)
 }
+
+
+

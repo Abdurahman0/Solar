@@ -89,12 +89,12 @@ function FilterSelect({
   return (
     <div
       ref={rootRef}
-      className={['relative', isOpen ? 'z-[140]' : 'z-10'].join(' ')}
+      className={['relative min-w-0', isOpen ? 'z-[140]' : 'z-10'].join(' ')}
     >
       <button
         type="button"
         className={[
-          'inline-flex w-full items-center justify-between gap-3 rounded-lg border-0 bg-surface-card px-4 text-left',
+          'inline-flex w-full items-center justify-between gap-3 overflow-hidden rounded-lg border-0 bg-surface-card px-4 text-left',
           size === 'compact' ? 'h-10 min-h-10' : 'min-h-[44px]',
           'text-sm font-medium text-text-primary shadow-sm outline-none transition duration-fast',
           'hover:bg-surface-subtle/90 focus-visible:ring-2 focus-visible:ring-primary/20',
@@ -105,7 +105,7 @@ function FilterSelect({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
-        <span className="truncate">
+        <span className="block min-w-0 flex-1 truncate pr-1">
           {selectedOption?.label ?? t('shared.filterSelect.select')}
         </span>
         <AppIcon
@@ -154,9 +154,9 @@ function FilterSelect({
                   aria-disabled={isDisabled}
                   disabled={isDisabled}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <span className="block min-w-0 flex-1 truncate">{option.label}</span>
                   {isSelected ? (
-                    <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
+                    <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-primary" />
                   ) : null}
                 </button>
               );

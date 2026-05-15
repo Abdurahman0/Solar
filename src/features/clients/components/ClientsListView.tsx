@@ -120,7 +120,6 @@ export function ClientsListView({
 					phone: 'Телефон',
 					region: 'Регион',
 					source: 'Источник',
-					segment: 'Сегмент',
 					status: 'Статус',
 					actions: 'Действия',
 				},
@@ -163,7 +162,6 @@ export function ClientsListView({
 					phone: 'Telefon',
 					region: 'Hudud',
 					source: 'Manba',
-					segment: 'Segment',
 					status: 'Holat',
 					actions: 'Amallar',
 				},
@@ -324,11 +322,6 @@ export function ClientsListView({
 							: (client.source_platform_label || client.source_platform || '-')}
 					</span>
 				),
-			},
-			{
-				key: 'customer_segment',
-				label: tx.columns.segment,
-				render: client => <span className={tablePrimaryTextClassName}>{client.customer_segment || '-'}</span>,
 			},
 			{
 				key: 'status',
@@ -508,3 +501,4 @@ export function ClientsListView({
 		</div>
 	)
 }
+

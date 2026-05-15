@@ -54,7 +54,16 @@ export class ContractsAdapter
 		input: CreateContractInput,
 		file?: File | null,
 	): Promise<Contract> {
-		if (file || input.file || input.cadastre_file || input.house_image) {
+		if (
+			file ||
+			input.file ||
+			input.cadastre_file ||
+			input.house_image ||
+			input.home_cadastre_file ||
+			input.audit_contract_file ||
+			input.company_contract_file ||
+			input.additional_file
+		) {
 			return this.uploadWithFile(input, file ?? undefined, 'create')
 		}
 		return this.create(input as CreateInput<Contract>)
@@ -65,7 +74,16 @@ export class ContractsAdapter
 		input: UpdateContractInput,
 		file?: File | null,
 	): Promise<Contract> {
-		if (file || input.file || input.cadastre_file || input.house_image) {
+		if (
+			file ||
+			input.file ||
+			input.cadastre_file ||
+			input.house_image ||
+			input.home_cadastre_file ||
+			input.audit_contract_file ||
+			input.company_contract_file ||
+			input.additional_file
+		) {
 			return this.uploadWithFile(input, file ?? undefined, 'update', id)
 		}
 		return this.update(id, input as UpdateInput<Contract>)
@@ -145,7 +163,11 @@ export class ContractsAdapter
 			if (
 				key === 'file' ||
 				key === 'cadastre_file' ||
-				key === 'house_image'
+				key === 'house_image' ||
+				key === 'home_cadastre_file' ||
+				key === 'audit_contract_file' ||
+				key === 'company_contract_file' ||
+				key === 'additional_file'
 			) {
 				return
 			}
@@ -182,6 +204,18 @@ export class ContractsAdapter
 		}
 		if (input.house_image instanceof File) {
 			formData.append('house_image', input.house_image)
+		}
+		if (input.home_cadastre_file instanceof File) {
+			formData.append('home_cadastre_file', input.home_cadastre_file)
+		}
+		if (input.audit_contract_file instanceof File) {
+			formData.append('audit_contract_file', input.audit_contract_file)
+		}
+		if (input.company_contract_file instanceof File) {
+			formData.append('company_contract_file', input.company_contract_file)
+		}
+		if (input.additional_file instanceof File) {
+			formData.append('additional_file', input.additional_file)
 		}
 
 		const token = getAccessToken()
