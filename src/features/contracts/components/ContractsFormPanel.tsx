@@ -5,6 +5,7 @@ import { FilterSelect, Switch } from '../../../components/shared/data'
 import { services } from '../../../services'
 import type {
 	Contract,
+	CreateClientInput,
 	CreateContractInput,
 	UpdateContractInput,
 } from '../../../services/contracts'
@@ -236,6 +237,36 @@ function readStringField(source: Record<string, unknown>, key: string): string {
 		return ''
 	}
 	return String(value)
+}
+
+function extractClientIdFromResponse(response: unknown): string | null {
+	if (!response || typeof response !== 'object') {
+		return null
+	}
+
+	const record = response as Record<string, unknown>
+	const directId = record.id
+	if (typeof directId === 'string' && directId.trim()) {
+		return directId
+	}
+
+	const nestedClient = record.client
+	if (nestedClient && typeof nestedClient === 'object') {
+		const nestedClientId = (nestedClient as Record<string, unknown>).id
+		if (typeof nestedClientId === 'string' && nestedClientId.trim()) {
+			return nestedClientId
+		}
+	}
+
+	const nestedData = record.data
+	if (nestedData && typeof nestedData === 'object') {
+		const nestedDataId = (nestedData as Record<string, unknown>).id
+		if (typeof nestedDataId === 'string' && nestedDataId.trim()) {
+			return nestedDataId
+		}
+	}
+
+	return null
 }
 
 function formatLotDeadlineForInput(value: string | null | undefined): string {
@@ -483,23 +514,12 @@ export function ContractsFormPanel({
 		clients.find(client => client.id === form.client)?.full_name?.trim() ?? ''
 	const resolvedTitleForSubmit = isNewClient
 		? form.title.trim()
-		: form.title.trim() || selectedClientNameForSubmit
-	const resolvedPhoneForSubmit = isNewClient
-		? newClientPhone.trim()
-		: form.customer_phone.trim()
-	const hasClientRequired = isNewClient
-		? resolvedTitleForSubmit.length > 0
-		: Boolean(form.client)
-	const isCreateRequiredFilled = Boolean(
-		hasClientRequired &&
-			form.requested_power_kw !== '' &&
-			resolvedPhoneForSubmit.length > 0 &&
-			form.inverter_type &&
-			form.panel_type,
-	)
+		: form.title.trim() || selectedClientNameForSubmit || contract?.title?.trim() || ''
 	const canSubmit = isEditing
-		? Boolean(form.client)
-		: isCreateRequiredFilled
+		? Boolean(form.client && resolvedTitleForSubmit)
+		: isNewClient
+			? Boolean(resolvedTitleForSubmit)
+			: Boolean(form.client && resolvedTitleForSubmit)
 
 	useEffect(() => {
 		if (isEditing) {
@@ -596,8 +616,8 @@ export function ContractsFormPanel({
 		const subsidyPercent = form.subsidy_percent.trim() || '0'
 
 		if (!isEditing && isNewClient) {
-			if (!title || !newClientPhone.trim()) {
-				setErrorMessage(t('contractsPage.form.newClientRequiredError'))
+			if (!title) {
+				setErrorMessage(tx.requiredError)
 				return
 			}
 		} else if (!form.client) {
@@ -605,10 +625,6 @@ export function ContractsFormPanel({
 			return
 		}
 		if (!resolvedTitle) {
-			setErrorMessage(tx.requiredError)
-			return
-		}
-		if (!isEditing && !isCreateRequiredFilled) {
 			setErrorMessage(tx.requiredError)
 			return
 		}
@@ -638,24 +654,12 @@ export function ContractsFormPanel({
 			let resolvedCustomerPhone = form.customer_phone || ''
 
 			if (!isEditing && isNewClient) {
-				const createdClientResponse = await services.clients.createClient({
+				const newClientPayload: CreateClientInput = {
 					full_name: resolvedTitle,
-					phone: newClientPhone.trim(),
-				} as any)
-
-				// Some endpoints return `{ status: 'success', data: {...} }` while others return the entity directly.
-				const createdClient =
-					createdClientResponse &&
-					typeof createdClientResponse === 'object' &&
-					'data' in (createdClientResponse as Record<string, unknown>)
-						? (createdClientResponse as { data?: any }).data ?? createdClientResponse
-						: createdClientResponse
-
-				clientId =
-					createdClient?.id ??
-					createdClient?.client?.id ??
-					createdClient?.data?.id ??
-					''
+					phone: newClientPhone.trim() || undefined,
+				}
+				const createdClientResponse = await services.clients.createClient(newClientPayload)
+				clientId = extractClientIdFromResponse(createdClientResponse) ?? ''
 
 				if (!clientId || typeof clientId !== 'string') {
 					throw new Error('Failed to create client.')

@@ -2188,7 +2188,7 @@
       "newClientNamePlaceholder": "Masalan: Ali Valiyev",
       "newClientPhone": "Mijoz telefoni",
       "newClientPhonePlaceholder": "Masalan: +998901234567",
-      "newClientRequiredError": "Yangi mijoz uchun ism, telefon va shartnoma nomini to'ldiring.",
+      "newClientRequiredError": "Yangi mijoz uchun ism va shartnoma nomini to'ldiring.",
       "subsidyRequiredError": "Subsidiya (%) maydonini to'ldiring."
     }
   },
