@@ -631,13 +631,14 @@ export function ContractsFormPanel({
 
 		const baseDetails = readDetailsObject(form.details)
 		const givenSubsidyAmount = form.given_subsidy_amount.trim()
+		const resolvedSubsidyAmount = givenSubsidyAmount || '0'
 		const lotDeadline = toApiDateTime(form.lot_deadline_at)
 		const detailsPayload: Record<string, unknown> = {
 			...baseDetails,
 			one_id_code: form.one_id_code.trim() || null,
 			agreed_amount: form.agreed_amount.trim() || null,
 			paid_amount: form.paid_amount.trim() || null,
-			given_subsidy_amount: givenSubsidyAmount || null,
+			given_subsidy_amount: resolvedSubsidyAmount,
 			auditor_company_name: form.auditor_company_name.trim() || null,
 			auditor_organization_name: form.auditor_company_name.trim() || null,
 			auditor_phone: form.auditor_phone.trim() || null,
@@ -682,7 +683,7 @@ export function ContractsFormPanel({
 				customer_phone: resolvedCustomerPhone,
 				agreed_amount: form.agreed_amount.trim() || null,
 				paid_amount: form.paid_amount.trim() || null,
-				subsidy_amount: givenSubsidyAmount || null,
+				subsidy_amount: resolvedSubsidyAmount,
 				auditor_organization_name: form.auditor_company_name.trim() || undefined,
 				auditor_phone: form.auditor_phone.trim() || undefined,
 				audit_conclusion: form.audit_conclusion_text.trim() || undefined,
