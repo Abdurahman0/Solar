@@ -765,7 +765,7 @@ function ProductsPage() {
         key: 'sortOrder',
         label: t('products.categoryColumns.sortOrder'),
         render: (category) => (
-          <span className={tablePrimaryTextClassName}>{(category.sortOrder ?? 0) + 1}</span>
+          <span className={tablePrimaryTextClassName}>{categoryDisplayOrderMap.get(category.id) ?? 1}</span>
         ),
       },
       {
@@ -819,7 +819,7 @@ function ProductsPage() {
         ),
       },
     ];
-  }, [locale, t]);
+  }, [categoryDisplayOrderMap, locale, t]);
 
   const orderedCategories = useMemo(() => {
     return [...categories].sort((left, right) => {
@@ -846,6 +846,11 @@ function ProductsPage() {
       );
     });
   }, [orderedCategories, search]);
+
+  const categoryDisplayOrderMap = useMemo(
+    () => new Map(filteredCategories.map((category, index) => [category.id, index + 1])),
+    [filteredCategories],
+  );
 
   async function handleReorderCategories(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex || isCategoryReordering || isCategorySaving || isCategoryDeleting) {

@@ -54,6 +54,7 @@ interface PieSlice extends DashboardBreakdownItem {
 const SOURCE_COLORS: Record<string, string> = {
 	telegram: '#2AABEE',
 	instagram: '#E1306C',
+	manual: '#F59E0B',
 }
 
 const SOURCE_COLORS_FALLBACK = ['#0EA5E9', '#E1306C', '#10B981', '#F59E0B']
