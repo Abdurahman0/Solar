@@ -750,6 +750,37 @@ function ProductsPage() {
     ];
   }, [locale, t]);
 
+  const orderedCategories = useMemo(() => {
+    return [...categories].sort((left, right) => {
+      const leftOrder = typeof left.sortOrder === 'number' ? left.sortOrder : 0;
+      const rightOrder = typeof right.sortOrder === 'number' ? right.sortOrder : 0;
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      return left.name.localeCompare(right.name, locale);
+    });
+  }, [categories, locale]);
+
+  const filteredCategories = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) {
+      return orderedCategories;
+    }
+
+    return orderedCategories.filter((category) => {
+      return (
+        category.name.toLowerCase().includes(query) ||
+        category.code.toLowerCase().includes(query)
+      );
+    });
+  }, [orderedCategories, search]);
+
+  const categoryDisplayOrderMap = useMemo(
+    () => new Map(filteredCategories.map((category, index) => [category.id, index + 1])),
+    [filteredCategories],
+  );
+
   const categoryColumns = useMemo<DataTableColumn<ProductCategory>[]>(() => {
     return [
       {
@@ -820,37 +851,6 @@ function ProductsPage() {
       },
     ];
   }, [categoryDisplayOrderMap, locale, t]);
-
-  const orderedCategories = useMemo(() => {
-    return [...categories].sort((left, right) => {
-      const leftOrder = typeof left.sortOrder === 'number' ? left.sortOrder : 0;
-      const rightOrder = typeof right.sortOrder === 'number' ? right.sortOrder : 0;
-      if (leftOrder !== rightOrder) {
-        return leftOrder - rightOrder;
-      }
-
-      return left.name.localeCompare(right.name, locale);
-    });
-  }, [categories, locale]);
-
-  const filteredCategories = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) {
-      return orderedCategories;
-    }
-
-    return orderedCategories.filter((category) => {
-      return (
-        category.name.toLowerCase().includes(query) ||
-        category.code.toLowerCase().includes(query)
-      );
-    });
-  }, [orderedCategories, search]);
-
-  const categoryDisplayOrderMap = useMemo(
-    () => new Map(filteredCategories.map((category, index) => [category.id, index + 1])),
-    [filteredCategories],
-  );
 
   async function handleReorderCategories(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex || isCategoryReordering || isCategorySaving || isCategoryDeleting) {
