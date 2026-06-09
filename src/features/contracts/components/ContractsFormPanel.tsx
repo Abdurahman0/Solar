@@ -20,6 +20,7 @@ type ContractFormState = {
 	client: string
 	title: string
 	status: Contract['status']
+	note: string
 	panel_type: Contract['panel_type']
 	inverter_type: Contract['inverter_type']
 	requested_power_kw: number | ''
@@ -302,6 +303,7 @@ function toInitialState(contract?: Contract): ContractFormState {
 		client: contract?.client ?? '',
 		title: contract?.title ?? '',
 		status: contract?.status ?? 'draft',
+		note: contract?.note ?? readStringField(details, 'note'),
 		panel_type: contract?.panel_type ?? '',
 		inverter_type: contract?.inverter_type ?? '',
 		requested_power_kw:
@@ -394,10 +396,12 @@ export function ContractsFormPanel({
 				addItem:
 					'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u0437\u0438\u0446\u0438\u044e',
 				removeItem: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c',
+				searchClientPlaceholder: '\u041f\u043e\u0438\u0441\u043a \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
 				labels: {
 					client: '\u041a\u043b\u0438\u0435\u043d\u0442',
 					title: '\u0424.\u0418.\u0428.',
 					status: '\u0421\u0442\u0430\u0442\u0443\u0441',
+					note: '\u041f\u0440\u0438\u043c\u0435\u0447\u0430\u043d\u0438\u0435',
 					requestedPower:
 						'\u0417\u0430\u043f\u0440\u043e\u0448\u0435\u043d\u043d\u0430\u044f \u043c\u043e\u0449\u043d\u043e\u0441\u0442\u044c (kW)',
 					customerPhone:
@@ -454,10 +458,12 @@ export function ContractsFormPanel({
 				open: "Ko'rish",
 				addItem: "Pozitsiya qo'shish",
 				removeItem: 'Olib tashlash',
+				searchClientPlaceholder: 'Mijozni qidiring',
 				labels: {
 					client: 'Mijoz',
 					title: 'F.I.SH',
 					status: 'Holat',
+					note: 'Izoh',
 					requestedPower: "So'ralgan quvvat (kW)",
 					customerPhone: 'Mijoz telefoni',
 					oneIdCode: 'One ID kodi',
@@ -572,9 +578,7 @@ export function ContractsFormPanel({
 			{ value: 'contract_ready', label: isRu ? 'Договор готов' : 'Shartnoma tayyor' },
 			{ value: 'payment_pending', label: isRu ? 'To\'lov kutilmoqda' : 'To\'lov kutilmoqda' },
 			{ value: 'paid', label: isRu ? 'Оплачен' : 'To\'langan' },
-			{ value: 'delivered', label: isRu ? 'Доставлен' : 'Yetkazilgan' },
-			{ value: 'sent', label: isRu ? 'Отправлен' : 'Yuborilgan' },
-			{ value: 'signed', label: isRu ? 'Завершен' : 'Yakunlandi' },
+			{ value: 'in_lot', label: isRu ? 'Выставлен в лот' : "Lotga qo'yilgan" },
 			{ value: 'completed', label: isRu ? 'Завершен' : 'Yakunlandi' },
 			{ value: 'canceled', label: isRu ? 'Отменен' : 'Bekor qilingan' },
 		],
@@ -635,6 +639,7 @@ export function ContractsFormPanel({
 		const lotDeadline = toApiDateTime(form.lot_deadline_at)
 		const detailsPayload: Record<string, unknown> = {
 			...baseDetails,
+			note: form.note.trim() || null,
 			one_id_code: form.one_id_code.trim() || null,
 			agreed_amount: form.agreed_amount.trim() || null,
 			paid_amount: form.paid_amount.trim() || null,
@@ -675,6 +680,7 @@ export function ContractsFormPanel({
 				client: clientId,
 				title: resolvedTitle,
 				status: form.status,
+				note: form.note.trim() || undefined,
 				panel_type: form.panel_type,
 				inverter_type: form.inverter_type,
 				requested_power_kw: resolvedRequestedPowerKw,
@@ -795,6 +801,8 @@ export function ContractsFormPanel({
 									}
 								}}
 								disabled={isSubmitting || isLoadingReferences}
+								searchable
+								searchPlaceholder={tx.searchClientPlaceholder}
 							/>
 						</div>
 					) : null}
@@ -804,6 +812,15 @@ export function ContractsFormPanel({
 							value={form.status}
 							options={statusOptions}
 							onChange={value => updateField('status', value as Contract['status'])}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.note}</label>
+						<input
+							className={inputClassName}
+							value={form.note}
+							onChange={event => updateField('note', event.target.value)}
 							disabled={isSubmitting}
 						/>
 					</div>

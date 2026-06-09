@@ -41,13 +41,13 @@ const valueClassName =
 function getStatusTone(
 	status: string,
 ): 'info' | 'warning' | 'accent' | 'success' | 'danger' {
-	if (status === 'paid' || status === 'signed' || status === 'completed' || status === 'delivered') {
+	if (status === 'paid' || status === 'completed') {
 		return 'success'
 	}
 	if (status === 'canceled') {
 		return 'danger'
 	}
-	if (status === 'audit_paid' || status === 'contract_ready') {
+	if (status === 'audit_paid' || status === 'contract_ready' || status === 'in_lot') {
 		return 'accent'
 	}
 	if (status === 'draft') {
@@ -56,7 +56,12 @@ function getStatusTone(
 	return 'warning'
 }
 
+function normalizeContractStatusForUi(status: string): string {
+	return status
+}
+
 function getStatusLabel(status: string, isRu: boolean): string {
+	const visibleStatus = normalizeContractStatusForUi(status)
 	if (isRu) {
 		const map: Record<string, string> = {
 			draft: "\u0427\u0435\u0440\u043d\u043e\u0432\u0438\u043a",
@@ -66,13 +71,11 @@ function getStatusLabel(status: string, isRu: boolean): string {
 			contract_ready: "\u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u0433\u043e\u0442\u043e\u0432",
 			payment_pending: "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 \u043e\u043f\u043b\u0430\u0442\u0443",
 			paid: "\u041e\u043f\u043b\u0430\u0447\u0435\u043d",
-			delivered: "\u0414\u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d",
-			sent: "\u041e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d",
-			signed: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d",
+			in_lot: "\u0412\u044b\u0441\u0442\u0430\u0432\u043b\u0435\u043d \u0432 \u043b\u043e\u0442",
 			completed: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d",
 			canceled: "\u041e\u0442\u043c\u0435\u043d\u0435\u043d",
 		}
-		return map[status] ?? status
+		return map[visibleStatus] ?? visibleStatus
 	}
 
 	const map: Record<string, string> = {
@@ -83,13 +86,11 @@ function getStatusLabel(status: string, isRu: boolean): string {
 		contract_ready: 'Shartnoma tayyor',
 		payment_pending: 'To\'lov kutilmoqda',
 		paid: 'To\'langan',
-		delivered: 'Yetkazilgan',
-		sent: 'Yuborilgan',
-		signed: 'Yakunlandi',
+		in_lot: "Lotga qo'yilgan",
 		completed: 'Yakunlandi',
 		canceled: 'Bekor qilingan',
 	}
-	return map[status] ?? status
+	return map[visibleStatus] ?? visibleStatus
 }
 
 const CONTRACT_STAGE_IDS = ['draft', 'audit', 'moderation', 'payment', 'finish'] as const
@@ -98,13 +99,7 @@ type ContractStageId = (typeof CONTRACT_STAGE_IDS)[number]
 type StageTone = 'todo' | 'pending' | 'success' | 'danger'
 
 function getCurrentStageIndex(status: string): number {
-	if (
-		status === 'canceled' ||
-		status === 'sent' ||
-		status === 'delivered' ||
-		status === 'signed' ||
-		status === 'completed'
-	) {
+	if (status === 'canceled' || status === 'in_lot' || status === 'completed') {
 		return 4
 	}
 	if (status === 'payment_pending' || status === 'paid') {
@@ -144,7 +139,7 @@ function getStageTone(stageId: ContractStageId, status: string): StageTone {
 		case 'payment':
 			return status === 'payment_pending' ? 'pending' : 'success'
 		case 'finish':
-			return 'success'
+			return status === 'in_lot' ? 'pending' : 'success'
 		default:
 			return 'todo'
 	}
@@ -172,12 +167,12 @@ function getStageStatusLabel(
 		return getStatusLabel('canceled', isRu)
 	}
 	if (tone === 'todo') {
-		return getStatusLabel('sent', isRu)
+		return getStatusLabel('in_lot', isRu)
 	}
-	if (status === 'sent' || status === 'delivered' || status === 'signed' || status === 'completed') {
+	if (status === 'in_lot' || status === 'completed') {
 		return getStatusLabel(status, isRu)
 	}
-	return getStatusLabel('signed', isRu)
+	return getStatusLabel('completed', isRu)
 }
 
 function getStageIcon(stageId: ContractStageId, tone: StageTone, status: string) {
@@ -212,12 +207,6 @@ function getStageIcon(stageId: ContractStageId, tone: StageTone, status: string)
 		return FiCreditCard
 	}
 	if (stageId === 'finish') {
-		if (status === 'sent') {
-			return FiSend
-		}
-		if (status === 'delivered') {
-			return FiTruck
-		}
 		return FiCheckCircle
 	}
 	return FiCheckCircle
@@ -729,6 +718,7 @@ export function ContractsDetailPanel({
 					requestedPower:
 						'\u0417\u0430\u043f\u0440\u043e\u0448\u0435\u043d\u043d\u0430\u044f \u043c\u043e\u0449\u043d\u043e\u0441\u0442\u044c',
 					phone: '\u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043a\u043b\u0438\u0435\u043d\u0442\u0430',
+					note: '\u041f\u0440\u0438\u043c\u0435\u0447\u0430\u043d\u0438\u0435',
 					oneIdCode: 'One ID \u043a\u043e\u0434',
 					inverter: '\u0422\u0438\u043f \u0438\u043d\u0432\u0435\u0440\u0442\u043e\u0440\u0430',
 					panel: '\u0422\u0438\u043f \u043f\u0430\u043d\u0435\u043b\u0438',
@@ -775,6 +765,7 @@ export function ContractsDetailPanel({
 					fullName: 'F.I.SH',
 					requestedPower: "So'ralgan quvvat",
 					phone: 'Mijoz telefon raqami',
+					note: 'Izoh',
 					oneIdCode: 'One ID kodi',
 					inverter: 'Invertor turi',
 					panel: 'Panel turi',
@@ -823,6 +814,7 @@ export function ContractsDetailPanel({
 
 	const contract = state.data
 	const contractDetails = readDetailsObject(contract.details)
+	const contractNote = contract.note || readDetailsString(contractDetails, 'note')
 	const oneIdCode = contract.one_id_code || readDetailsString(contractDetails, 'one_id_code')
 	const agreedAmount =
 		(contract.agreed_amount != null ? String(contract.agreed_amount) : '') ||
@@ -964,6 +956,10 @@ export function ContractsDetailPanel({
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.phone}</p>
 						<p className={`mt-1 ${valueClassName}`}>{contract.customer_phone || '-'}</p>
+					</div>
+					<div className='rounded-lg bg-surface-subtle/80 p-3'>
+						<p className={labelClassName}>{tx.fields.note}</p>
+						<p className={`mt-1 ${valueClassName}`}>{contractNote || '-'}</p>
 					</div>
 					<div className='rounded-lg bg-surface-subtle/80 p-3'>
 						<p className={labelClassName}>{tx.fields.oneIdCode}</p>

@@ -9,6 +9,8 @@ interface FilterSelectProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   size?: 'default' | 'compact';
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 function FilterSelect({
@@ -17,16 +19,30 @@ function FilterSelect({
   onChange,
   disabled = false,
   size = 'default',
+  searchable = false,
+  searchPlaceholder,
 }: FilterSelectProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [openAbove, setOpenAbove] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? options[0],
     [options, value],
   );
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable) {
+      return options;
+    }
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) {
+      return options;
+    }
+    return options.filter((option) => option.label.toLowerCase().includes(query));
+  }, [options, searchQuery, searchable]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent | TouchEvent) {
@@ -51,6 +67,12 @@ function FilterSelect({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen && searchQuery) {
+      setSearchQuery('');
+    }
+  }, [isOpen, searchQuery]);
 
   useEffect(() => {
     setIsOpen(false);
@@ -126,8 +148,19 @@ function FilterSelect({
           ].join(' ')}
           role="listbox"
         >
+          {searchable ? (
+            <div className="px-1 pb-1.5">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={searchPlaceholder ?? t('shared.filterSelect.search')}
+                className="w-full rounded-lg border border-border-soft/60 bg-surface-card px-3 py-2 text-sm font-medium text-text-primary outline-none transition duration-fast placeholder:text-text-muted focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          ) : null}
           <div className="max-h-64 overflow-y-auto py-1">
-            {options.map((option) => {
+            {filteredOptions.map((option) => {
               const isSelected = option.value === value;
               const isDisabled = Boolean(option.disabled);
 
@@ -161,6 +194,11 @@ function FilterSelect({
                 </button>
               );
             })}
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-text-muted">
+                {t('shared.filterSelect.noResults')}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

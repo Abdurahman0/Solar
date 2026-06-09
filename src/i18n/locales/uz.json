@@ -203,7 +203,9 @@
       "next": "Keyingi"
     },
     "filterSelect": {
-      "select": "Tanlang"
+      "select": "Tanlang",
+      "search": "Qidiring",
+      "noResults": "Hech narsa topilmadi"
     },
     "emptyState": {
       "title": "Ma'lumot topilmadi",
@@ -2158,9 +2160,8 @@
       "contract_ready": "Shartnoma tayyor",
       "payment_pending": "To'lov kutilmoqda",
       "paid": "To'langan",
-      "delivered": "Yetkazilgan",
-      "sent": "Yuborilgan",
-      "signed": "Imzolangan",
+      "in_lot": "Lotga qo'yilgan",
+      "completed": "Yakunlandi",
       "canceled": "Bekor qilingan"
     },
     "edit": "Tahrirlash",

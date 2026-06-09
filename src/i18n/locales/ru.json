@@ -203,7 +203,9 @@
       "next": "Далее"
     },
     "filterSelect": {
-      "select": "Выберите"
+      "select": "Выберите",
+      "search": "Поиск",
+      "noResults": "Ничего не найдено"
     },
     "emptyState": {
       "title": "Данные не найдены",
@@ -2158,9 +2160,8 @@
       "contract_ready": "Договор готов",
       "payment_pending": "Ожидает оплату",
       "paid": "Оплачен",
-      "delivered": "Доставлен",
-      "sent": "Отправлен",
-      "signed": "Подписан",
+      "in_lot": "Выставлен в лот",
+      "completed": "Завершен",
       "canceled": "Отменен"
     },
     "edit": "Редактировать",

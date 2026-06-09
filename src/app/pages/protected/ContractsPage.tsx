@@ -44,19 +44,23 @@ const actionButtonClassName =
 function statusTone(
 	status?: string,
 ): 'info' | 'warning' | 'accent' | 'success' | 'danger' {
-	if (status === 'paid' || status === 'signed' || status === 'delivered') {
+	if (status === 'paid' || status === 'completed') {
 		return 'success'
 	}
 	if (status === 'canceled') {
 		return 'danger'
 	}
-	if (status === 'audit_paid' || status === 'contract_ready') {
+	if (status === 'audit_paid' || status === 'contract_ready' || status === 'in_lot') {
 		return 'accent'
 	}
 	if (status === 'draft') {
 		return 'info'
 	}
 	return 'warning'
+}
+
+function normalizeContractStatusForUi(status?: string): string | undefined {
+	return status
 }
 
 function formatPricingAmount(
@@ -119,9 +123,8 @@ function ContractsPage() {
 			contract_ready: t('contractsPage.statuses.contract_ready'),
 			payment_pending: t('contractsPage.statuses.payment_pending'),
 			paid: t('contractsPage.statuses.paid'),
-			delivered: t('contractsPage.statuses.delivered'),
-			sent: t('contractsPage.statuses.sent'),
-			signed: isRu ? 'Завершен' : 'Yakunlandi',
+			in_lot: t('contractsPage.statuses.in_lot'),
+			completed: t('contractsPage.statuses.completed'),
 			canceled: t('contractsPage.statuses.canceled'),
 		},
 		edit: t('contractsPage.edit'),
@@ -257,7 +260,11 @@ function ContractsPage() {
 				render: contract => (
 					<StatusBadge
 						status={contract.status}
-						label={tx.statuses[contract.status as keyof typeof tx.statuses] ?? contract.status}
+						label={
+							tx.statuses[
+								normalizeContractStatusForUi(contract.status) as keyof typeof tx.statuses
+							] ?? contract.status
+						}
 						tone={statusTone(contract.status)}
 					/>
 				),
@@ -364,6 +371,7 @@ function ContractsPage() {
 				subsidy_percent: contract.subsidy_percent ?? null,
 				customer_phone: contract.customer_phone ?? '',
 				installation_address: contract.installation_address ?? '',
+				note: contract.note ?? '',
 				delivery_status: contract.delivery_status ?? '',
 				delivery_notes: contract.delivery_notes ?? '',
 				details:

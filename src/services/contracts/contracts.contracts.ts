@@ -20,10 +20,8 @@ export interface Contract extends BaseEntity {
 		| 'contract_ready'
 		| 'payment_pending'
 		| 'paid'
-		| 'delivered'
-		| 'sent'
+		| 'in_lot'
 		| 'completed'
-		| 'signed'
 		| 'canceled'
 	panel_type: 'jinko_ja' | 'longi_hi_mo_x10' | ''
 	panel_type_label?: string
@@ -50,6 +48,7 @@ export interface Contract extends BaseEntity {
 	delivery_status?: string
 	delivery_status_label?: string
 	delivery_notes?: string
+	note?: string
 	total_amount?: string | number | null
 	file?: string | null
 	file_url?: string | null
@@ -103,6 +102,7 @@ export interface CreateContractInput {
 	installation_address?: string
 	delivery_status?: string
 	delivery_notes?: string
+	note?: string
 	details?: string | Record<string, unknown> | null
 	items?: Array<{
 		product: string
@@ -143,6 +143,7 @@ export interface UpdateContractInput {
 	installation_address?: string
 	delivery_status?: string
 	delivery_notes?: string
+	note?: string
 	details?: string | Record<string, unknown> | null
 	file?: string | File | null
 	cadastre_file?: string | File | null
