@@ -27,6 +27,7 @@ function FilterSelect({
   const [openAbove, setOpenAbove] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.value === value) ?? options[0],
@@ -73,6 +74,12 @@ function FilterSelect({
       setSearchQuery('');
     }
   }, [isOpen, searchQuery]);
+
+  useEffect(() => {
+    if (isOpen && searchable) {
+      searchInputRef.current?.focus();
+    }
+  }, [isOpen, searchable]);
 
   useEffect(() => {
     setIsOpen(false);
@@ -151,6 +158,7 @@ function FilterSelect({
           {searchable ? (
             <div className="px-1 pb-1.5">
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}

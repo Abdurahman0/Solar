@@ -815,15 +815,6 @@ export function ContractsFormPanel({
 							disabled={isSubmitting}
 						/>
 					</div>
-					<div className='grid gap-1.5'>
-						<label className={labelClassName}>{tx.labels.note}</label>
-						<input
-							className={inputClassName}
-							value={form.note}
-							onChange={event => updateField('note', event.target.value)}
-							disabled={isSubmitting}
-						/>
-					</div>
 					{isNewClient ? (
 						<div className='grid gap-1.5'>
 							<label className={labelClassName}>{tx.labels.title}</label>
@@ -1005,6 +996,15 @@ export function ContractsFormPanel({
 							onChange={event =>
 								updateField('installer_fee_amount', event.target.value)
 							}
+							disabled={isSubmitting}
+						/>
+					</div>
+					<div className='grid gap-1.5'>
+						<label className={labelClassName}>{tx.labels.note}</label>
+						<input
+							className={inputClassName}
+							value={form.note}
+							onChange={event => updateField('note', event.target.value)}
 							disabled={isSubmitting}
 						/>
 					</div>
