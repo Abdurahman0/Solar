@@ -2,6 +2,13 @@
 import { useTranslation } from 'react-i18next'
 import AppIcon from '../../../components/shared/icons/AppIcon'
 import { FilterSelect, Switch } from '../../../components/shared/data'
+import {
+	formatFileSize,
+	getAttachmentFilename,
+	getAttachmentIconName,
+	getAttachmentTypeLabel,
+	isImageAttachment,
+} from '../../../lib/attachments'
 import { services } from '../../../services'
 import type {
 	Contract,
@@ -54,34 +61,48 @@ const inputClassName = [
 const labelClassName =
 	'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'
 
-function isImageUrl(url: string): boolean {
-	if (!url) {
-		return false
-	}
+const typeBadgeClassName =
+	'inline-flex h-5 shrink-0 items-center rounded px-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-text-primary ring-1 ring-border-soft/40 bg-surface-muted'
 
-	try {
-		const { pathname } = new URL(url)
-		const ext = pathname.split('.').pop()?.toLowerCase() ?? ''
-		return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'].includes(ext)
-	} catch {
-		return false
-	}
+function AttachmentTypeBadge({
+	source,
+	mimeType,
+}: {
+	source: string
+	mimeType?: string
+}) {
+	return (
+		<span className='inline-flex items-center gap-1.5'>
+			<AppIcon
+				name={getAttachmentIconName(source, mimeType)}
+				className='h-4 w-4 shrink-0 text-text-muted'
+				aria-hidden='true'
+			/>
+			<span className={typeBadgeClassName}>
+				{getAttachmentTypeLabel(source, mimeType)}
+			</span>
+		</span>
+	)
 }
 
-function getAttachmentFilename(url: string): string {
-	if (!url) {
-		return '-'
-	}
+function useObjectUrl(file: File | null): string {
+	const [url, setUrl] = useState('')
 
-	try {
-		const { pathname } = new URL(url)
-		const raw = pathname.split('/').filter(Boolean).pop() ?? ''
-		return decodeURIComponent(raw) || url
-	} catch {
-		const fallback = url.split('?')[0] ?? url
-		const raw = fallback.split('/').filter(Boolean).pop() ?? ''
-		return raw || url
-	}
+	useEffect(() => {
+		if (!file || !isImageAttachment(file.name, file.type)) {
+			setUrl('')
+			return
+		}
+
+		const objectUrl = URL.createObjectURL(file)
+		setUrl(objectUrl)
+
+		return () => {
+			URL.revokeObjectURL(objectUrl)
+		}
+	}, [file])
+
+	return url
 }
 
 interface FilePickerFieldProps {
@@ -105,6 +126,8 @@ function FilePickerField({
 	disabled,
 	onChange,
 }: FilePickerFieldProps) {
+	const previewUrl = useObjectUrl(value)
+
 	return (
 		<div className='grid gap-1.5'>
 			<label className={labelClassName} htmlFor={id}>
@@ -122,9 +145,21 @@ function FilePickerField({
 					}
 				}}
 			>
-				<span className='min-w-0 truncate text-sm font-medium text-text-secondary'>
-					{value?.name || emptyLabel}
-				</span>
+				{value ? (
+					<span className='flex min-w-0 items-center gap-2'>
+						<AttachmentTypeBadge source={value.name} mimeType={value.type} />
+						<span className='min-w-0 truncate text-sm font-medium text-text-primary'>
+							{value.name}
+						</span>
+						<span className='shrink-0 text-xs font-semibold text-text-muted'>
+							{formatFileSize(value.size)}
+						</span>
+					</span>
+				) : (
+					<span className='min-w-0 truncate text-sm font-medium text-text-secondary'>
+						{emptyLabel}
+					</span>
+				)}
 				<span className='inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-surface-subtle px-3 text-xs font-semibold text-text-primary transition duration-fast hover:bg-surface-muted'>
 					{chooseLabel}
 				</span>
@@ -137,6 +172,16 @@ function FilePickerField({
 					disabled={disabled}
 				/>
 			</label>
+
+			{previewUrl ? (
+				<div className='overflow-hidden rounded-lg ring-1 ring-border-soft/35'>
+					<img
+						src={previewUrl}
+						alt={value?.name ?? label}
+						className='h-40 w-full bg-surface-card object-cover'
+					/>
+				</div>
+			) : null}
 		</div>
 	)
 }
@@ -150,16 +195,19 @@ function ExistingAttachment({
 	url: string
 	openLabel: string
 }) {
-	const previewable = isImageUrl(url)
+	const previewable = isImageAttachment(url)
 
 	return (
 		<div className='mt-2 rounded-xl bg-surface-subtle/60 p-3 ring-1 ring-border-soft/25'>
 			<div className='flex items-start justify-between gap-3'>
 				<div className='min-w-0'>
 					<p className={labelClassName}>{label}</p>
-					<p className='mt-1 truncate text-sm font-semibold text-text-primary'>
-						{getAttachmentFilename(url)}
-					</p>
+					<div className='mt-1 flex min-w-0 items-center gap-2'>
+						<AttachmentTypeBadge source={url} />
+						<p className='min-w-0 truncate text-sm font-semibold text-text-primary'>
+							{getAttachmentFilename(url)}
+						</p>
+					</div>
 				</div>
 				<a
 					className='inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-surface-card px-3 text-sm font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/35 transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'

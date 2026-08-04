@@ -19,6 +19,12 @@ import { EmptyState, LoadingState, PageCard } from '../../../components/shared/p
 import { StatusBadge } from '../../../components/shared/data'
 import AppIcon from '../../../components/shared/icons/AppIcon'
 import { formatLocalizedDate } from '../../../i18n/date-format'
+import {
+	getAttachmentFilename,
+	getAttachmentIconName,
+	getAttachmentTypeLabel,
+	isImageAttachment,
+} from '../../../lib/attachments'
 import { routePaths } from '../../../config/routes'
 import { services } from '../../../services'
 import type { Contract } from '../../../services/contracts'
@@ -519,36 +525,6 @@ function formatSmartValue(
 	return String(value)
 }
 
-function isImageUrl(url: string): boolean {
-	if (!url) {
-		return false
-	}
-
-	try {
-		const { pathname } = new URL(url)
-		const ext = pathname.split('.').pop()?.toLowerCase() ?? ''
-		return ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'].includes(ext)
-	} catch {
-		return false
-	}
-}
-
-function getAttachmentFilename(url: string): string {
-	if (!url) {
-		return '-'
-	}
-
-	try {
-		const { pathname } = new URL(url)
-		const raw = pathname.split('/').filter(Boolean).pop() ?? ''
-		return decodeURIComponent(raw) || url
-	} catch {
-		const fallback = url.split('?')[0] ?? url
-		const raw = fallback.split('/').filter(Boolean).pop() ?? ''
-		return raw || url
-	}
-}
-
 function getDetailsLabel(key: string, isRu: boolean): string {
 	const ru: Record<string, string> = {
 		pricing_breakdown: '\u0420\u0430\u0441\u0447\u0435\u0442 \u0441\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u0438',
@@ -1037,7 +1013,7 @@ export function ContractsDetailPanel({
 			{attachments.length ? (
 				<div className='mt-2 grid gap-2 sm:grid-cols-2'>
 					{attachments.map(item => {
-						const previewable = isImageUrl(item.url)
+						const previewable = isImageAttachment(item.url)
 						return (
 							<div
 								key={item.key}
@@ -1046,9 +1022,19 @@ export function ContractsDetailPanel({
 								<div className='flex items-start justify-between gap-3'>
 									<div className='min-w-0'>
 										<p className={labelClassName}>{item.label}</p>
-										<p className={`mt-1 ${valueClassName}`}>
-											{getAttachmentFilename(item.url)}
-										</p>
+										<div className='mt-1 flex min-w-0 items-center gap-2'>
+											<AppIcon
+												name={getAttachmentIconName(item.url)}
+												className='h-4 w-4 shrink-0 text-text-muted'
+												aria-hidden='true'
+											/>
+											<span className='inline-flex h-5 shrink-0 items-center rounded bg-surface-muted px-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-text-primary ring-1 ring-border-soft/40'>
+												{getAttachmentTypeLabel(item.url)}
+											</span>
+											<p className={`min-w-0 truncate ${valueClassName}`}>
+												{getAttachmentFilename(item.url)}
+											</p>
+										</div>
 									</div>
 									<a
 										className='inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-surface-card px-3 text-sm font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/35 transition duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20'

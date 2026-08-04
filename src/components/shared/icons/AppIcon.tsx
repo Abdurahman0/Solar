@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react'
 import type { IconType } from 'react-icons'
 import {
+	FiArchive,
 	FiBell,
 	FiBox,
 	FiCalendar,
@@ -8,9 +9,11 @@ import {
 	FiCheckCircle,
 	FiCreditCard,
 	FiDownload,
+	FiFile,
 	FiFileText,
 	FiFilter,
 	FiGrid,
+	FiImage,
 	FiLogOut,
 	FiMenu,
 	FiMessageSquare,
@@ -75,6 +78,10 @@ export type AppIconName =
 	| 'trash'
 	| 'check-circle'
 	| 'mark-read-all'
+	| 'image'
+	| 'file'
+	| 'archive'
+	| 'table'
 
 interface AppIconProps extends SVGProps<SVGSVGElement> {
 	name: AppIconName
@@ -121,6 +128,10 @@ const ICON_MAP: Record<AppIconName, IconType> = {
 	trash: FiTrash2,
 	'check-circle': FiCheckCircle,
 	'mark-read-all': BsCheck2All,
+	image: FiImage,
+	file: FiFile,
+	archive: FiArchive,
+	table: FiGrid,
 }
 
 function AppIcon({ name, className, ...props }: AppIconProps) {
