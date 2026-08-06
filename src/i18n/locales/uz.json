@@ -55,6 +55,10 @@
       "title": "Mijozlar",
       "description": "Mijozlar ro'yxati va profillari."
     },
+    "webapp-clients": {
+      "title": "WebApp mijozlar",
+      "description": "Telegram WebApp orqali kelgan mijozlar."
+    },
     "products": {
       "title": "Mahsulotlar",
       "description": "Katalog, narx va zaxira boshqaruvi."
@@ -131,6 +135,7 @@
       "leads": "Lid oqimi",
       "customers": "Mijozlar",
       "clients": "Mijozlar",
+      "webapp-clients": "WebApp buyurtmalari",
       "products": "Katalog",
       "contracts": "Shartnomalar",
       "orders": "Buyurtmalar",

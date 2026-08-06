@@ -55,6 +55,10 @@
       "title": "Клиенты",
       "description": "Список клиентов и профили."
     },
+    "webapp-clients": {
+      "title": "WebApp клиенты",
+      "description": "Клиенты из Telegram WebApp."
+    },
     "products": {
       "title": "Товары",
       "description": "Управление каталогом, ценами и остатками."
@@ -131,6 +135,7 @@
       "leads": "Поток лидов",
       "customers": "Клиенты",
       "clients": "Клиенты",
+      "webapp-clients": "Заказы WebApp",
       "products": "Каталог",
       "contracts": "Договоры",
       "orders": "Заказы",

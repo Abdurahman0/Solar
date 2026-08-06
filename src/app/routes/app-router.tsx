@@ -21,6 +21,7 @@ import AccessDeniedPage from '../pages/public/AccessDeniedPage'
 import AiSettingsPage from '../pages/protected/AiSettingsPage'
 import ChatsPage from '../pages/protected/ChatsPage'
 import ClientsPage from '../pages/protected/ClientsPage'
+import WebappClientsPage from '../pages/protected/WebappClientsPage'
 import ContractsPage from '../pages/protected/ContractsPage'
 import DashboardPage from '../pages/protected/DashboardPage'
 import IntegrationsPage from '../pages/protected/IntegrationsPage'
@@ -39,6 +40,7 @@ const pageRegistry: Record<RoutedPageId, ComponentType> = {
 	'ai-settings': AiSettingsPage,
 	chats: ChatsPage,
 	clients: ClientsPage,
+	'webapp-clients': WebappClientsPage,
 	contracts: ContractsPage,
 	dashboard: DashboardPage,
 	integrations: IntegrationsPage,

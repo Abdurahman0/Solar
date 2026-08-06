@@ -8,6 +8,7 @@ const ROUTE_REQUIRED_PERMISSIONS: Partial<Record<AppRouteId, PermissionCode>> =
 	{
 		dashboard: 'can_view_dashboard',
 		clients: 'can_view_clients',
+		'webapp-clients': 'can_view_clients',
 		products: 'can_view_products',
 		contracts: 'can_view_contracts',
 		chats: 'can_access_chats',
@@ -35,6 +36,7 @@ const PUBLIC_ROUTE_IDS = new Set<AppRouteId>([
 const MODULE_PATH_BY_ROUTE_ID: Record<string, string> = {
 	dashboard: routePaths.dashboard,
 	clients: routePaths.clients,
+	'webapp-clients': routePaths['webapp-clients'],
 	products: routePaths.products,
 	contracts: routePaths.contracts,
 	chats: routePaths.chats,

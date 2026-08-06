@@ -54,6 +54,25 @@ export const moduleMap: AppModule[] = [
     notes: 'Client management (converted leads).',
   },
   {
+    id: 'webapp-clients',
+    label: 'WebApp Clients',
+    description: 'Clients that arrived through the Telegram WebApp store.',
+    category: 'operational',
+    priority: 'high',
+    priorityOrder: 2.5,
+    allowedRoles: ['developer', 'admin', 'operator'],
+    accessStrategy: 'permission-based',
+    pages: [
+      {
+        id: 'webapp-clients-list',
+        label: 'WebApp Clients',
+        kind: 'list',
+        path: '/webapp-clients',
+      },
+    ],
+    notes: 'WebApp-sourced clients (metadata.webapp_user_id) kept separate from the main client queue.',
+  },
+  {
     id: 'products',
     label: 'Products',
     description: 'Product catalog and inventory.',
