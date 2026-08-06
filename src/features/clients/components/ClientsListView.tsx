@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FiEdit2, FiTrash2, FiDownload } from 'react-icons/fi'
 import { useTranslation } from 'react-i18next'
 import {
@@ -10,9 +10,34 @@ import {
 	StatusBadge,
 	type DataTableColumn,
 } from '../../../components/shared/data'
-import { useList } from '../../../components/hooks'
 import { services } from '../../../services'
-import type { Client, ClientsListParams } from '../../../services/contracts'
+import type { Client } from '../../../services/contracts'
+import { isWebappClient } from '../webappFilter'
+
+const PAGE_SIZE = 20
+// Upper bound on how many pages we walk when collecting every client for the
+// client-side WebApp exclusion. 20 * 100 = 2000 clients, above current scale.
+const FETCH_PAGE_SIZE = 100
+const MAX_FETCH_PAGES = 20
+
+function timeValue(value?: string | null): number {
+	if (!value) {
+		return 0
+	}
+	const parsed = new Date(value).getTime()
+	return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function sortClients(clients: Client[], ordering: string): Client[] {
+	const direction = ordering.startsWith('-') ? -1 : 1
+	const field = (ordering.startsWith('-') ? ordering.slice(1) : ordering) as
+		| 'updated_at'
+		| 'created_at'
+
+	return [...clients].sort((left, right) => {
+		return (timeValue(left[field]) - timeValue(right[field])) * direction
+	})
+}
 
 export interface ClientsListViewProps {
 	onRowClick?: (client: Client) => void
@@ -187,35 +212,60 @@ export function ClientsListView({
 				exportError: 'Eksportda xatolik',
 			}
 
+	const [allClients, setAllClients] = useState<Client[]>([])
+	const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 	const [searchQuery, setSearchQuery] = useState('')
 	const [statusFilter, setStatusFilter] = useState<string>('all')
 	const [sourceFilter, setSourceFilter] = useState<string>('all')
 	const [isExporting, setIsExporting] = useState(false)
 	const [ordering, setOrdering] = useState<string>('-updated_at')
-	const [filters, setFilters] = useState<ClientsListParams>({
-		search: '',
-		page: 1,
-		page_size: 20,
-		ordering: '-updated_at',
-	})
-
-	const fetcher = useCallback(
-		(params?: ClientsListParams) => services.clients.listClients(params),
-		[],
-	)
-
-	const [state, actions] = useList<Client, ClientsListParams>(fetcher, {
-		params: filters,
-		autoFetch: true,
-	})
+	const [page, setPage] = useState(1)
 
 	useEffect(() => {
-		onStatsChange?.({
-			visible: state.items.length,
-			total: state.total,
-			loading: state.isLoading,
-		})
-	}, [onStatsChange, state.items.length, state.total, state.isLoading])
+		let isActive = true
+
+		async function loadAllClients() {
+			setStatus('loading')
+
+			try {
+				const collected: Client[] = []
+
+				for (let pageIndex = 1; pageIndex <= MAX_FETCH_PAGES; pageIndex += 1) {
+					const response = await services.clients.listClients({
+						page: pageIndex,
+						page_size: FETCH_PAGE_SIZE,
+						ordering: '-updated_at',
+					})
+
+					collected.push(...response.items)
+
+					const reachedTotal = collected.length >= (response.total || collected.length)
+					if (!response.next || response.items.length < FETCH_PAGE_SIZE || reachedTotal) {
+						break
+					}
+				}
+
+				if (!isActive) {
+					return
+				}
+
+				// Exclude WebApp buyers — they live on the dedicated WebApp Clients page.
+				setAllClients(collected.filter(client => !isWebappClient(client)))
+				setStatus('ready')
+			} catch {
+				if (!isActive) {
+					return
+				}
+				setStatus('error')
+			}
+		}
+
+		void loadAllClients()
+
+		return () => {
+			isActive = false
+		}
+	}, [])
 
 	const handleExport = async () => {
 		try {
@@ -377,40 +427,64 @@ export function ClientsListView({
 		[canManageClients, onDeleteClient, onEditClient, tx],
 	)
 
+	const filteredClients = useMemo(() => {
+		let rows = allClients
+
+		if (statusFilter !== 'all') {
+			rows = rows.filter(client => (client.status || 'new') === statusFilter)
+		}
+
+		if (sourceFilter !== 'all') {
+			rows = rows.filter(client => client.source_platform === sourceFilter)
+		}
+
+		const query = searchQuery.trim().toLowerCase()
+		if (query) {
+			rows = rows.filter(client =>
+				[client.full_name, client.phone, client.region, client.address, client.notes].some(
+					value => String(value ?? '').toLowerCase().includes(query),
+				),
+			)
+		}
+
+		return sortClients(rows, ordering)
+	}, [allClients, statusFilter, sourceFilter, searchQuery, ordering])
+
+	const totalFiltered = filteredClients.length
+	const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
+	const currentPage = Math.min(page, totalPages)
+	const pageRows = useMemo(
+		() => filteredClients.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+		[filteredClients, currentPage],
+	)
+
+	useEffect(() => {
+		onStatsChange?.({
+			visible: pageRows.length,
+			total: totalFiltered,
+			loading: status === 'loading',
+		})
+	}, [onStatsChange, pageRows.length, totalFiltered, status])
+
 	const handleSearch = (value: string) => {
 		setSearchQuery(value)
-		actions.setPage(1)
-		setFilters(prev => ({ ...prev, search: value, page: 1 }))
+		setPage(1)
 	}
 
 	const applyStatusFilter = (value: string) => {
 		setStatusFilter(value)
-		actions.setPage(1)
-		setFilters(prev => ({
-			...prev,
-			page: 1,
-			status: value === 'all' ? undefined : (value as any),
-		}))
+		setPage(1)
 	}
 
 	const applySourceFilter = (value: string) => {
 		setSourceFilter(value)
-		actions.setPage(1)
-		setFilters(prev => ({
-			...prev,
-			page: 1,
-			source_platform: value === 'all' ? undefined : (value as any),
-		}))
+		setPage(1)
 	}
 
 	const applyOrdering = (value: string) => {
 		setOrdering(value)
-		actions.setPage(1)
-		setFilters(prev => ({ ...prev, page: 1, ordering: value }))
+		setPage(1)
 	}
-
-	const totalPages = Math.max(1, Math.ceil((state.total || 0) / (filters.page_size || 20)))
-	const currentPage = filters.page || 1
 
 	return (
 		<div className='flex flex-col gap-4'>
@@ -427,7 +501,7 @@ export function ClientsListView({
 						value={statusFilter}
 						options={statusOptions}
 						onChange={applyStatusFilter}
-						disabled={state.isLoading}
+						disabled={status === 'loading'}
 					/>
 				</label>
 
@@ -437,7 +511,7 @@ export function ClientsListView({
 						value={sourceFilter}
 						options={sourceOptions}
 						onChange={applySourceFilter}
-						disabled={state.isLoading}
+						disabled={status === 'loading'}
 					/>
 				</label>
 
@@ -447,7 +521,7 @@ export function ClientsListView({
 						value={ordering}
 						options={orderingOptions}
 						onChange={applyOrdering}
-						disabled={state.isLoading}
+						disabled={status === 'loading'}
 					/>
 				</label>
 			</FilterBar>
@@ -471,11 +545,11 @@ export function ClientsListView({
 
 				<div className='min-w-0 [&_.data-table__row--clickable:hover_.status-badge]:-translate-y-px'>
 					<DataTable
-						data={state.items}
+						data={pageRows}
 						columns={columns}
 						rowKey='id'
 						selectedRowKey={selectedClientId ?? null}
-						loading={state.isLoading}
+						loading={status === 'loading'}
 						onRowClick={onRowClick}
 						emptyTitle={tx.empty}
 						emptyDescription={
@@ -487,15 +561,12 @@ export function ClientsListView({
 				</div>
 			</div>
 
-			{state.total > 0 ? (
+			{totalFiltered > 0 ? (
 				<Pagination
-					currentPage={Math.min(currentPage, totalPages)}
+					currentPage={currentPage}
 					totalPages={totalPages}
-					totalItems={state.total}
-					onPageChange={page => {
-						actions.setPage(page)
-						setFilters(prev => ({ ...prev, page }))
-					}}
+					totalItems={totalFiltered}
+					onPageChange={setPage}
 				/>
 			) : null}
 		</div>

@@ -12,6 +12,7 @@ import {
 } from '../../../components/shared/data'
 import { services } from '../../../services'
 import type { Client } from '../../../services/contracts'
+import { isWebappClient } from '../webappFilter'
 
 export interface WebappClientsListViewProps {
 	onRowClick?: (client: Client) => void
@@ -63,26 +64,6 @@ function statusTone(status?: string): 'info' | 'warning' | 'accent' | 'success' 
 		default:
 			return 'info'
 	}
-}
-
-/**
- * A client is considered a WebApp client when it carries a Telegram WebApp
- * user id in its metadata. These records keep source_platform === 'telegram',
- * so metadata is the only reliable discriminator.
- */
-export function isWebappClient(client: Client): boolean {
-	const metadata = client.metadata
-	if (!metadata || typeof metadata !== 'object') {
-		return false
-	}
-
-	const record = metadata as Record<string, unknown>
-	if (record.webapp_user_id) {
-		return true
-	}
-
-	const checkout = record.webapp_checkout_items
-	return Array.isArray(checkout) && checkout.length > 0
 }
 
 /**
