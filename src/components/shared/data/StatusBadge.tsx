@@ -1,4 +1,4 @@
-type StatusBadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'accent';
+export type StatusBadgeTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'accent';
 
 interface StatusBadgeProps {
   status: string;

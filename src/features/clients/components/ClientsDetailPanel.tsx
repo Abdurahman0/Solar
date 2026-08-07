@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useDetail } from '../../../components/hooks';
 import { useAuth } from '../../../auth';
 import { EmptyState, LoadingState, PageCard } from '../../../components/shared/page';
-import { StatusBadge } from '../../../components/shared/data';
+import { StatusBadge, StatusSelect, type StatusSelectOption } from '../../../components/shared/data';
 import AppIcon from '../../../components/shared/icons/AppIcon';
 import { formatLocalizedDate } from '../../../i18n/date-format';
 import { services } from '../../../services';
@@ -155,6 +155,26 @@ export function ClientsDetailPanel({
   const canManageContracts = hasPermission('can_manage_contracts');
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [orderStatusError, setOrderStatusError] = useState(false);
+
+  const orderStatusOptions = useMemo<StatusSelectOption[]>(
+    () =>
+      CONTRACT_STATUSES.map(value => ({
+        value,
+        label: getContractStatusLabel(value, isRu),
+        tone: getContractStatusTone(value),
+      })),
+    [isRu],
+  );
+
+  const deliveryStatusOptions = useMemo<StatusSelectOption[]>(
+    () =>
+      DELIVERY_STATUSES.map(value => ({
+        value,
+        label: getDeliveryStatusLabel(value, isRu),
+        tone: getDeliveryStatusTone(value),
+      })),
+    [isRu],
+  );
 
   async function patchOrder(contract: ClientRecentContract, patch: Partial<ClientRecentContract>) {
     if (!contract.id) {
@@ -437,23 +457,17 @@ export function ClientsDetailPanel({
                   </button>
                   {contract.status ? (
                     canManageContracts && contract.id ? (
-                      <select
+                      <StatusSelect
                         value={contract.status}
+                        options={orderStatusOptions}
                         disabled={savingOrderId === contract.id}
-                        onChange={event => {
-                          if (event.target.value !== contract.status) {
-                            void patchOrder(contract, { status: event.target.value });
+                        onChange={next => {
+                          if (next !== contract.status) {
+                            void patchOrder(contract, { status: next });
                           }
                         }}
-                        aria-label={isRu ? 'Статус заказа' : 'Buyurtma holati'}
-                        className="shrink-0 max-w-[160px] rounded-lg bg-surface-card px-2 py-1 text-[12px] font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/50 transition duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {CONTRACT_STATUSES.map(value => (
-                          <option key={value} value={value}>
-                            {getContractStatusLabel(value, isRu)}
-                          </option>
-                        ))}
-                      </select>
+                        ariaLabel={isRu ? 'Статус заказа' : 'Buyurtma holati'}
+                      />
                     ) : (
                       <div className="shrink-0 scale-90 origin-top-right">
                         <StatusBadge
@@ -481,23 +495,17 @@ export function ClientsDetailPanel({
                       {isRu ? 'Доставка' : 'Yetkazish'}
                     </span>
                     {canManageContracts && contract.id ? (
-                      <select
+                      <StatusSelect
                         value={contract.delivery_status}
+                        options={deliveryStatusOptions}
                         disabled={savingOrderId === contract.id}
-                        onChange={event => {
-                          if (event.target.value !== contract.delivery_status) {
-                            void patchOrder(contract, { delivery_status: event.target.value });
+                        onChange={next => {
+                          if (next !== contract.delivery_status) {
+                            void patchOrder(contract, { delivery_status: next });
                           }
                         }}
-                        aria-label={isRu ? 'Статус доставки' : 'Yetkazish holati'}
-                        className="shrink-0 max-w-[160px] rounded-lg bg-surface-card px-2 py-1 text-[12px] font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/50 transition duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {DELIVERY_STATUSES.map(value => (
-                          <option key={value} value={value}>
-                            {getDeliveryStatusLabel(value, isRu)}
-                          </option>
-                        ))}
-                      </select>
+                        ariaLabel={isRu ? 'Статус доставки' : 'Yetkazish holati'}
+                      />
                     ) : (
                       <div className="shrink-0 scale-90 origin-top-right">
                         <StatusBadge
