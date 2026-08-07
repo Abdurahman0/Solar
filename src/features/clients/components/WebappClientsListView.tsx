@@ -13,6 +13,7 @@ import {
 import { services } from '../../../services'
 import type { Client } from '../../../services/contracts'
 import { isWebappClient } from '../webappFilter'
+import { getContractStatusLabel } from '../../contracts/statusLabels'
 
 export interface WebappClientsListViewProps {
 	onRowClick?: (client: Client) => void
@@ -147,7 +148,7 @@ export function WebappClientsListView({
 					name: 'Клиент',
 					phone: 'Телефон',
 					region: 'Регион',
-					interests: 'Интересы',
+					orders: 'Заказы',
 					status: 'Статус',
 					actions: 'Действия',
 				},
@@ -159,7 +160,7 @@ export function WebappClientsListView({
 					proposal_preparing: 'Подготовка предложения',
 					proposal_sent: 'Предложение отправлено',
 					negotiation: 'Переговоры',
-					waiting_for_decision: 'Ожидание решения',
+					waiting_for_decision: 'Ожидает оплату',
 					won: 'Выигран',
 					lost: 'Потерян',
 					postponed: 'Отложен',
@@ -168,6 +169,8 @@ export function WebappClientsListView({
 				emptyHint: 'Измените параметры поиска или фильтры.',
 				loadError: 'Не удалось загрузить WebApp клиентов.',
 				items: 'товаров',
+				ordersWord: 'заказ.',
+				noOrders: 'Нет заказов',
 				edit: 'Редактировать',
 				delete: 'Удалить',
 			}
@@ -186,7 +189,7 @@ export function WebappClientsListView({
 					name: 'Mijoz',
 					phone: 'Telefon',
 					region: 'Hudud',
-					interests: 'Qiziqishlar',
+					orders: 'Buyurtmalar',
 					status: 'Holat',
 					actions: 'Amallar',
 				},
@@ -198,7 +201,7 @@ export function WebappClientsListView({
 					proposal_preparing: 'Taklif tayyorlanmoqda',
 					proposal_sent: 'Taklif yuborildi',
 					negotiation: 'Muzokara',
-					waiting_for_decision: 'Qaror kutilmoqda',
+					waiting_for_decision: "To'lov kutilmoqda",
 					won: 'Yutildi',
 					lost: "Yo'qotildi",
 					postponed: 'Kechiktirildi',
@@ -207,6 +210,8 @@ export function WebappClientsListView({
 				emptyHint: 'Qidiruv yoki filtrlarni o\'zgartiring.',
 				loadError: 'WebApp mijozlarini yuklab bo\'lmadi.',
 				items: 'mahsulot',
+				ordersWord: 'buyurtma',
+				noOrders: 'Buyurtma yo\'q',
 				edit: 'Tahrirlash',
 				delete: 'O\'chirish',
 			}
@@ -349,12 +354,30 @@ export function WebappClientsListView({
 				render: client => <span className={tablePrimaryTextClassName}>{client.region || '-'}</span>,
 			},
 			{
-				key: 'interests',
-				label: tx.columns.interests,
+				key: 'orders',
+				label: tx.columns.orders,
 				render: client => {
+					const orders = client.recent_contracts ?? []
+
+					if (orders.length > 0) {
+						const latest = orders[0]
+						return (
+							<div className='grid gap-0.5'>
+								<span className={tablePrimaryTextClassName}>
+									{orders.length} {tx.ordersWord}
+								</span>
+								<span className={tableSecondaryTextClassName}>
+									{latest.status ? getContractStatusLabel(latest.status, isRu) : '-'}
+								</span>
+							</div>
+						)
+					}
+
+					// No order yet — fall back to the products the client showed
+					// interest in during WebApp checkout.
 					const { names, count } = extractWebappInterests(client)
 					if (!count) {
-						return <span className={tablePrimaryTextClassName}>-</span>
+						return <span className={tablePrimaryTextClassName}>{tx.noOrders}</span>
 					}
 
 					return (
@@ -418,7 +441,7 @@ export function WebappClientsListView({
 					]
 				: []),
 		],
-		[canManageClients, onDeleteClient, onEditClient, tx],
+		[canManageClients, isRu, onDeleteClient, onEditClient, tx],
 	)
 
 	const handleSearch = (value: string) => {

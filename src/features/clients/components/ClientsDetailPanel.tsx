@@ -10,6 +10,10 @@ import { services } from '../../../services';
 import { routePaths } from '../../../config/routes';
 import type { Client, ClientRecentContract, ClientSelectedProduct } from '../../../services/contracts';
 import {
+  getContractStatusLabel,
+  getContractStatusTone,
+} from '../../contracts/statusLabels';
+import {
   ClientRecallScheduleDisplay,
   readClientRecallAt,
 } from './ClientRecallSchedule';
@@ -121,7 +125,7 @@ export function ClientsDetailPanel({
         proposal_preparing: 'Подготовка предложения',
         proposal_sent: 'Предложение отправлено',
         negotiation: 'Переговоры',
-        waiting_for_decision: 'Ожидание решения',
+        waiting_for_decision: 'Ожидает оплату',
         won: 'Выигран',
         lost: 'Потерян',
         postponed: 'Отложен',
@@ -134,7 +138,7 @@ export function ClientsDetailPanel({
         proposal_preparing: 'Taklif tayyorlanmoqda',
         proposal_sent: 'Taklif yuborildi',
         negotiation: 'Muzokara',
-        waiting_for_decision: 'Qaror kutilmoqda',
+        waiting_for_decision: "To'lov kutilmoqda",
         won: 'Yutildi',
         lost: "Yo'qotildi",
         postponed: 'Kechiktirildi',
@@ -393,9 +397,9 @@ export function ClientsDetailPanel({
                   {contract.status && (
                     <div className="shrink-0 scale-90 origin-top-right">
                       <StatusBadge
-                        tone="info"
+                        tone={getContractStatusTone(contract.status)}
                         status={contract.status}
-                        label={contract.status}
+                        label={getContractStatusLabel(contract.status, isRu)}
                       />
                     </div>
                   )}

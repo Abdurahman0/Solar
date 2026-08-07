@@ -28,6 +28,10 @@ import {
 import { routePaths } from '../../../config/routes'
 import { services } from '../../../services'
 import type { Contract } from '../../../services/contracts'
+import {
+	getContractStatusLabel as getStatusLabel,
+	getContractStatusTone as getStatusTone,
+} from '../statusLabels'
 
 export interface ContractsDetailPanelProps {
 	contractId: string
@@ -43,61 +47,6 @@ const labelClassName =
 	'text-[11px] font-semibold uppercase tracking-[0.12em] text-text-muted'
 const valueClassName =
 	'text-sm font-semibold text-text-primary [overflow-wrap:anywhere]'
-
-function getStatusTone(
-	status: string,
-): 'info' | 'warning' | 'accent' | 'success' | 'danger' {
-	if (status === 'paid' || status === 'completed') {
-		return 'success'
-	}
-	if (status === 'canceled') {
-		return 'danger'
-	}
-	if (status === 'audit_paid' || status === 'contract_ready' || status === 'in_lot') {
-		return 'accent'
-	}
-	if (status === 'draft') {
-		return 'info'
-	}
-	return 'warning'
-}
-
-function normalizeContractStatusForUi(status: string): string {
-	return status
-}
-
-function getStatusLabel(status: string, isRu: boolean): string {
-	const visibleStatus = normalizeContractStatusForUi(status)
-	if (isRu) {
-		const map: Record<string, string> = {
-			draft: "\u0427\u0435\u0440\u043d\u043e\u0432\u0438\u043a",
-			audit_pending: "\u0410\u0443\u0434\u0438\u0442 \u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f",
-			audit_paid: "\u0410\u0443\u0434\u0438\u0442 \u043e\u043f\u043b\u0430\u0447\u0435\u043d",
-			moderation: "\u041c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u044f",
-			contract_ready: "\u0414\u043e\u0433\u043e\u0432\u043e\u0440 \u0433\u043e\u0442\u043e\u0432",
-			payment_pending: "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 \u043e\u043f\u043b\u0430\u0442\u0443",
-			paid: "\u041e\u043f\u043b\u0430\u0447\u0435\u043d",
-			in_lot: "\u0412\u044b\u0441\u0442\u0430\u0432\u043b\u0435\u043d \u0432 \u043b\u043e\u0442",
-			completed: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d",
-			canceled: "\u041e\u0442\u043c\u0435\u043d\u0435\u043d",
-		}
-		return map[visibleStatus] ?? visibleStatus
-	}
-
-	const map: Record<string, string> = {
-		draft: 'Qoralama',
-		audit_pending: 'Audit kutilmoqda',
-		audit_paid: 'Audit to\'langan',
-		moderation: 'Moderatsiya',
-		contract_ready: 'Shartnoma tayyor',
-		payment_pending: 'To\'lov kutilmoqda',
-		paid: 'To\'langan',
-		in_lot: "Lotga qo'yilgan",
-		completed: 'Yakunlandi',
-		canceled: 'Bekor qilingan',
-	}
-	return map[visibleStatus] ?? visibleStatus
-}
 
 const CONTRACT_STAGE_IDS = ['draft', 'audit', 'moderation', 'payment', 'finish'] as const
 

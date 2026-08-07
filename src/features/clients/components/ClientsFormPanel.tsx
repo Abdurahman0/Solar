@@ -122,7 +122,7 @@ export function ClientsFormPanel({ client, onClose, onSuccess }: ClientsFormPane
       { label: isRu ? 'Подготовка предложения' : 'Taklif tayyorlanmoqda', value: 'proposal_preparing' },
       { label: isRu ? 'Предложение отправлено' : 'Taklif yuborildi', value: 'proposal_sent' },
       { label: isRu ? 'Переговоры' : 'Muzokara', value: 'negotiation' },
-      { label: isRu ? 'Ожидание решения' : 'Qaror kutilmoqda', value: 'waiting_for_decision' },
+      { label: isRu ? 'Ожидает оплату' : "To'lov kutilmoqda", value: 'waiting_for_decision' },
       { label: isRu ? 'Выигран' : 'Yutildi', value: 'won' },
       { label: isRu ? 'Потерян' : "Yo'qotildi", value: 'lost' },
       { label: isRu ? 'Отложен' : 'Kechiktirildi', value: 'postponed' },
