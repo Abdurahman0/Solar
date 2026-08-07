@@ -76,6 +76,7 @@ const CONTRACT_STATUS_COLORS: Record<string, string> = {
 	payment_pending: '#F97316',
 	paid: '#22C55E',
 	in_lot: '#0EA5E9',
+	on_the_way: '#06B6D4',
 	completed: '#16A34A',
 	canceled: '#EF4444',
 }

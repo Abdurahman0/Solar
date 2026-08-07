@@ -21,6 +21,7 @@ export interface Contract extends BaseEntity {
 		| 'payment_pending'
 		| 'paid'
 		| 'in_lot'
+		| 'on_the_way'
 		| 'completed'
 		| 'canceled'
 	panel_type: 'jinko_ja' | 'longi_hi_mo_x10' | ''

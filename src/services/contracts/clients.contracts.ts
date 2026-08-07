@@ -25,6 +25,9 @@ export interface ClientRecentContract {
 	id: string
 	title?: string
 	status?: string
+	status_label?: string
+	delivery_status?: string
+	delivery_status_label?: string
 	total_amount?: string | number
 	created_at?: string
 	items?: ClientSelectedProduct[]

@@ -13,7 +13,7 @@ import {
 import { services } from '../../../services'
 import type { Client } from '../../../services/contracts'
 import { isWebappClient } from '../webappFilter'
-import { getContractStatusLabel } from '../../contracts/statusLabels'
+import { getContractStatusLabel, getDeliveryStatusLabel } from '../../contracts/statusLabels'
 
 export interface WebappClientsListViewProps {
 	onRowClick?: (client: Client) => void
@@ -361,14 +361,21 @@ export function WebappClientsListView({
 
 					if (orders.length > 0) {
 						const latest = orders[0]
+						const latestStatus = [
+							latest.status ? getContractStatusLabel(latest.status, isRu) : null,
+							latest.delivery_status
+								? latest.delivery_status_label || getDeliveryStatusLabel(latest.delivery_status, isRu)
+								: null,
+						]
+							.filter(Boolean)
+							.join(' · ')
+
 						return (
 							<div className='grid gap-0.5'>
 								<span className={tablePrimaryTextClassName}>
 									{orders.length} {tx.ordersWord}
 								</span>
-								<span className={tableSecondaryTextClassName}>
-									{latest.status ? getContractStatusLabel(latest.status, isRu) : '-'}
-								</span>
+								<span className={tableSecondaryTextClassName}>{latestStatus || '-'}</span>
 							</div>
 						)
 					}

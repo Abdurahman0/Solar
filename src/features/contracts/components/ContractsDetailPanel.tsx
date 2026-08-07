@@ -54,7 +54,12 @@ type ContractStageId = (typeof CONTRACT_STAGE_IDS)[number]
 type StageTone = 'todo' | 'pending' | 'success' | 'danger'
 
 function getCurrentStageIndex(status: string): number {
-	if (status === 'canceled' || status === 'in_lot' || status === 'completed') {
+	if (
+		status === 'canceled' ||
+		status === 'in_lot' ||
+		status === 'on_the_way' ||
+		status === 'completed'
+	) {
 		return 4
 	}
 	if (status === 'payment_pending' || status === 'paid') {
@@ -94,7 +99,7 @@ function getStageTone(stageId: ContractStageId, status: string): StageTone {
 		case 'payment':
 			return status === 'payment_pending' ? 'pending' : 'success'
 		case 'finish':
-			return status === 'in_lot' ? 'pending' : 'success'
+			return status === 'in_lot' || status === 'on_the_way' ? 'pending' : 'success'
 		default:
 			return 'todo'
 	}
@@ -124,7 +129,7 @@ function getStageStatusLabel(
 	if (tone === 'todo') {
 		return getStatusLabel('in_lot', isRu)
 	}
-	if (status === 'in_lot' || status === 'completed') {
+	if (status === 'in_lot' || status === 'on_the_way' || status === 'completed') {
 		return getStatusLabel(status, isRu)
 	}
 	return getStatusLabel('completed', isRu)

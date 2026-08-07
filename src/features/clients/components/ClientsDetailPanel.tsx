@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useDetail } from '../../../components/hooks';
+import { useAuth } from '../../../auth';
 import { EmptyState, LoadingState, PageCard } from '../../../components/shared/page';
 import { StatusBadge } from '../../../components/shared/data';
 import AppIcon from '../../../components/shared/icons/AppIcon';
@@ -10,8 +12,12 @@ import { services } from '../../../services';
 import { routePaths } from '../../../config/routes';
 import type { Client, ClientRecentContract, ClientSelectedProduct } from '../../../services/contracts';
 import {
+  CONTRACT_STATUSES,
+  DELIVERY_STATUSES,
   getContractStatusLabel,
   getContractStatusTone,
+  getDeliveryStatusLabel,
+  getDeliveryStatusTone,
 } from '../../contracts/statusLabels';
 import {
   ClientRecallScheduleDisplay,
@@ -144,7 +150,40 @@ export function ClientsDetailPanel({
         postponed: 'Kechiktirildi',
       };
 
-  const [state] = useDetail(() => services.clients.getClient(clientId), { autoFetch: true });
+  const [state, detailActions] = useDetail(() => services.clients.getClient(clientId), { autoFetch: true });
+  const { hasPermission } = useAuth();
+  const canManageContracts = hasPermission('can_manage_contracts');
+  const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [orderStatusError, setOrderStatusError] = useState(false);
+
+  async function patchOrder(contract: ClientRecentContract, patch: Partial<ClientRecentContract>) {
+    if (!contract.id) {
+      return;
+    }
+
+    const current = state.data as Client | null;
+    setOrderStatusError(false);
+    setSavingOrderId(contract.id);
+
+    // Optimistically reflect the change in the order list.
+    if (current?.recent_contracts) {
+      detailActions.update({
+        recent_contracts: current.recent_contracts.map(item =>
+          item.id === contract.id ? { ...item, ...patch } : item,
+        ),
+      } as Partial<Client>);
+    }
+
+    try {
+      await services.contracts.updateContract(contract.id, patch as any);
+    } catch {
+      setOrderStatusError(true);
+      // Reload to restore the true state on failure.
+      await detailActions.fetch();
+    } finally {
+      setSavingOrderId(null);
+    }
+  }
 
   const getStatusTone = (status: string) => {
     switch (status) {
@@ -370,22 +409,24 @@ export function ClientsDetailPanel({
           </div>
           <div className="grid gap-2.5">
             {client.recent_contracts.map((contract: ClientRecentContract, i: number) => (
-              <button
+              <div
                 key={contract.id ?? i}
-                type="button"
-                className="group flex w-full flex-col gap-3 rounded-xl bg-surface-subtle/50 p-3.5 text-left transition-all duration-fast hover:bg-surface-subtle/80 ring-1 ring-border-soft/20 hover:ring-info/20 disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={!contract.id}
-                onClick={() => {
-                  if (!contract.id) {
-                    return;
-                  }
-
-                  navigate(routePaths.contracts, { state: { contractId: contract.id } });
-                  onClose?.();
-                }}
+                className="group flex w-full flex-col gap-3 rounded-xl bg-surface-subtle/50 p-3.5 ring-1 ring-border-soft/20 transition-all duration-fast hover:bg-surface-subtle/80 hover:ring-info/20"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 text-left disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={!contract.id}
+                    onClick={() => {
+                      if (!contract.id) {
+                        return;
+                      }
+
+                      navigate(routePaths.contracts, { state: { contractId: contract.id } });
+                      onClose?.();
+                    }}
+                  >
                     <p className="text-[13.5px] font-bold text-text-primary group-hover:text-info transition-colors [overflow-wrap:anywhere]">
                       {contract.title}
                     </p>
@@ -393,18 +434,38 @@ export function ClientsDetailPanel({
                       <AppIcon name="activity" className="h-3 w-3 opacity-60" />
                       {formatLocalizedDate(contract.created_at, locale, { locale, withYear: true, withTime: true, shortMonth: true, fallback: '-' })}
                     </p>
-                  </div>
-                  {contract.status && (
-                    <div className="shrink-0 scale-90 origin-top-right">
-                      <StatusBadge
-                        tone={getContractStatusTone(contract.status)}
-                        status={contract.status}
-                        label={getContractStatusLabel(contract.status, isRu)}
-                      />
-                    </div>
-                  )}
+                  </button>
+                  {contract.status ? (
+                    canManageContracts && contract.id ? (
+                      <select
+                        value={contract.status}
+                        disabled={savingOrderId === contract.id}
+                        onChange={event => {
+                          if (event.target.value !== contract.status) {
+                            void patchOrder(contract, { status: event.target.value });
+                          }
+                        }}
+                        aria-label={isRu ? 'Статус заказа' : 'Buyurtma holati'}
+                        className="shrink-0 max-w-[160px] rounded-lg bg-surface-card px-2 py-1 text-[12px] font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/50 transition duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {CONTRACT_STATUSES.map(value => (
+                          <option key={value} value={value}>
+                            {getContractStatusLabel(value, isRu)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="shrink-0 scale-90 origin-top-right">
+                        <StatusBadge
+                          tone={getContractStatusTone(contract.status)}
+                          status={contract.status}
+                          label={getContractStatusLabel(contract.status, isRu)}
+                        />
+                      </div>
+                    )
+                  ) : null}
                 </div>
-                
+
                 {contract.total_amount && (
                   <div className="flex items-center justify-between border-t border-border-soft/20 pt-2.5">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total</span>
@@ -413,9 +474,49 @@ export function ClientsDetailPanel({
                     </p>
                   </div>
                 )}
-              </button>
+
+                {contract.delivery_status ? (
+                  <div className="flex items-center justify-between gap-2 border-t border-border-soft/20 pt-2.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                      {isRu ? 'Доставка' : 'Yetkazish'}
+                    </span>
+                    {canManageContracts && contract.id ? (
+                      <select
+                        value={contract.delivery_status}
+                        disabled={savingOrderId === contract.id}
+                        onChange={event => {
+                          if (event.target.value !== contract.delivery_status) {
+                            void patchOrder(contract, { delivery_status: event.target.value });
+                          }
+                        }}
+                        aria-label={isRu ? 'Статус доставки' : 'Yetkazish holati'}
+                        className="shrink-0 max-w-[160px] rounded-lg bg-surface-card px-2 py-1 text-[12px] font-semibold text-text-primary shadow-sm ring-1 ring-border-soft/50 transition duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {DELIVERY_STATUSES.map(value => (
+                          <option key={value} value={value}>
+                            {getDeliveryStatusLabel(value, isRu)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="shrink-0 scale-90 origin-top-right">
+                        <StatusBadge
+                          tone={getDeliveryStatusTone(contract.delivery_status)}
+                          status={contract.delivery_status}
+                          label={contract.delivery_status_label || getDeliveryStatusLabel(contract.delivery_status, isRu)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
             ))}
           </div>
+          {orderStatusError ? (
+            <p className="mt-2 text-[12px] font-semibold text-danger">
+              {isRu ? 'Не удалось обновить статус заказа.' : 'Buyurtma holatini yangilab bo\'lmadi.'}
+            </p>
+          ) : null}
         </PageCard>
       ) : null}
 
