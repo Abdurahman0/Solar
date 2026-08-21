@@ -26,6 +26,7 @@ import ProductCategoryFormDialog from '../../../features/products/components/Pro
 import ProductDeleteDialog from '../../../features/products/components/ProductDeleteDialog';
 import ProductDetailPanel from '../../../features/products/components/ProductDetailPanel';
 import ProductFormPanel from '../../../features/products/components/ProductFormPanel';
+import { formatCurrencyAmount } from '../../../constants';
 import { formatLocalizedDate } from '../../../i18n/date-format';
 import { usePersistentState } from '../../../lib/persistent-state';
 import { services } from '../../../services';
@@ -643,6 +644,13 @@ function ProductsPage() {
                     label={t(`products.stockStatus.${resolveStockStatus(product)}`)}
                   />
                 ) : null}
+                {product.subsidyEnabled ? (
+                  <StatusBadge
+                    status="subsidy"
+                    tone="success"
+                    label={t('products.withSubsidy')}
+                  />
+                ) : null}
               </div>
               <span className={tableSecondaryTextClassName}>
                 {product.description || t('products.noDescription')}
@@ -661,17 +669,24 @@ function ProductsPage() {
       {
         key: 'price',
         label: t('products.columns.price'),
+        // Subsidy rules come from the backend: when it is on, the customer pays
+        // `price_after_subsidy` and the subsidy is shown as its own line.
         render: (product) => (
           <div className="grid gap-0.5">
-            <span className={tablePrimaryTextClassName}>{product.price}</span>
+            <span className={tablePrimaryTextClassName}>
+              {formatCurrencyAmount(
+                product.subsidyEnabled ? product.priceAfterSubsidy : product.price,
+                locale,
+              )}
+            </span>
             {product.subsidyEnabled ? (
-              <span className={[tableSecondaryTextClassName, 'font-semibold text-success'].join(' ')}>
-                {t('products.columns.priceAfterSubsidy')}: {product.priceAfterSubsidy}
+              <span className={[tableSecondaryTextClassName, 'line-through'].join(' ')}>
+                {formatCurrencyAmount(product.price, locale)}
               </span>
             ) : null}
             {product.subsidyEnabled && product.subsidyAmount > 0 ? (
-              <span className={tableSecondaryTextClassName}>
-                {t('products.columns.subsidyAmount')}: {product.subsidyAmount}
+              <span className={[tableSecondaryTextClassName, 'font-semibold text-success'].join(' ')}>
+                {t('products.columns.subsidyAmount')}: {formatCurrencyAmount(product.subsidyAmount, locale)}
               </span>
             ) : null}
           </div>

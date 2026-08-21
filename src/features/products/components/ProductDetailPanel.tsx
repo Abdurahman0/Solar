@@ -8,6 +8,7 @@ import {
   LoadingState,
   PageCard,
 } from '../../../components/shared/page';
+import { formatCurrencyAmount } from '../../../constants';
 import { formatLocalizedDate } from '../../../i18n/date-format';
 import { services } from '../../../services';
 import type { EntityId, Product } from '../../../types/domain';
@@ -193,36 +194,41 @@ function ProductDetailPanel({
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   <div className="rounded-lg bg-surface-subtle/80 p-3">
                     <p className={labelClassName}>{t('products.detail.price')}</p>
-                    <p className={`mt-1 ${valueClassName}`}>{product.price}</p>
+                    <p className={`mt-1 ${valueClassName}`}>
+                      {formatCurrencyAmount(product.price, locale)}
+                    </p>
                   </div>
                   <div className="rounded-lg bg-surface-subtle/80 p-3">
                     <p className={labelClassName}>{t('products.detail.subsidyEnabled')}</p>
-                    <p className={`mt-1 ${valueClassName}`}>
-                      {product.subsidyEnabled ? t('common.yes') : t('common.no')}
+                    <p className="mt-1">
+                      <StatusBadge
+                        status={product.subsidyEnabled ? 'active' : 'inactive'}
+                        tone={product.subsidyEnabled ? 'success' : 'neutral'}
+                        label={
+                          product.subsidyEnabled
+                            ? t('products.withSubsidy')
+                            : t('common.no')
+                        }
+                      />
                     </p>
                   </div>
-                  <div
-                    className={[
-                      'rounded-lg p-3',
-                      product.subsidyEnabled
-                        ? 'bg-success-bg/60 ring-1 ring-success/25'
-                        : 'bg-surface-subtle/80',
-                    ].join(' ')}
-                  >
-                    <p className={labelClassName}>{t('products.detail.subsidyAmount')}</p>
-                    <p className={`mt-1 ${valueClassName}`}>{product.subsidyAmount}</p>
-                  </div>
-                  <div
-                    className={[
-                      'rounded-lg p-3',
-                      product.subsidyEnabled
-                        ? 'bg-primary/10 ring-1 ring-primary/20'
-                        : 'bg-surface-subtle/80',
-                    ].join(' ')}
-                  >
-                    <p className={labelClassName}>{t('products.detail.priceAfterSubsidy')}</p>
-                    <p className={`mt-1 ${valueClassName}`}>{product.priceAfterSubsidy}</p>
-                  </div>
+                  {/* Subsidy figures only exist while the backend keeps it enabled. */}
+                  {product.subsidyEnabled ? (
+                    <>
+                      <div className="rounded-lg bg-success-bg/60 p-3 ring-1 ring-success/25">
+                        <p className={labelClassName}>{t('products.detail.subsidyAmount')}</p>
+                        <p className={`mt-1 ${valueClassName}`}>
+                          {formatCurrencyAmount(product.subsidyAmount, locale)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-primary/10 p-3 ring-1 ring-primary/20">
+                        <p className={labelClassName}>{t('products.detail.priceAfterSubsidy')}</p>
+                        <p className={`mt-1 ${valueClassName}`}>
+                          {formatCurrencyAmount(product.priceAfterSubsidy, locale)}
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="rounded-lg bg-surface-subtle/80 p-3">
                     <p className={labelClassName}>{t('products.detail.stockQuantity')}</p>
                     <p className={`mt-1 ${valueClassName}`}>{product.stockQuantity ?? 0}</p>

@@ -30,6 +30,7 @@ import LogsPage from '../pages/protected/LogsPage'
 import NotFoundPage from '../pages/public/NotFoundPage'
 import NotificationsPage from '../pages/protected/NotificationsPage'
 import ProductsPage from '../pages/protected/ProductsPage'
+import SubsidySettingsPage from '../pages/protected/SubsidySettingsPage'
 import OperatorKpiPage from '../pages/protected/OperatorKpiPage'
 import UsersPage from '../pages/protected/UsersPage'
 
@@ -49,6 +50,7 @@ const pageRegistry: Record<RoutedPageId, ComponentType> = {
 	'not-found': NotFoundPage,
 	notifications: NotificationsPage,
 	products: ProductsPage,
+	'subsidy-settings': SubsidySettingsPage,
 	'operator-kpi': OperatorKpiPage,
 	users: UsersPage,
 }
